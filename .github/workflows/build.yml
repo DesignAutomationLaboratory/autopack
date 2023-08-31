@@ -1,0 +1,41 @@
+name: Build application bundle
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        # Include all history to get tags etc. for versioning
+        fetch-depth: 0
+    - name: Install Mambaforge
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        channels: conda-forge
+        channel-priority: strict
+        miniforge-variant: Mambaforge
+        use-mamba: true
+    - name: Install Invoke
+      run: mamba install invoke
+    - name: Setup environment
+      run: invoke dev
+    - name: Build application bundle
+      run: invoke build
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: bundle
+        path: dist/archive/*.7z
