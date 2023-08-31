@@ -3,6 +3,7 @@ name: Build application bundle
 on:
   release:
     types: [published]
+  push:
   workflow_dispatch:
 
 concurrency:
