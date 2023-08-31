@@ -18,6 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "conda-lock",
+  "hatch",
   "invoke",      # For task automation
   "ipykernel",   # For Jupyter notebooks in VSCode
   "pyinstaller",
@@ -39,6 +40,7 @@ channels = ["pytorch", "nvidia", "conda-forge", "defaults"]
 [tool.conda-lock.dependencies]
 # Extra dependencies for conda-lock. *Only* add packages here if they
 # are not available on PyPI.
+7zip = "*"         # For packaging
 pip = "*"
 python = ">=3.9"
 pytorch-cuda = "*"
