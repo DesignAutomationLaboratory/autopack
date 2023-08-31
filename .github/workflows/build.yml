@@ -29,8 +29,8 @@ jobs:
         channel-priority: strict
         miniforge-variant: Mambaforge
         use-mamba: true
-    - name: Install Invoke
-      run: mamba install invoke
+    - name: Install utils in bootstrap environment
+      run: mamba install conda-lock hatch invoke
     - name: Setup environment
       run: invoke env
     - name: Build application bundle
