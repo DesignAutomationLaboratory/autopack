@@ -32,7 +32,7 @@ jobs:
     - name: Install Invoke
       run: mamba install invoke
     - name: Setup environment
-      run: invoke dev
+      run: invoke env
     - name: Build application bundle
       run: invoke build
     - name: Upload build artifact
