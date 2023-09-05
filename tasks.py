@@ -23,12 +23,12 @@ def env(c, env_name=DEFAULT_ENV_NAME):
     Installs the Python development environment.
     """
     c.run(f"conda lock install -n {env_name} conda-lock.yml")
-    conda_run(c, f"pip install --no-deps -e .", env_name=env_name)
+    conda_run(c, "pip install --no-deps -e .", env_name=env_name)
 
 
 @task
 def lock(c):
-    c.run(f"conda lock -f pyproject.toml --lockfile conda-lock.yml")
+    c.run("conda lock -f pyproject.toml --lockfile conda-lock.yml")
 
 
 @task
@@ -39,7 +39,7 @@ def build(c, env_name=DEFAULT_ENV_NAME):
     # PyInstaller
     pass
 
-    conda_run(c, f"pyinstaller --noconfirm autopack.spec")
+    conda_run(c, "pyinstaller --noconfirm autopack.spec")
     bundle_path = pathlib.Path("dist/autopack")
 
     # The reason we use 7z is because the user might try to unzip the
