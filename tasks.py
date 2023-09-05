@@ -7,7 +7,8 @@ DEFAULT_ENV_NAME = "autopack"
 
 @task
 def conda_run(c, cmd, env_name=DEFAULT_ENV_NAME):
-    return c.run(f"conda run -n {env_name} {cmd}")
+    with c.prefix(f"conda activate {env_name}"):
+        return c.run(cmd)
 
 
 @task
