@@ -10,12 +10,14 @@ authors = [
   { name = "Anton Wiberg", email = "anton.wiberg@liu.se" },
   { name = "Olle Vidner", email = "olle.vidner@liu.se" },
 ]
+# Dependencies that are needed to actually run the application
 dependencies = [
   "botorch", # Bayesian optimization
   "numpy",
 ]
 
 [project.optional-dependencies]
+# Dependencies that are only needed for development/testing/building
 dev = [
   "conda-lock",
   "hatch",
