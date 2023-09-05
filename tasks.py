@@ -6,6 +6,12 @@ DEFAULT_ENV_NAME = "autopack"
 
 
 @task
+def version(c):
+    version_response = conda_run(c, "hatch version")
+    return version_response.stdout.strip()
+
+
+@task
 def conda_run(c, cmd, env_name=DEFAULT_ENV_NAME):
     with c.prefix(f"conda activate {env_name}"):
         return c.run(cmd)
@@ -27,8 +33,7 @@ def lock(c):
 
 @task
 def build(c, env_name=DEFAULT_ENV_NAME):
-    version_response = conda_run(c, f"hatch version")
-    version = version_response.stdout.strip()
+    ver = version(c)
 
     # TODO: build docs so they can be included in the bundle by
     # PyInstaller
@@ -41,7 +46,7 @@ def build(c, env_name=DEFAULT_ENV_NAME):
     # file using the built-in Windows unzipper, which doesn't support
     # long file names.
 
-    archive_path = pathlib.Path(f"dist/archive/autopack-{version}.7z").resolve()
+    archive_path = pathlib.Path(f"dist/archive/autopack-{ver}.7z").resolve()
     archive_path.unlink(missing_ok=True)
 
     with c.cd(bundle_path):
