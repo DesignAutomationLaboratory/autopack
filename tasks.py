@@ -41,7 +41,8 @@ def build(c, env_name=DEFAULT_ENV_NAME):
     # file using the built-in Windows unzipper, which doesn't support
     # long file names.
 
-    # TODO: fix the paths in the bundle so that they are relative to the bundle root
-    archive_path = pathlib.Path(f"dist/archive/autopack-{version}.7z")
+    archive_path = pathlib.Path(f"dist/archive/autopack-{version}.7z").resolve()
     archive_path.unlink(missing_ok=True)
-    conda_run(c, f"7z a {archive_path} {bundle_path}")
+
+    with c.cd(bundle_path):
+        conda_run(c, f"7z a {archive_path} .")
