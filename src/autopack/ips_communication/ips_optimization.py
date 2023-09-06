@@ -1,6 +1,4 @@
-from .. import cost_field
-
-def create_ips_field(ips_instance, nodes, geometries, mesh_size = 0.06, clipping_distance = 150):
+def optimize_harness(ips_instance, nodes, geometries, cost_field, mesh_size = 0.06, clipping_distance = 150):
     # nodes = array with tuples of start, end nodes, and cable diameter (in mm). e.g [(start1, end1, 8),(start2, end2, 10),...]
     # geometries = array with tuples of the geometries, clearance (in mm), how to handle them 0-near, 1-avoid, 2-only prevent collision, and if you can clip. e.g [("Panel",150,0,true), ....]
     nodes_string = ','.join(','.join(str(x) for x in t) for t in nodes)
@@ -85,23 +83,14 @@ def create_ips_field(ips_instance, nodes, geometries, mesh_size = 0.06, clipping
             for iii = 0, numbOfCostNodes[2]-1,1
             do
                 local pos = sim:getNodePosition(i,ii,iii)
-                output = output .. " " .. pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i,ii,iii)
+                output = output .. " " .. i .. " " .. ii .. " " .. iii .. " " .. pos[0] .. " " .. pos[1] .. " " .. pos[2] .. sim:getNodeCost(i,ii,iii)
             end
         end
     end
     return output
     """
     str_cost_field = ips_instance.call(command)
-    str_cost_field = str_cost_field.decode('utf-8').strip()
-    array_cost_field = str_cost_field.split()
-    cost_field_size = [int(array_cost_field[0]), int(array_cost_field[1]), int(array_cost_field[2])]
-    array_cost_field = array_cost_field[3:]
-    cost_field_template = cost_field.CostFieldTemplate(size=cost_field_size)
-    cost_field_ips = cost_field.CostField(cost_field_template)
-    coordinates = [value for i, value in enumerate(array_cost_field) if (i % 4 != 3)]
-    costs = [value for i, value in enumerate(array_cost_field) if (i % 4 == 3)]
-    constant_costs = ["1"] * len(costs)
-    
+    print(str_cost_field)
 
 
     
