@@ -1,4 +1,4 @@
-from .. import cost_field
+import cost_field
 
 def create_ips_field(ips_instance, nodes, geometries, mesh_size = 0.06, clipping_distance = 150):
     # nodes = array with tuples of start, end nodes, and cable diameter (in mm). e.g [(start1, end1, 8),(start2, end2, 10),...]
@@ -92,16 +92,21 @@ def create_ips_field(ips_instance, nodes, geometries, mesh_size = 0.06, clipping
     return output
     """
     str_cost_field = ips_instance.call(command)
-    str_cost_field = str_cost_field.decode('utf-8').strip()
+    str_cost_field = str_cost_field.decode('utf-8').strip('"')
     array_cost_field = str_cost_field.split()
     cost_field_size = [int(array_cost_field[0]), int(array_cost_field[1]), int(array_cost_field[2])]
     array_cost_field = array_cost_field[3:]
     cost_field_template = cost_field.CostFieldTemplate(size=cost_field_size)
     cost_field_ips = cost_field.CostField(cost_field_template)
+    cost_field_constant = cost_field.CostField(cost_field_template)
     coordinates = [value for i, value in enumerate(array_cost_field) if (i % 4 != 3)]
     costs = [value for i, value in enumerate(array_cost_field) if (i % 4 == 3)]
-    constant_costs = ["1"] * len(costs)
-    
+    cost_field_template.set_coords_from_str_array(coordinates)
+    cost_field_ips.set_costs_from_str_array(costs)
+    cost_field_constant.costs += 1
+
+    return cost_field_template, cost_field_ips, cost_field_constant
+
 
 
     
