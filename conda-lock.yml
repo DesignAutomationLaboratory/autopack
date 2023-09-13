@@ -23,7 +23,7 @@ metadata:
   - url: defaults
     used_env_vars: []
   content_hash:
-    win-64: a3cecf971e4cc9029480c8fc3c84a5d152ba47f484ae3e4a07f8209dd164db6a
+    win-64: 19391e5eb00a1750a55f5660b449a4698de9b5a7a2474db95eb41f5edb5cc828
   platforms:
   - win-64
   sources:
@@ -2286,7 +2286,7 @@ package:
   platform: win-64
   url: https://conda.anaconda.org/conda-forge/noarch/platformdirs-3.10.0-pyhd8ed1ab_0.conda
   version: 3.10.0
-- category: dev
+- category: main
   dependencies:
     python: '>=3.11,<3.12.0a0'
     python_abi: 3.11.* *_cp311
@@ -2299,7 +2299,7 @@ package:
     sha256: 9ef7ba9f41f2d2234b93176a0f54b37ceb3857f37869700a1cad2911f5e898c1
   manager: conda
   name: pydantic-core
-  optional: true
+  optional: false
   platform: win-64
   url: https://conda.anaconda.org/conda-forge/win-64/pydantic-core-2.6.3-py311hc37eb10_0.conda
   version: 2.6.3
@@ -2445,7 +2445,7 @@ package:
   platform: win-64
   url: https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.39-pyha770c72_0.conda
   version: 3.0.39
-- category: dev
+- category: main
   dependencies:
     annotated-types: '>=0.4.0'
     pydantic-core: 2.6.3
@@ -2456,7 +2456,7 @@ package:
     sha256: e10535f7d5171e2114fb66e4590f2e3b2eac817ff350f7d6382916914215391b
   manager: conda
   name: pydantic
-  optional: true
+  optional: false
   platform: win-64
   url: https://conda.anaconda.org/conda-forge/noarch/pydantic-2.3.0-pyhd8ed1ab_0.conda
   version: 2.3.0
