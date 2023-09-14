@@ -1,0 +1,35 @@
+name: Run tests
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        # Include all history to get tags etc. for versioning
+        fetch-depth: 0
+    - name: Install Mambaforge
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        channels: conda-forge
+        channel-priority: strict
+        miniforge-variant: Mambaforge
+        use-mamba: true
+    - name: Install utils in bootstrap environment
+      run: mamba install conda-lock hatch invoke
+    - name: Setup environment
+      run: invoke env
+    - name: Run tests
+      run: invoke tests
