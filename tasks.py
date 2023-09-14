@@ -51,3 +51,8 @@ def build(c, env_name=DEFAULT_ENV_NAME):
 
     with c.cd(bundle_path):
         conda_run(c, f"7z a {archive_path} .")
+
+
+@task
+def tests(c, env_name=DEFAULT_ENV_NAME):
+    conda_run(c, "pytest -s -vvv --color=yes", env_name=env_name)
