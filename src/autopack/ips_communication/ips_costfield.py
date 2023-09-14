@@ -1,13 +1,25 @@
 import cost_field
 
-def create_ips_field(ips_instance, nodes, geometries, mesh_size = 0.06, clipping_distance = 150):
-    # nodes = array with tuples of start, end nodes, and cable diameter (in mm). e.g [(start1, end1, 8),(start2, end2, 10),...]
+def create_ips_field(ips_instance, harness_setup, mesh_size = 0.06, clipping_distance = 150):
+    # nodes = array with tuples of start, end nodes, and cable type. e.g [(start1, end1, type1),(start2, end2, typ2),...]
     # geometries = array with tuples of the geometries, clearance (in mm), how to handle them 0-near, 1-avoid, 2-only prevent collision, and if you can clip. e.g [("Panel",150,0,true), ....]
+    nodes = []
+    for cable in harness_setup.cables:
+        nodes.append((cable.start_node, cable.end_node, cable.type))
+    geometries = []
+    for geometry in harness_setup.geometries:
+        if geometry.preference == 'Near':
+            pref = 0
+        elif geometry.preference == 'Avoid':
+            pref = 1
+        else:
+            pref = 2
+        geometries.append((geometry.name, geometry.clearance,pref , geometry.clipable))
     nodes_string = ','.join(','.join(str(x) for x in t) for t in nodes)
     geometries_string = ','.join(','.join(str(x) for x in t) for t in geometries)
     command = """
     meshSize = """ + str(mesh_size) + """
-    clippingDistance = """ + str(clipping_distance) + """
+    clippingDistance = """ + str(clipping_distance/1000) + """
     nodes_str = \"""" + nodes_string + """\"
     geometries_str = \"""" + geometries_string + """\"
     -- Split function
@@ -69,7 +81,7 @@ def create_ips_field(ips_instance, nodes, geometries, mesh_size = 0.06, clipping
     end
 
     -- Setup Harness
-    sim:setMinMaxClipClipDist(clippingDistance,clippingDistance*2);
+    --sim:setMinMaxClipClipDist(clippingDistance,clippingDistance*2);
     sim:setMinBoundingBox(false);
     sim:computeGridSize(meshSize);
     sim:buildCostField();

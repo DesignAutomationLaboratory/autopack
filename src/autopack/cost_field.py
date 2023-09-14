@@ -22,9 +22,19 @@ class CostField:
             for ii in range(self.template.size[1]):
                 for iii in range(self.template.size[2]):
                     try:
-                        cost = float(cost_array[n])
+                        if float(cost_array[n]) > 9999999:
+                            cost = 999999999999999999999
+                        else:
+                            cost = float(cost_array[n])
                     except ValueError:
                         cost = 999999999999999999999
                     self.costs[i,ii,iii] = cost
                     n = n + 1
+    def get_cost_field_as_str(self):
+        cost_str = ""
+        for i in range(self.template.size[0]):
+            for ii in range(self.template.size[1]):
+                for iii in range(self.template.size[2]):
+                    cost_str = cost_str + "," + str(i) + "," + str(ii) + "," + str(iii) + "," + str(self.costs[i,ii,iii][0])
+        return cost_str[1:]
 
