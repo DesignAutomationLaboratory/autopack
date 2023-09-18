@@ -1,5 +1,6 @@
 from . import lua_commands
 import cost_field
+import harness
 
 def create_costfield(ips_instance, harness_setup):
     command1 = lua_commands.setup_harness_routing(harness_setup)
@@ -31,5 +32,23 @@ def optimize_harness(ips_instance, harness_setup, cost_field):
     array_harness = str_harness.split(",")
     array_harness[-1] = array_harness[-1].rstrip('"\n')
     nmb_of_clips = int(array_harness[0])
-    nmb_of_paths = array_harness.count('break')
-    print(array_harness)
+    array_harness = array_harness[1:]
+    nmb_of_segments = array_harness.count('break')
+    new_harness = harness.harness()
+    new_harness.numb_of_clips = nmb_of_clips
+    last_break = 0
+    for i in range(nmb_of_segments):
+        new_segment = harness.harness_segment()
+        cables = array_harness[last_break+3:last_break+3+int(array_harness[last_break+2])]
+        cables_int = [int(x) for x in cables]
+        new_segment.cables = cables_int
+        start_loop = last_break+3+int(array_harness[last_break+2])
+        end_loop = start_loop+int(array_harness[last_break+1])*3
+        for ii in range(start_loop,end_loop,3):
+            points = [int(array_harness[ii]),int(array_harness[ii+1]),int(array_harness[ii+2])]
+            new_segment.points.append(points)
+        last_break = end_loop
+        new_harness.harness_segments.append(new_segment)
+    return new_harness
+        
+    

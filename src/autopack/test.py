@@ -20,4 +20,5 @@ setup1 = harness_setup.HarnessSetup(geometries = [part1, part2, part2], cables =
 from ips_communication.ips_commands import create_costfield, optimize_harness
 
 cost_field_template, cost_field_ips, cost_field_constant = create_costfield(ips, setup1)
-optimize_harness(ips, setup1, cost_field_ips)
+new_harness = optimize_harness(ips, setup1, cost_field_ips)
+print(new_harness)
