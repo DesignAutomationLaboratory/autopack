@@ -28,7 +28,7 @@ def write_harness_setup_to_json(harness_setup: HarnessSetup, file_path: str) -> 
     - file_path (str): The path to the file where the instance will be written.
     """
     with open(file_path, 'w') as file:
-        json.dump(harness_setup.dict(), file, indent=4)
+        json.dump(harness_setup.model_dump(), file, indent=4)
 
 def load_harness_setup_from_json(file_path: str) -> Optional[HarnessSetup]:
     """

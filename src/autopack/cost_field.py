@@ -38,3 +38,4 @@ class CostField:
                     cost_str = cost_str + "," + str(i) + "," + str(ii) + "," + str(iii) + "," + str(self.costs[i,ii,iii][0])
         return cost_str[1:]
 
+
