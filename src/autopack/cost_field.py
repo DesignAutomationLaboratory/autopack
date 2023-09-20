@@ -37,5 +37,18 @@ class CostField:
                 for iii in range(self.template.size[2]):
                     cost_str = cost_str + "," + str(i) + "," + str(ii) + "," + str(iii) + "," + str(self.costs[i,ii,iii][0])
         return cost_str[1:]
+    def get_normilised_costs(self):
+        mask = self.costs < 9999
+        max_value = np.amax(self.costs[mask])
+        normalized_arr = self.costs / max_value
+        return normalized_arr
 
+def combine_cost_fields(cost_fields, weights, normilise_fields = True):
+    new_cost = CostField(cost_fields[0].template)
+    for i in range(len(cost_fields)):
+        if normilise_fields:
+            new_cost.costs = new_cost.costs + weights[i]*cost_fields[i].get_normilised_costs()
+        else:
+            new_cost.costs = new_cost.costs + weights[i]*cost_fields[i].costs
+    return new_cost
 

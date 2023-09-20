@@ -22,9 +22,17 @@ def create_costfield(ips_instance, harness_setup):
 
     return cost_field_template, cost_field_ips, cost_field_constant
 
-def optimize_harness(ips_instance, harness_setup, cost_field):
+def load_scene(ips_instance, scene_file_path):
+    escaped_string = scene_file_path.encode('unicode_escape').decode() #.encode('unicode_escape').decode()
+    command ="""
+    local IPSFile = '""" + escaped_string + """'
+    Ips.loadScene(IPSFile)
+    """
+    ips_instance.call(command)
+
+def optimize_harness(ips_instance, harness_setup, cost_field, bundle_weight=0.5, save_harness=True, id=0):
     command1 = lua_commands.setup_harness_routing(harness_setup)
-    command2 = lua_commands.setup_harness_optimization(cost_field)
+    command2 = lua_commands.setup_harness_optimization(cost_field, weight=bundle_weight, save_harness=save_harness, harness_id=id)
     command = command1 + command2
 
     str_harness = ips_instance.call(command)
@@ -50,5 +58,13 @@ def optimize_harness(ips_instance, harness_setup, cost_field):
         last_break = end_loop
         new_harness.harness_segments.append(new_segment)
     return new_harness
-        
-    
+
+def check_distance_of_points(ips_instance, harness_setup, coords):
+    command = lua_commands.check_coord_distances(0.1, harness_setup, coords)
+    str_checked = ips_instance.call(command)
+
+def get_stl_meshes(ips_instance):
+    command = lua_commands.get_stl_meshes()
+    print(command)
+    str_meshes = ips_instance.call(command)
+    print(str_meshes)

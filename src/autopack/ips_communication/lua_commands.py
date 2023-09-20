@@ -113,6 +113,190 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
     """
     return final_command
 
+def check_coord_distances(measure_dist, harness_setup, coords):
+    geos_to_consider = ""
+    for geo in harness_setup.geometries:
+        if geo.assembly:
+            geos_to_consider = geos_to_consider + geo.name + ","
+    if len(geos_to_consider)>0:
+        geos_to_consider = geos_to_consider[:-1]
+    else:
+        return None
+    coords_str = ":".join(",".join(map(str, row)) for row in coords)
+    command = """
+    measure_dist = """ + str(measure_dist) + """
+    coords = """ + coords_str + """
+    parts = """ + geos_to_consider + """
+    function split(source, delimiters)
+        local elements = {}
+        local pattern = '([^'..delimiters..']+)'
+        string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
+        return elements
+    end
+    function tablelength(T)
+    local count = 0
+    for _ in pairs(T) do count = count + 1 end
+    return count
+    end
+
+    local treeObject = Ips.getActiveObjectsRoot()
+    --sphere = Ips:createSphere(1.0, 1,1)
+    prim = PrimitiveShape.createSphere(0.001, 6,6)
+    rigid_prim = Ips.createRigidBodyObject(prim)
+    geo2 = TreeObjectVector()
+    geo2:insert(0, rigid_prim)
+
+    geo = TreeObjectVector()
+    parts_table = split(parts,',')
+    for i = 1,tablelength(parts_table),1 do
+        object = treeObject:findFirstMatch(parts_table[i])
+        geo:insert(0, object)
+    end
+
+
+
+    r = Rot3(Vector3d(0, 0, 0),Vector3d(0, 0, 0),Vector3d(0, 0, 0))
+    measure = DistanceMeasure(1,geo, geo2)
+    measure_res = ""
+
+    coord_table = split(coords,':')
+    for i = 1,tablelength(parts_table),1 do
+        local_coords = split(coord_table[i],',')
+        local t = Vector3d(tonumber(local_coords[1]), tonumber(local_coords[2]), tonumber(local_coords[3]));
+        local trans = Transf3(r, t)
+        rigid_prim:setFrameInWorld(trans)
+        dist = measure:getDistance()
+        if dist<measure_dist-0.01 then 
+            measure_res = measure_res .. " 1"
+        else
+            measure_res = measure_res .. " 0"
+        end
+        
+    end
+
+    Ips.deleteTreeObject(measure)
+    Ips.deleteTreeObject(rigid_prim)
+
+    return measure_res
+    """
+    return command
+
+
+def get_stl_meshes():
+    command = """
+    local treeObject = Ips.getActiveObjectsRoot()
+    nodes = ""
+    local object = treeObject:getFirstChild();
+    local numbOfGeoemtries = treeObject:getNumChildren();
+    type = object:getType()
+    if(type=="RigidBodyObject")
+    then
+        object1 = object:toPositionedTreeObject()
+        object1 = object1:mergeTriangleSubMeshes()
+        nodes = "[" .. object:getLabel() .. ",["
+        vertices = object1:getVertices()
+        numb_verts = vertices:size()
+        for n = 0,numb_verts,1
+        do
+            vert = vertices[n]
+            nodes = nodes .. "[" .. tostring(vert[0]) .. tostring(vert[1]) .. tostring(vert[2]) .. "],"
+        end
+        nodes = nodes .. "],["
+        triangles = object1:getTriangles()
+        numb_tirangles = vertices:size()
+        for n = 0,numb_tirangles,1
+        do
+            tri = triangles[n]
+            nodes = nodes .. "[" .. tostring(tri[0]) .. tostring(tri[1]) .. tostring(tri[2]) .. "],"
+        end
+        nodes = nodes .. "],"
+
+
+    end
+    for i = 2,numbOfGeoemtries,1 
+    do 
+        local objectTemp = object:getNextSibling();
+        object = objectTemp;
+        type = object:getType()
+        if(type=="RigidBodyObject")
+        then
+            object1 = object:toPositionedTreeObject()
+            object1 = object1:mergeTriangleSubMeshes()
+            nodes = nodes .. "[" .. object:getLabel() .. ",["
+            vertices = object1:getVertices()
+            numb_verts = vertices:size()
+            for n = 0,numb_verts,1
+            do
+                vert = vertices[n]
+                nodes = nodes .. "[" .. tostring(vert[0]) .. tostring(vert[1]) .. tostring(vert[2]) .. "],"
+            end
+            nodes = nodes .. "],["
+            triangles = object1:getTriangles()
+            numb_tirangles = vertices:size()
+            for n = 0,numb_tirangles,1
+            do
+                tri = triangles[n]
+                nodes = nodes .. "[" .. tostring(tri[0]) .. tostring(tri[1]) .. tostring(tri[2]) .. "],"
+            end
+            nodes = nodes .. "],"
+        else
+            local numbOfchilds = object:getNumChildren();
+            local objectobject = object:getFirstChild();
+            type = objectobject:getType()
+            if(type=="RigidBodyObject")
+            then
+                object1 = object:toPositionedTreeObject()
+                nodes = nodes .. "[" .. object:getLabel() .. ",["
+                vertices = object1:getVertices()
+                numb_verts = vertices:size()
+                for n = 0,numb_verts,1
+                do
+                    vert = vertices[n]
+                    nodes = nodes .. "[" .. tostring(vert[0]) .. tostring(vert[1]) .. tostring(vert[2]) .. "],"
+                end
+                nodes = nodes .. "],["
+                triangles = object1:getTriangles()
+                numb_tirangles = vertices:size()
+                for n = 0,numb_tirangles,1
+                do
+                    tri = triangles[n]
+                    nodes = nodes .. "[" .. tostring(tri[0]) .. tostring(tri[1]) .. tostring(tri[2]) .. "],"
+                end
+                nodes = nodes .. "],"
+            end
+            for ii = 2,numbOfchilds,1 
+            do 
+                local objectobjectTemp = objectobject:getNextSibling();
+                objectobject = objectobjectTemp;
+                type = objectobject:getType()
+                name = objectobject:getLabel()
+                if(type=="RigidBodyObject")
+                then
+                    object1 = object:toPositionedTreeObject()
+                    nodes = nodes .. "[" .. object:getLabel() .. ",["
+                    vertices = object1:getVertices()
+                    numb_verts = vertices:size()
+                    for n = 0,numb_verts,1
+                    do
+                        vert = vertices[n]
+                        nodes = nodes .. "[" .. tostring(vert[0]) .. tostring(vert[1]) .. tostring(vert[2]) .. "],"
+                    end
+                    nodes = nodes .. "],["
+                    triangles = object1:getTriangles()
+                    numb_tirangles = vertices:size()
+                    for n = 0,numb_tirangles,1
+                    do
+                        tri = triangles[n]
+                        nodes = nodes .. "[" .. tostring(tri[0]) .. tostring(tri[1]) .. tostring(tri[2]) .. "],"
+                    end
+                    nodes = nodes .. "],"
+                        end
+            end
+        end
+    end
+    return nodes 
+    """
+    return command
 def bool_to_string_lower(bool_val):
     str_val = str(bool_val)
     return str_val[0].lower() + str_val[1:]
