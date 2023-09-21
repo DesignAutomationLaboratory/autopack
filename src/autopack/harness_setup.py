@@ -20,6 +20,7 @@ class HarnessSetup(BaseModel):
     geometries: List[Geometry]
     cables:List[Cable]
 
+
 def write_harness_setup_to_json(harness_setup: HarnessSetup, file_path: str) -> None:
     """
     Write a HarnessSetup instance to a JSON file.

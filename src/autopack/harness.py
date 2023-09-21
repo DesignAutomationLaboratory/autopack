@@ -1,12 +1,15 @@
-class harness():
-    def __init__(self) -> None:
-        self.harness_segments = []
-        self.numb_of_clips = 0
+from pydantic import BaseModel
 
-class harness_segment():
-    def __init__(self) -> None:
-        self.cables = []
-        self.points = []
+
+class HarnessSegment(BaseModel):
+    cables: list[int]
+    points: list[tuple[int, int, int]]
+
+    
+class Harness(BaseModel):
+    harness_segments: list[HarnessSegment]
+    numb_of_clips: int = 0
+    
 
 def evaluate_harness(harness, cost_field):
     bundle_cost = 0
