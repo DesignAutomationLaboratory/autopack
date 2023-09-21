@@ -20,6 +20,7 @@ class HarnessSetup(BaseModel):
     cables:List[Cable]
 
 class CostField(BaseModel, arbitrary_types_allowed=True):
+    name: str
     coordinates: np.ndarray 
     costs: np.ndarray
     def normalized_costs(self):
