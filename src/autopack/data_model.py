@@ -15,16 +15,21 @@ class Geometry(BaseModel):
     clipable: bool
     assembly: bool
 
-class HarnessSetup(BaseModel):
+class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
     geometries: List[Geometry]
     cables:List[Cable]
+    clip_clip_dist: tuple[float,float] = (0.15, 0.45) #min/max distance between clips
+    branch_clip_dist: tuple[float,float] = (0.05, 2) #min/max distance between branch and clip
 
 class CostField(BaseModel, arbitrary_types_allowed=True):
     name: str
     coordinates: np.ndarray 
     costs: np.ndarray
     def normalized_costs(self):
-        return None
+        mask = self.costs < 999999
+        max_value = np.amax(self.costs[mask])
+        normalized_arr = self.costs / max_value
+        return normalized_arr
 
 class ProblemSetup(BaseModel):
     harness_setup: HarnessSetup

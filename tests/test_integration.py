@@ -1,6 +1,7 @@
 from autopack.data_model import Cable, Geometry, ProblemSetup, HarnessSetup, CostField
 from autopack.ips_communication.ips_class import IPSInstance
 from autopack.ips_communication.ips_commands import load_scene, create_costfield
+from autopack.harness_optimization import optimize_harness
 import numpy as np
 import os
 import pathlib
@@ -19,7 +20,7 @@ def test_harness_optimization_setup():
     
     opt_setup = ProblemSetup(harness_setup=setup1, cost_fields=[cost_field])
 
-def test_cost_field_creation():
+def test_integration():
     #ips_path = os.environ.get("AUTOPACK_IPS_PATH")
     #ips = IPSInstance(ips_path)
     ips = IPSInstance(r"C:\Users\antwi87\Documents\IPS\IPS_2023-R2-SP1-HarnessRouter_v3.0_x64")
@@ -38,5 +39,7 @@ def test_cost_field_creation():
     cost_field_ips, cost_field_length = create_costfield(ips, setup1)
     opt_setup = ProblemSetup(harness_setup=setup1, cost_fields=[cost_field_ips, cost_field_length])
 
-    #bundle_cost,total_cost = problem_setup.harness_optimization(ips, opt_setup, [0.5, 0.5], 0.3)
+    costs, numb_of_clips = optimize_harness(ips, opt_setup, [0.5, 0.5], 0.5)
+    print("costs: ", costs)
+    print("Number of clips: ", numb_of_clips)
 

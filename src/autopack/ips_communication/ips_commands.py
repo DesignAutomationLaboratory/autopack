@@ -37,11 +37,11 @@ def load_scene(ips_instance, scene_file_path):
     """
     ips_instance.call(command)
 
-def optimize_harness(ips_instance, harness_setup, cost_field, bundle_weight=0.5, save_harness=True, id=0):
+def ips_optimize_harness(ips_instance, harness_setup, cost_field, bundle_weight=0.5, save_harness=True, id=0):
     command1 = lua_commands.setup_harness_routing(harness_setup)
     command2 = lua_commands.setup_harness_optimization(cost_field, weight=bundle_weight, save_harness=save_harness, harness_id=id)
     command = command1 + command2
-
+    #print(command)
     str_harness = ips_instance.call(command)
     str_harness = str_harness.decode('utf-8').strip('"')
     array_harness = str_harness.split(",")

@@ -1,3 +1,4 @@
+import numpy as np
 def setup_harness_routing(harness):
     command = """
     -- Create CableComponentTemplate
@@ -31,9 +32,10 @@ def setup_harness_routing(harness):
         """
         command = command + local_command
 
-    command = command + """
+    command = command + f"""
     -- Setup Harness
-    sim:setMinMaxClipClipDist(0.05,0.15);
+    sim:setMinMaxClipClipDist({harness.clip_clip_dist[0]},{harness.clip_clip_dist[1]});
+    sim:setMinMaxBranchClipDist({harness.branch_clip_dist[0]},{harness.branch_clip_dist[1]})
     sim:setMinBoundingBox(false);
     sim:computeGridSize(0.02);
     --local numbOfCostNodes = sim:getGridSize()
@@ -66,11 +68,14 @@ def setup_export_cost_field():
 
 def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harness_id=0):
     commands = []
-    
-    for i in range(cost_field.template.size[0]):
-        for ii in range(cost_field.template.size[1]):
-            for iii in range(cost_field.template.size[2]):
-                cmd = f"sim:setNodeCost({i}, {ii}, {iii}, {cost_field.costs[i, ii, iii][0]})"
+    cost_field_size = np.shape(cost_field.costs)
+    for i in range(cost_field_size[0]):
+        for ii in range(cost_field_size[1]):
+            for iii in range(cost_field_size[2]):
+                if cost_field.costs[i, ii, iii] > 9999999999999999999:
+                    cmd = f"sim:setNodeCost({i}, {ii}, {iii}, 9999999999999999999)"
+                else:
+                    cmd = f"sim:setNodeCost({i}, {ii}, {iii}, {cost_field.costs[i, ii, iii]})"
                 commands.append(cmd)
     new_line = '\n'
     final_command = f"""
@@ -87,7 +92,7 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
         for n = 0,nmb_of_segements-1,1
         do
             in_seg = sim:getCablesInSegment(solution_to_capture,n)
-            print(in_seg:size())
+            -- print(in_seg:size())
             segement = sim:getDiscreteSegment(solution_to_capture, n, false)
             elements_in_segment = segement:size()
             harness = harness .. "," .. "break" .. "," .. elements_in_segment .. "," .. in_seg:size()
