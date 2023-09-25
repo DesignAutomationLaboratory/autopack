@@ -39,7 +39,7 @@ def test_integration():
     cost_field_ips, cost_field_length = create_costfield(ips, setup1)
     opt_setup = ProblemSetup(harness_setup=setup1, cost_fields=[cost_field_ips, cost_field_length])
 
-    costs, numb_of_clips = optimize_harness(ips, opt_setup, [0.5, 0.5], 0.5)
+    costs, numb_of_clips = optimize_harness(ips, opt_setup, [0.5, 0.5], 0.5, save_harness=True, id=0)
     print("costs: ", costs)
     print("Number of clips: ", numb_of_clips)
 
