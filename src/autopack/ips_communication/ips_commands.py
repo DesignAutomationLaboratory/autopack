@@ -1,6 +1,7 @@
 from . import lua_commands
 from itertools import product
 import numpy as np
+import pathlib
 from autopack.data_model import CostField, Harness, HarnessSegment
 
 def create_costfield(ips_instance, harness_setup):
@@ -65,12 +66,25 @@ def ips_optimize_harness(ips_instance, harness_setup, cost_field, bundle_weight=
     
     return Harness(harness_segments=harness_segments, numb_of_clips=nmb_of_clips)
 
-def check_distance_of_points(ips_instance, harness_setup, coords):
-    command = lua_commands.check_coord_distances(0.1, harness_setup, coords)
+def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_dist):
+    command = lua_commands.check_coord_distances(max_geometry_dist, harness_setup, coords)
+    #with open(r"C:\Users\antwi87\Documents\IPS\test_environment\filename.txt", "w") as file:
+    #    file.write(command)
     str_checked = ips_instance.call(command)
+    numbers = [int(num) for num in str_checked.decode("utf-8").strip(' "\n').split()]
+    return numbers
 
-def get_stl_meshes(ips_instance):
-    command = lua_commands.get_stl_meshes()
-    print(command)
-    str_meshes = ips_instance.call(command)
-    print(str_meshes)
+def ergonomic_evaluation(ips_instance, stl_paths, coords):
+    ips_instance.start()
+    ergo_path = pathlib.Path(__file__).parent / "ErgonomicEvaluation.ips"
+    load_scene(ips_instance, str(ergo_path.resolve()))
+    import time
+    time.sleep(1)
+    command = lua_commands.ergonomic_evaluation(stl_paths, coords)
+    results = ips_instance.call(command)
+    result_array = results.decode('utf-8').strip().replace('"', '').split()
+    output = []
+    for i in range(0,len(result_array)-1,2):
+        output.append([float(result_array[i]), float(result_array[i+1])])
+    return output
+

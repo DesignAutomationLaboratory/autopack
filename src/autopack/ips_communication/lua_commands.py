@@ -351,7 +351,8 @@ def ergonomic_evaluation(stl_paths, coords):
     print(measure_object)
     local gp_geo = treeobject:findFirstExactMatch("gripGeo");
     gp_geo1 = gp_geo:toPositionedTreeObject()
-    results = ""
+    --results = ""
+    local outputTable = {{}}
     coord_array = split(coordinates, ",")
     numb_of_coords = tablelength(coord_array)
     for i = 1,numb_of_coords,1 do
@@ -372,9 +373,11 @@ def ergonomic_evaluation(stl_paths, coords):
             f6_tostring = tostring(f6);
             f8_tostring = tostring(f8);
         end
-        results = results .. " " .. f6_tostring .. " " .. f8_tostring
+        --results = results .. " " .. f6_tostring .. " " .. f8_tostring
+        table.insert(outputTable, f6_tostring .. " " .. f8_tostring)
     end
-    return results
+    return table.concat(outputTable, " ")
+    --return results
     """
     return command
 
