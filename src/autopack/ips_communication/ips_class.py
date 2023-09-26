@@ -4,8 +4,19 @@ import subprocess
 import zmq
 
 
+def get_ips_path():
+    try:
+        return os.environ["AUTOPACK_IPS_PATH"]
+    except KeyError:
+        raise Exception(
+            'Please set the environment variable AUTOPACK_IPS_PATH to the path of your IPS installation, e.g. by running the following in a command prompt and then restarting: setx AUTOPACK_IPS_PATH "C:\\Program Files\\IPS\\IPS_2023-R2-SP1-HarnessRouter_v3.0_x64"'
+        )
+
+
 class IPSInstance:
-    def __init__(self, ips_path, port="24768"):
+    def __init__(self, ips_path=None, port="24768"):
+        if ips_path is None:
+            ips_path = get_ips_path()
         self.ips_path = ips_path
         self.port = port
         self.socket = None
