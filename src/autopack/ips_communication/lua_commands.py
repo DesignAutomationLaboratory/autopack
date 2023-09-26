@@ -49,7 +49,10 @@ def setup_export_cost_field():
     local numbOfCostNodes = sim:getGridSize()
     
     -- Format cost field to string
-    output = numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2]
+    local outputTable = {}
+    table.insert(outputTable, numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2])
+
+    --output = numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2]
     for i = 0,numbOfCostNodes[0]-1,1
     do
         for ii = 0, numbOfCostNodes[1]-1,1
@@ -57,11 +60,13 @@ def setup_export_cost_field():
             for iii = 0, numbOfCostNodes[2]-1,1
             do
                 local pos = sim:getNodePosition(i,ii,iii)
-                output = output .. " " .. pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i,ii,iii)
+                --output = output .. " " .. pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i,ii,iii)
+                table.insert(outputTable, pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i, ii, iii))
             end
         end
     end
-    return output
+    return table.concat(outputTable, " ")
+    --return output
     """
     return command
 
@@ -130,8 +135,8 @@ def check_coord_distances(measure_dist, harness_setup, coords):
     coords_str = ":".join(",".join(map(str, row)) for row in coords)
     command = """
     measure_dist = """ + str(measure_dist) + """
-    coords = """ + coords_str + """
-    parts = """ + geos_to_consider + """
+    coords = \"""" + coords_str + """\"
+    parts = \"""" + geos_to_consider + """\"
     function split(source, delimiters)
         local elements = {}
         local pattern = '([^'..delimiters..']+)'
@@ -165,7 +170,7 @@ def check_coord_distances(measure_dist, harness_setup, coords):
     measure_res = ""
 
     coord_table = split(coords,':')
-    for i = 1,tablelength(parts_table),1 do
+    for i = 1,tablelength(coord_table),1 do
         local_coords = split(coord_table[i],',')
         local t = Vector3d(tonumber(local_coords[1]), tonumber(local_coords[2]), tonumber(local_coords[3]));
         local trans = Transf3(r, t)
@@ -302,6 +307,77 @@ def get_stl_meshes():
     return nodes 
     """
     return command
+
+def ergonomic_evaluation(stl_paths, coords):
+    stl_paths = ','.join(stl_paths)
+    coords_str = ','.join([' '.join(map(str, sublist)) for sublist in coords])
+    command = f"""
+    geos = [[{stl_paths}]]
+    coordinates = [[{coords_str}]]
+
+    function split(source, delimiters)
+            local elements = {{}}
+            local pattern = '([^'..delimiters..']+)'
+            string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
+            return elements
+    end
+    function tablelength(T)
+        local count = 0
+        for _ in pairs(T) do count = count + 1 end
+        return count
+    end
+    
+    geos_table = split(geos, ",")
+    for i = 1,tablelength(geos_table),1 do
+        Ips.loadGeometry(geos_table[i])
+    end
+
+    local treeobject = Ips.getActiveObjectsRoot();
+
+    r = Rot3(Vector3d(0, 0, 0),Vector3d(0, 0, 0),Vector3d(0, 0, 0))
+
+    local gp = treeobject:findFirstExactMatch("gp1");
+    local gp1=gp:toGripPointVisualization();
+    local gp2=gp1:getGripPoint();
+    local family = treeobject:findFirstExactMatch("Family 1");
+    print(family)
+    local f1=family:toManikinFamilyVisualization();
+    local f2=f1:getManikinFamily();
+    f2:enableCollisionAvoidance();
+
+    measureTree = Ips.getMeasuresRoot()
+    measure = measureTree:findFirstExactMatch("measure")
+    measure_object = measure:toMeasure()
+    print(measure_object)
+    local gp_geo = treeobject:findFirstExactMatch("gripGeo");
+    gp_geo1 = gp_geo:toPositionedTreeObject()
+    results = ""
+    coord_array = split(coordinates, ",")
+    numb_of_coords = tablelength(coord_array)
+    for i = 1,numb_of_coords,1 do
+        coord = split(coord_array[i], " ")
+        local trans = Transf3(r, Vector3d(tonumber(coord[1]), tonumber(coord[2]), tonumber(coord[3])))
+        gp_geo1:setTControl(trans)
+        Ips.moveTreeObject(gp, family);
+        dist = measure_object:getValue()
+        if dist>0.1 then 
+            f6_tostring = "99";
+            f8_tostring = "99";
+        else
+            local f4=f2:getErgoStandards();
+            local f5=f4[0];
+            local f7=f4[1];
+            local f6=f2:evaluateStaticErgo(f5, 0);
+            local f8=f2:evaluateStaticErgo(f7, 0);
+            f6_tostring = tostring(f6);
+            f8_tostring = tostring(f8);
+        end
+        results = results .. " " .. f6_tostring .. " " .. f8_tostring
+    end
+    return results
+    """
+    return command
+
 def bool_to_string_lower(bool_val):
     str_val = str(bool_val)
     return str_val[0].lower() + str_val[1:]
