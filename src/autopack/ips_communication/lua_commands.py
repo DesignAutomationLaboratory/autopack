@@ -1,38 +1,60 @@
 import numpy as np
+
+
 def setup_harness_routing(harness):
     command = """
     -- Create CableComponentTemplate
     local cableSim = CableSimulation();
     local sim = HarnessRouter();
-    local treeObject = Ips.getActiveObjectsRoot(); 
+    local treeObject = Ips.getActiveObjectsRoot();
     """
     for cable in harness.cables:
-        local_command = """
-        local startNode = treeObject:findFirstMatch(\'""" + cable.start_node + """\');
+        local_command = (
+            """
+        local startNode = treeObject:findFirstMatch(\'"""
+            + cable.start_node
+            + """\');
         local startFrame = startNode:getFirstChild();
         local startVis = startFrame:toCableMountFrameVisualization();
-        local endNode = treeObject:findFirstMatch(\'""" + cable.end_node + """\');
+        local endNode = treeObject:findFirstMatch(\'"""
+            + cable.end_node
+            + """\');
         local endFrame = endNode:getFirstChild();
         local endVis = endFrame:toCableMountFrameVisualization();
-        local myCableType = cableSim:getComponentTemplate(\'""" + cable.cable_type + """\');
+        local myCableType = cableSim:getComponentTemplate(\'"""
+            + cable.cable_type
+            + """\');
         sim:addSegmentTerminalMountFrames(startVis,endVis, myCableType);
-        """ 
+        """
+        )
         command = command + local_command
-    
+
     for geometry in harness.geometries:
-        if geometry.preference == 'Near':
+        if geometry.preference == "Near":
             pref = 0
-        elif geometry.preference == 'Avoid':
+        elif geometry.preference == "Avoid":
             pref = 1
         else:
             pref = 2
-        local_command = """
-        t = treeObject:findFirstMatch(\'""" + geometry.name + """\')
-        sim:addEnvironmentGeometry(t,""" + str(geometry.clearance) + """/1000, """ + str(pref) + """, """ + bool_to_string_lower(geometry.clipable) + """);
+        local_command = (
+            """
+        t = treeObject:findFirstMatch(\'"""
+            + geometry.name
+            + """\')
+        sim:addEnvironmentGeometry(t,"""
+            + str(geometry.clearance)
+            + """/1000, """
+            + str(pref)
+            + """, """
+            + bool_to_string_lower(geometry.clipable)
+            + """);
         """
+        )
         command = command + local_command
 
-    command = command + f"""
+    command = (
+        command
+        + f"""
     -- Setup Harness
     sim:setMinMaxClipClipDist({harness.clip_clip_dist[0]},{harness.clip_clip_dist[1]});
     sim:setMinMaxBranchClipDist({harness.branch_clip_dist[0]},{harness.branch_clip_dist[1]})
@@ -42,12 +64,14 @@ def setup_harness_routing(harness):
     --print(numbOfCostNodes)
     sim:buildCostField();
     """
+    )
     return command
+
 
 def setup_export_cost_field():
     command = """
     local numbOfCostNodes = sim:getGridSize()
-    
+
     -- Format cost field to string
     output = numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2]
     for i = 0,numbOfCostNodes[0]-1,1
@@ -77,11 +101,11 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
                 else:
                     cmd = f"sim:setNodeCost({i}, {ii}, {iii}, {cost_field.costs[i, ii, iii]})"
                 commands.append(cmd)
-    new_line = '\n'
+    new_line = "\n"
     final_command = f"""
     {new_line.join(commands)}
     sim:routeHarness();
-    if sim:getNumSolutions() == 0 then 
+    if sim:getNumSolutions() == 0 then
         return
     else
         num = {weight}*sim:getNumSolutions()
@@ -112,26 +136,34 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
         else
             Ips.deleteTreeObject(last_object)
         end
-        
+
         return harness
     end
     """
     return final_command
+
 
 def check_coord_distances(measure_dist, harness_setup, coords):
     geos_to_consider = ""
     for geo in harness_setup.geometries:
         if geo.assembly:
             geos_to_consider = geos_to_consider + geo.name + ","
-    if len(geos_to_consider)>0:
+    if len(geos_to_consider) > 0:
         geos_to_consider = geos_to_consider[:-1]
     else:
         return None
     coords_str = ":".join(",".join(map(str, row)) for row in coords)
-    command = """
-    measure_dist = """ + str(measure_dist) + """
-    coords = """ + coords_str + """
-    parts = """ + geos_to_consider + """
+    command = (
+        """
+    measure_dist = """
+        + str(measure_dist)
+        + """
+    coords = """
+        + coords_str
+        + """
+    parts = """
+        + geos_to_consider
+        + """
     function split(source, delimiters)
         local elements = {}
         local pattern = '([^'..delimiters..']+)'
@@ -171,12 +203,12 @@ def check_coord_distances(measure_dist, harness_setup, coords):
         local trans = Transf3(r, t)
         rigid_prim:setFrameInWorld(trans)
         dist = measure:getDistance()
-        if dist<measure_dist-0.01 then 
+        if dist<measure_dist-0.01 then
             measure_res = measure_res .. " 1"
         else
             measure_res = measure_res .. " 0"
         end
-        
+
     end
 
     Ips.deleteTreeObject(measure)
@@ -184,6 +216,7 @@ def check_coord_distances(measure_dist, harness_setup, coords):
 
     return measure_res
     """
+    )
     return command
 
 
@@ -218,8 +251,8 @@ def get_stl_meshes():
 
 
     end
-    for i = 2,numbOfGeoemtries,1 
-    do 
+    for i = 2,numbOfGeoemtries,1
+    do
         local objectTemp = object:getNextSibling();
         object = objectTemp;
         type = object:getType()
@@ -269,8 +302,8 @@ def get_stl_meshes():
                 end
                 nodes = nodes .. "],"
             end
-            for ii = 2,numbOfchilds,1 
-            do 
+            for ii = 2,numbOfchilds,1
+            do
                 local objectobjectTemp = objectobject:getNextSibling();
                 objectobject = objectobjectTemp;
                 type = objectobject:getType()
@@ -299,9 +332,11 @@ def get_stl_meshes():
             end
         end
     end
-    return nodes 
+    return nodes
     """
     return command
+
+
 def bool_to_string_lower(bool_val):
     str_val = str(bool_val)
     return str_val[0].lower() + str_val[1:]
