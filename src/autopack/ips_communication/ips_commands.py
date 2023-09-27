@@ -88,3 +88,8 @@ def ergonomic_evaluation(ips_instance, stl_paths, coords):
         output.append([float(result_array[i]), float(result_array[i+1])])
     return output
 
+def cost_field_vis(ips_instance, cost_field):
+    command = lua_commands.add_cost_field_vis(cost_field)
+    with open(r"C:\Users\antwi87\Documents\IPS\test_environment\filename.lua", "w") as file:
+        file.write(command)
+    ips_instance.call(command)

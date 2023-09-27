@@ -381,6 +381,70 @@ def ergonomic_evaluation(stl_paths, coords):
     """
     return command
 
+def add_cost_field_vis(cost_field):
+    coords = cost_field.coordinates.reshape(-1, 3)
+    norm_cost = cost_field.normalized_costs()
+    mask = norm_cost < 9
+    max_value = np.amax(norm_cost[mask])
+    min_value = np.amin(norm_cost[mask])
+    costs = norm_cost.reshape(-1, 1)
+    combined_array = np.hstack((coords, costs))
+    long_string = ' '.join(map(str, combined_array.ravel()))
+    command = f"""
+    values = [[{long_string}]]
+    min_cost = {min_value}
+    max_cost = {max_value}
+
+    existing_cost_field = Ips.getGeometryRoot():findFirstExactMatch("CostFieldVis");
+    if existing_cost_field ~= nil then
+        Ips.deleteTreeObject(existing_cost_field)
+    end
+
+    function split(source, delimiters)
+        local elements = {{}}
+        local pattern = '([^'..delimiters..']+)'
+        string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
+        return elements
+    end
+    
+    function tablelength(T)
+        local count = 0
+        for _ in pairs(T) do count = count + 1 end
+        return count
+    end
+    -- This is how the heat cost color is computed in harness gui dialog.
+    function getRGBheatcost(mincost, maxcost, cost)
+        local ratio = (cost - mincost) / (maxcost - mincost)
+        if math.abs(maxcost - mincost) < 0.000000001 then -- If max and min cost are equal.
+            ratio = 0.5
+        end
+        
+        local red = math.min(1.0, 2.0 * ratio)
+        local green = math.min(1.0, 2.0 * (1.0 - ratio))
+        return red, green, 0.0	
+    end
+
+    value_table = split(values, ' ')
+    local builder = GeometryBuilder()
+        
+    for i = 1, tablelength(value_table), 4 do
+        builder:pushVertex(tonumber(value_table[i]), tonumber(value_table[i+1]), tonumber(value_table[i+2]))
+        local cost = tonumber(value_table[i+3])
+        if cost > max_cost then
+            r, g, b = 0.0, 0.0, 0.0 -- Black color if node is infeasible.
+        else
+            r, g, b = getRGBheatcost(min_cost, max_cost, cost)
+        end
+        -- 
+        builder:pushColor(r, g, b)
+    end
+        
+    builder:buildPoints()
+    Ips.getGeometryRoot():getLastChild():setLabel("CostFieldVis")
+    """
+    return command
+
+
 def bool_to_string_lower(bool_val):
     str_val = str(bool_val)
     return str_val[0].lower() + str_val[1:]
