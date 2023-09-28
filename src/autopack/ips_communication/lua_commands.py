@@ -91,6 +91,7 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
     else
         num = {weight}*sim:getNumSolutions()
         solution_to_capture = math.floor(num + 0.5)
+        smoothed_solution = sim:buildPresmoothSegments(solution_to_capture)
         segments = sim:buildDiscreteSegments(solution_to_capture)
         nmb_of_segements = segments:size()
         harness = sim:estimateNumClips(solution_to_capture)
@@ -111,11 +112,13 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
             end
         end
         static_objects = Ips.getGeometryRoot()
-        last_object= static_objects:getLastChild()
+        unsmoothed = static_objects:getLastChild()
+        Ips.deleteTreeObject(unsmoothed)
+        smoothed = static_objects:getLastChild()
         if {bool_to_string_lower(save_harness)} then
-            last_object:setLabel("harness{harness_id}");
+            smoothed:setLabel("harness{harness_id}")
         else
-            Ips.deleteTreeObject(last_object)
+            Ips.deleteTreeObject(smoothed)
         end
         
         return harness
