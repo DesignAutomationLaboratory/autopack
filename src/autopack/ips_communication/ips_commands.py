@@ -32,8 +32,8 @@ def create_costfield(ips_instance, harness_setup):
 
 def load_scene(ips_instance, scene_file_path):
     escaped_string = scene_file_path.encode('unicode_escape').decode() #.encode('unicode_escape').decode()
-    command ="""
-    local IPSFile = '""" + escaped_string + """'
+    command =f"""
+    local IPSFile = "{escaped_string}"
     Ips.loadScene(IPSFile)
     """
     ips_instance.call(command)
