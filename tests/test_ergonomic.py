@@ -22,10 +22,6 @@ def test_ergonomic():
     cost_field_ips, cost_field_length = create_costfield(ips, setup1)
     opt_setup = ProblemSetup(harness_setup=setup1, cost_fields=[cost_field_ips, cost_field_length])
 
-    stl1 = pathlib.Path(__file__).parent / "scenes" / "test1.stl"
-    stl2 = pathlib.Path(__file__).parent / "scenes" / "test2.stl"
-    stl3 = pathlib.Path(__file__).parent / "scenes" / "test3.stl"
-    stl_paths=[str(stl1.resolve()), str(stl2.resolve()), str(stl3.resolve())]
-    rula_cost_field, reba_cost_field = create_ergonomic_cost_field(ips, opt_setup, stl_paths, max_geometry_dist=0.2, min_point_dist=0.3)
+    rula_cost_field, reba_cost_field = create_ergonomic_cost_field(ips, opt_setup, max_geometry_dist=0.2, min_point_dist=0.3)
     opt_setup.cost_fields.append(rula_cost_field)
     opt_setup.cost_fields.append(reba_cost_field)

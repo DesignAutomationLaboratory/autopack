@@ -308,8 +308,8 @@ def get_stl_meshes():
     """
     return command
 
-def ergonomic_evaluation(stl_paths, coords):
-    stl_paths = ','.join(stl_paths)
+def ergonomic_evaluation(parts, coords):
+    stl_paths = ','.join(parts)
     coords_str = ','.join([' '.join(map(str, sublist)) for sublist in coords])
     command = f"""
     geos = [[{stl_paths}]]
@@ -326,11 +326,37 @@ def ergonomic_evaluation(stl_paths, coords):
         for _ in pairs(T) do count = count + 1 end
         return count
     end
+    function copy_to_static_geometry(part_table)
+        numb_of_parts = tablelength(part_table)
+        for ii = 1,numb_of_parts,1 do
+            part_name = part_table[ii]
+            local localtreeobject = Ips.getActiveObjectsRoot();
+            local localobject = localtreeobject:findFirstExactMatch(part_name);
+            local localrigidObject = localobject:toRigidBodyObject()
+            localrigidObject:setLocked(false)
+            localnum_of_childs = localrigidObject:getNumChildren()
+            localgeometryRoot = Ips.getGeometryRoot()
+            for i = 1, localnum_of_childs do
+                if i == 1 then
+                    localpositionedObject = localrigidObject:getFirstChild()
+                    localtoCopy = localpositionedObject:isPositionedTreeObject()
+                    
+                else
+                    localpositionedObject = localpositionedObject:getNextSibling()
+                    localtoCopy = localpositionedObject:isPositionedTreeObject()
+                end
+                if localtoCopy then
+                    Ips.copyTreeObject(localpositionedObject, localgeometryRoot)
+                end
+            end
+            --Ips.copyTreeObject
+            --positionedObject = object:toPositionedTreeObject()
+            localrigidObject:setLocked(true)
+        end
+    end
     
     geos_table = split(geos, ",")
-    for i = 1,tablelength(geos_table),1 do
-        Ips.loadGeometry(geos_table[i])
-    end
+    copy_to_static_geometry(geos_table)
 
     local treeobject = Ips.getActiveObjectsRoot();
 

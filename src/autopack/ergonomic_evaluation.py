@@ -4,11 +4,12 @@ from autopack.ips_communication.ips_class import IPSInstance
 from smt.surrogate_models import KRG
 import numpy as np
 
-def create_ergonomic_cost_field(ips, problem_setup, stl_paths, max_geometry_dist=0.2, min_point_dist=0.1):
+def create_ergonomic_cost_field(ips, problem_setup, max_geometry_dist=0.2, min_point_dist=0.1):
+    geometries_to_consider = [geo.name for geo in problem_setup.harness_setup.geometries if geo.assembly]
     sparse_points = sparse_cost_field(problem_setup.cost_fields[0], min_point_dist)
     points_close_to_surface = check_distance_of_points(ips, problem_setup.harness_setup, sparse_points, max_geometry_dist)
     selected_coords = [num for i, num in enumerate(sparse_points) if points_close_to_surface[i] == 1]
-    ergo_evaluations = ergonomic_evaluation(ips, stl_paths, selected_coords)
+    ergo_evaluations = ergonomic_evaluation(ips, geometries_to_consider, selected_coords)
     array1 = np.array(selected_coords)
     REBA_vals = np.array(ergo_evaluations)[:, 0].reshape(-1, 1)
     RULA_vals = np.array(ergo_evaluations)[:, 1].reshape(-1, 1)

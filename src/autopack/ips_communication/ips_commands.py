@@ -74,13 +74,13 @@ def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_d
     numbers = [int(num) for num in str_checked.decode("utf-8").strip(' "\n').split()]
     return numbers
 
-def ergonomic_evaluation(ips_instance, stl_paths, coords):
-    ips_instance.start()
+def ergonomic_evaluation(ips_instance, parts, coords):
+    #ips_instance.start()
     ergo_path = pathlib.Path(__file__).parent / "ErgonomicEvaluation.ips"
     load_scene(ips_instance, str(ergo_path.resolve()))
     import time
     time.sleep(1)
-    command = lua_commands.ergonomic_evaluation(stl_paths, coords)
+    command = lua_commands.ergonomic_evaluation(parts, coords)
     results = ips_instance.call(command)
     result_array = results.decode('utf-8').strip().replace('"', '').split()
     output = []
