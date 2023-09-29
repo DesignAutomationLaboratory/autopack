@@ -35,7 +35,7 @@ def test_harness_optimization_setup():
         name="part3", clearance=5.0, preference="Near", clipable=True, assembly=True
     )
     setup1 = HarnessSetup(
-        geometries=[part1, part2, part3], cables=[cable1, cable2, cable3]
+        scene_path="", geometries=[part1, part2, part3], cables=[cable1, cable2, cable3]
     )
 
     cost_field = CostField(
@@ -54,8 +54,9 @@ def test_integration():
         r"C:\Users\antwi87\Documents\IPS\IPS_2023-R2-SP1-HarnessRouter_v3.0_x64"
     )
     ips.start()
-    scene_path = pathlib.Path(__file__).parent / "scenes" / "simple_plate.ips"
-    load_scene(ips, str(scene_path.resolve()))
+    scene_path = str(
+        (pathlib.Path(__file__).parent / "scenes" / "simple_plate.ips").resolve()
+    )
 
     cable1 = Cable(
         start_node="Cable1_start",
@@ -82,9 +83,12 @@ def test_integration():
         name="part3", clearance=5.0, preference="Near", clipable=True, assembly=True
     )
     setup1 = HarnessSetup(
-        geometries=[part1, part2, part3], cables=[cable1, cable2, cable3]
+        scene_path=scene_path,
+        geometries=[part1, part2, part3],
+        cables=[cable1, cable2, cable3],
     )
 
+    load_scene(ips, setup1.scene_path)
     cost_field_ips, cost_field_length = create_costfield(ips, setup1)
     opt_setup = ProblemSetup(
         harness_setup=setup1, cost_fields=[cost_field_ips, cost_field_length]

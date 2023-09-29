@@ -73,7 +73,10 @@ def setup_export_cost_field():
     local numbOfCostNodes = sim:getGridSize()
 
     -- Format cost field to string
-    output = numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2]
+    local outputTable = {}
+    table.insert(outputTable, numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2])
+
+    --output = numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2]
     for i = 0,numbOfCostNodes[0]-1,1
     do
         for ii = 0, numbOfCostNodes[1]-1,1
@@ -81,11 +84,13 @@ def setup_export_cost_field():
             for iii = 0, numbOfCostNodes[2]-1,1
             do
                 local pos = sim:getNodePosition(i,ii,iii)
-                output = output .. " " .. pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i,ii,iii)
+                --output = output .. " " .. pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i,ii,iii)
+                table.insert(outputTable, pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i, ii, iii))
             end
         end
     end
-    return output
+    return table.concat(outputTable, " ")
+    --return output
     """
     return command
 
@@ -110,6 +115,7 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
     else
         num = {weight}*sim:getNumSolutions()
         solution_to_capture = math.floor(num + 0.5)
+        smoothed_solution = sim:buildPresmoothSegments(solution_to_capture)
         segments = sim:buildDiscreteSegments(solution_to_capture)
         nmb_of_segements = segments:size()
         harness = sim:estimateNumClips(solution_to_capture)
@@ -130,11 +136,13 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
             end
         end
         static_objects = Ips.getGeometryRoot()
-        last_object= static_objects:getLastChild()
+        unsmoothed = static_objects:getLastChild()
+        Ips.deleteTreeObject(unsmoothed)
+        smoothed = static_objects:getLastChild()
         if {bool_to_string_lower(save_harness)} then
-            last_object:setLabel("harness{harness_id}");
+            smoothed:setLabel("harness{harness_id}")
         else
-            Ips.deleteTreeObject(last_object)
+            Ips.deleteTreeObject(smoothed)
         end
 
         return harness
@@ -153,19 +161,12 @@ def check_coord_distances(measure_dist, harness_setup, coords):
     else:
         return None
     coords_str = ":".join(",".join(map(str, row)) for row in coords)
-    command = (
-        """
-    measure_dist = """
-        + str(measure_dist)
-        + """
-    coords = """
-        + coords_str
-        + """
-    parts = """
-        + geos_to_consider
-        + """
+    command = f"""
+    measure_dist = {str(measure_dist)}
+    coords = "{coords_str}"
+    parts = "{geos_to_consider}"
     function split(source, delimiters)
-        local elements = {}
+        local elements = {{}}
         local pattern = '([^'..delimiters..']+)'
         string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
         return elements
@@ -197,7 +198,7 @@ def check_coord_distances(measure_dist, harness_setup, coords):
     measure_res = ""
 
     coord_table = split(coords,':')
-    for i = 1,tablelength(parts_table),1 do
+    for i = 1,tablelength(coord_table),1 do
         local_coords = split(coord_table[i],',')
         local t = Vector3d(tonumber(local_coords[1]), tonumber(local_coords[2]), tonumber(local_coords[3]));
         local trans = Transf3(r, t)
@@ -216,7 +217,7 @@ def check_coord_distances(measure_dist, harness_setup, coords):
 
     return measure_res
     """
-    )
+
     return command
 
 
@@ -333,6 +334,170 @@ def get_stl_meshes():
         end
     end
     return nodes
+    """
+    return command
+
+
+def ergonomic_evaluation(parts, coords):
+    stl_paths = ",".join(parts)
+    coords_str = ",".join([" ".join(map(str, sublist)) for sublist in coords])
+    command = f"""
+    geos = [[{stl_paths}]]
+    coordinates = [[{coords_str}]]
+
+    function split(source, delimiters)
+            local elements = {{}}
+            local pattern = '([^'..delimiters..']+)'
+            string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
+            return elements
+    end
+    function tablelength(T)
+        local count = 0
+        for _ in pairs(T) do count = count + 1 end
+        return count
+    end
+    function copy_to_static_geometry(part_table)
+        numb_of_parts = tablelength(part_table)
+        for ii = 1,numb_of_parts,1 do
+            part_name = part_table[ii]
+            local localtreeobject = Ips.getActiveObjectsRoot();
+            local localobject = localtreeobject:findFirstExactMatch(part_name);
+            local localrigidObject = localobject:toRigidBodyObject()
+            localrigidObject:setLocked(false)
+            localnum_of_childs = localrigidObject:getNumChildren()
+            localgeometryRoot = Ips.getGeometryRoot()
+            for i = 1, localnum_of_childs do
+                if i == 1 then
+                    localpositionedObject = localrigidObject:getFirstChild()
+                    localtoCopy = localpositionedObject:isPositionedTreeObject()
+                    
+                else
+                    localpositionedObject = localpositionedObject:getNextSibling()
+                    localtoCopy = localpositionedObject:isPositionedTreeObject()
+                end
+                if localtoCopy then
+                    Ips.copyTreeObject(localpositionedObject, localgeometryRoot)
+                end
+            end
+            --Ips.copyTreeObject
+            --positionedObject = object:toPositionedTreeObject()
+            localrigidObject:setLocked(true)
+        end
+    end
+    
+    geos_table = split(geos, ",")
+    copy_to_static_geometry(geos_table)
+
+    local treeobject = Ips.getActiveObjectsRoot();
+
+    r = Rot3(Vector3d(0, 0, 0),Vector3d(0, 0, 0),Vector3d(0, 0, 0))
+
+    local gp = treeobject:findFirstExactMatch("gp1");
+    local gp1=gp:toGripPointVisualization();
+    local gp2=gp1:getGripPoint();
+    local family = treeobject:findFirstExactMatch("Family 1");
+    print(family)
+    local f1=family:toManikinFamilyVisualization();
+    local f2=f1:getManikinFamily();
+    f2:enableCollisionAvoidance();
+
+    measureTree = Ips.getMeasuresRoot()
+    measure = measureTree:findFirstExactMatch("measure")
+    measure_object = measure:toMeasure()
+    print(measure_object)
+    local gp_geo = treeobject:findFirstExactMatch("gripGeo");
+    gp_geo1 = gp_geo:toPositionedTreeObject()
+    --results = ""
+    local outputTable = {{}}
+    coord_array = split(coordinates, ",")
+    numb_of_coords = tablelength(coord_array)
+    for i = 1,numb_of_coords,1 do
+        coord = split(coord_array[i], " ")
+        local trans = Transf3(r, Vector3d(tonumber(coord[1]), tonumber(coord[2]), tonumber(coord[3])))
+        gp_geo1:setTControl(trans)
+        Ips.moveTreeObject(gp, family);
+        dist = measure_object:getValue()
+        if dist>0.1 then 
+            f6_tostring = "99";
+            f8_tostring = "99";
+        else
+            local f4=f2:getErgoStandards();
+            local f5=f4[0];
+            local f7=f4[1];
+            local f6=f2:evaluateStaticErgo(f5, 0);
+            local f8=f2:evaluateStaticErgo(f7, 0);
+            f6_tostring = tostring(f6);
+            f8_tostring = tostring(f8);
+        end
+        --results = results .. " " .. f6_tostring .. " " .. f8_tostring
+        table.insert(outputTable, f6_tostring .. " " .. f8_tostring)
+    end
+    return table.concat(outputTable, " ")
+    --return results
+    """
+    return command
+
+
+def add_cost_field_vis(cost_field):
+    coords = cost_field.coordinates.reshape(-1, 3)
+    norm_cost = cost_field.normalized_costs()
+    mask = norm_cost < 9
+    max_value = np.amax(norm_cost[mask])
+    min_value = np.amin(norm_cost[mask])
+    costs = norm_cost.reshape(-1, 1)
+    combined_array = np.hstack((coords, costs))
+    long_string = " ".join(map(str, combined_array.ravel()))
+    command = f"""
+    values = [[{long_string}]]
+    min_cost = {min_value}
+    max_cost = {max_value}
+
+    existing_cost_field = Ips.getGeometryRoot():findFirstExactMatch("CostFieldVis");
+    if existing_cost_field ~= nil then
+        Ips.deleteTreeObject(existing_cost_field)
+    end
+
+    function split(source, delimiters)
+        local elements = {{}}
+        local pattern = '([^'..delimiters..']+)'
+        string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
+        return elements
+    end
+    
+    function tablelength(T)
+        local count = 0
+        for _ in pairs(T) do count = count + 1 end
+        return count
+    end
+    -- This is how the heat cost color is computed in harness gui dialog.
+    function getRGBheatcost(mincost, maxcost, cost)
+        local ratio = (cost - mincost) / (maxcost - mincost)
+        if math.abs(maxcost - mincost) < 0.000000001 then -- If max and min cost are equal.
+            ratio = 0.5
+        end
+        
+        local red = math.min(1.0, 2.0 * ratio)
+        local green = math.min(1.0, 2.0 * (1.0 - ratio))
+        return red, green, 0.0	
+    end
+
+    value_table = split(values, ' ')
+    local builder = GeometryBuilder()
+        
+    for i = 1, tablelength(value_table), 4 do
+        builder:pushVertex(tonumber(value_table[i]), tonumber(value_table[i+1]), tonumber(value_table[i+2]))
+        local cost = tonumber(value_table[i+3])
+        if cost > max_cost then
+            r, g, b = 0.0, 0.0, 0.0 -- Black color if node is infeasible.
+        else
+            r, g, b = getRGBheatcost(min_cost, max_cost, cost)
+        end
+        -- 
+        builder:pushColor(r, g, b)
+    end
+        
+    builder:buildPoints()
+    Ips.getGeometryRoot():getLastChild():setLabel("CostFieldVis")
     """
     return command
 
