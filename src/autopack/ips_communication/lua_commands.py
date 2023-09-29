@@ -1,38 +1,60 @@
 import numpy as np
+
+
 def setup_harness_routing(harness):
     command = """
     -- Create CableComponentTemplate
     local cableSim = CableSimulation();
     local sim = HarnessRouter();
-    local treeObject = Ips.getActiveObjectsRoot(); 
+    local treeObject = Ips.getActiveObjectsRoot();
     """
     for cable in harness.cables:
-        local_command = """
-        local startNode = treeObject:findFirstMatch(\'""" + cable.start_node + """\');
+        local_command = (
+            """
+        local startNode = treeObject:findFirstMatch(\'"""
+            + cable.start_node
+            + """\');
         local startFrame = startNode:getFirstChild();
         local startVis = startFrame:toCableMountFrameVisualization();
-        local endNode = treeObject:findFirstMatch(\'""" + cable.end_node + """\');
+        local endNode = treeObject:findFirstMatch(\'"""
+            + cable.end_node
+            + """\');
         local endFrame = endNode:getFirstChild();
         local endVis = endFrame:toCableMountFrameVisualization();
-        local myCableType = cableSim:getComponentTemplate(\'""" + cable.cable_type + """\');
+        local myCableType = cableSim:getComponentTemplate(\'"""
+            + cable.cable_type
+            + """\');
         sim:addSegmentTerminalMountFrames(startVis,endVis, myCableType);
-        """ 
+        """
+        )
         command = command + local_command
-    
+
     for geometry in harness.geometries:
-        if geometry.preference == 'Near':
+        if geometry.preference == "Near":
             pref = 0
-        elif geometry.preference == 'Avoid':
+        elif geometry.preference == "Avoid":
             pref = 1
         else:
             pref = 2
-        local_command = """
-        t = treeObject:findFirstMatch(\'""" + geometry.name + """\')
-        sim:addEnvironmentGeometry(t,""" + str(geometry.clearance) + """/1000, """ + str(pref) + """, """ + bool_to_string_lower(geometry.clipable) + """);
+        local_command = (
+            """
+        t = treeObject:findFirstMatch(\'"""
+            + geometry.name
+            + """\')
+        sim:addEnvironmentGeometry(t,"""
+            + str(geometry.clearance)
+            + """/1000, """
+            + str(pref)
+            + """, """
+            + bool_to_string_lower(geometry.clipable)
+            + """);
         """
+        )
         command = command + local_command
 
-    command = command + f"""
+    command = (
+        command
+        + f"""
     -- Setup Harness
     sim:setMinMaxClipClipDist({harness.clip_clip_dist[0]},{harness.clip_clip_dist[1]});
     sim:setMinMaxBranchClipDist({harness.branch_clip_dist[0]},{harness.branch_clip_dist[1]})
@@ -42,12 +64,14 @@ def setup_harness_routing(harness):
     --print(numbOfCostNodes)
     sim:buildCostField();
     """
+    )
     return command
+
 
 def setup_export_cost_field():
     command = """
     local numbOfCostNodes = sim:getGridSize()
-    
+
     -- Format cost field to string
     local outputTable = {}
     table.insert(outputTable, numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2])
@@ -82,11 +106,11 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
                 else:
                     cmd = f"sim:setNodeCost({i}, {ii}, {iii}, {cost_field.costs[i, ii, iii]})"
                 commands.append(cmd)
-    new_line = '\n'
+    new_line = "\n"
     final_command = f"""
     {new_line.join(commands)}
     sim:routeHarness();
-    if sim:getNumSolutions() == 0 then 
+    if sim:getNumSolutions() == 0 then
         return
     else
         num = {weight}*sim:getNumSolutions()
@@ -120,28 +144,29 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
         else
             Ips.deleteTreeObject(smoothed)
         end
-        
+
         return harness
     end
     """
     return final_command
+
 
 def check_coord_distances(measure_dist, harness_setup, coords):
     geos_to_consider = ""
     for geo in harness_setup.geometries:
         if geo.assembly:
             geos_to_consider = geos_to_consider + geo.name + ","
-    if len(geos_to_consider)>0:
+    if len(geos_to_consider) > 0:
         geos_to_consider = geos_to_consider[:-1]
     else:
         return None
     coords_str = ":".join(",".join(map(str, row)) for row in coords)
-    command = """
-    measure_dist = """ + str(measure_dist) + """
-    coords = \"""" + coords_str + """\"
-    parts = \"""" + geos_to_consider + """\"
+    command = f"""
+    measure_dist = {str(measure_dist)}
+    coords = "{coords_str}"
+    parts = "{geos_to_consider}"
     function split(source, delimiters)
-        local elements = {}
+        local elements = {{}}
         local pattern = '([^'..delimiters..']+)'
         string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
         return elements
@@ -179,12 +204,12 @@ def check_coord_distances(measure_dist, harness_setup, coords):
         local trans = Transf3(r, t)
         rigid_prim:setFrameInWorld(trans)
         dist = measure:getDistance()
-        if dist<measure_dist-0.01 then 
+        if dist<measure_dist-0.01 then
             measure_res = measure_res .. " 1"
         else
             measure_res = measure_res .. " 0"
         end
-        
+
     end
 
     Ips.deleteTreeObject(measure)
@@ -192,6 +217,7 @@ def check_coord_distances(measure_dist, harness_setup, coords):
 
     return measure_res
     """
+
     return command
 
 
@@ -226,8 +252,8 @@ def get_stl_meshes():
 
 
     end
-    for i = 2,numbOfGeoemtries,1 
-    do 
+    for i = 2,numbOfGeoemtries,1
+    do
         local objectTemp = object:getNextSibling();
         object = objectTemp;
         type = object:getType()
@@ -277,8 +303,8 @@ def get_stl_meshes():
                 end
                 nodes = nodes .. "],"
             end
-            for ii = 2,numbOfchilds,1 
-            do 
+            for ii = 2,numbOfchilds,1
+            do
                 local objectobjectTemp = objectobject:getNextSibling();
                 objectobject = objectobjectTemp;
                 type = objectobject:getType()
@@ -307,13 +333,14 @@ def get_stl_meshes():
             end
         end
     end
-    return nodes 
+    return nodes
     """
     return command
 
+
 def ergonomic_evaluation(parts, coords):
-    stl_paths = ','.join(parts)
-    coords_str = ','.join([' '.join(map(str, sublist)) for sublist in coords])
+    stl_paths = ",".join(parts)
+    coords_str = ",".join([" ".join(map(str, sublist)) for sublist in coords])
     command = f"""
     geos = [[{stl_paths}]]
     coordinates = [[{coords_str}]]
@@ -410,6 +437,7 @@ def ergonomic_evaluation(parts, coords):
     """
     return command
 
+
 def add_cost_field_vis(cost_field):
     coords = cost_field.coordinates.reshape(-1, 3)
     norm_cost = cost_field.normalized_costs()
@@ -418,7 +446,7 @@ def add_cost_field_vis(cost_field):
     min_value = np.amin(norm_cost[mask])
     costs = norm_cost.reshape(-1, 1)
     combined_array = np.hstack((coords, costs))
-    long_string = ' '.join(map(str, combined_array.ravel()))
+    long_string = " ".join(map(str, combined_array.ravel()))
     command = f"""
     values = [[{long_string}]]
     min_cost = {min_value}
