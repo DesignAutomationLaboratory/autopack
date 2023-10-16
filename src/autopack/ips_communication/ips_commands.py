@@ -1,7 +1,8 @@
+import pathlib
 from itertools import product
 
 import numpy as np
-import pathlib
+
 from autopack.data_model import CostField, Harness, HarnessSegment
 
 from . import lua_commands
@@ -65,11 +66,11 @@ def load_scene(ips_instance, scene_file_path):
 
 
 def ips_optimize_harness(
-    ips_instance, harness_setup, cost_field, bundle_weight=0.5, save_harness=True, id=0
+    ips_instance, harness_setup, cost_field, bundling_factor=0.5, harness_id=None
 ):
     command1 = lua_commands.setup_harness_routing(harness_setup)
     command2 = lua_commands.setup_harness_optimization(
-        cost_field, weight=bundle_weight, save_harness=save_harness, harness_id=id
+        cost_field, bundling_factor=bundling_factor, harness_id=harness_id
     )
     command = command1 + command2
     # print(command)

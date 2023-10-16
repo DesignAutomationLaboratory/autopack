@@ -95,7 +95,7 @@ def setup_export_cost_field():
     return command
 
 
-def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harness_id=0):
+def setup_harness_optimization(cost_field, bundling_factor=0.5, harness_id=None):
     commands = []
     max_valid_cost = 1e19 - 1
     capped_costs = np.clip(cost_field.costs, -np.inf, max_valid_cost)
@@ -109,7 +109,8 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
     if sim:getNumSolutions() == 0 then
         return
     else
-        num = {weight}*sim:getNumSolutions()
+        num_solutions = sim:getNumSolutions()
+        num = {bundling_factor} * (num_solutions - 1)
         solution_to_capture = math.floor(num + 0.5)
         smoothed_solution = sim:buildPresmoothSegments(solution_to_capture)
         segments = sim:buildDiscreteSegments(solution_to_capture)
@@ -135,8 +136,8 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
         unsmoothed = static_objects:getLastChild()
         Ips.deleteTreeObject(unsmoothed)
         smoothed = static_objects:getLastChild()
-        if {bool_to_string_lower(save_harness)} then
-            smoothed:setLabel("harness{harness_id}")
+        if {bool_to_string_lower(bool(harness_id))} then
+            smoothed:setLabel("{harness_id}")
         else
             Ips.deleteTreeObject(smoothed)
         end

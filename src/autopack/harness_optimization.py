@@ -8,9 +8,8 @@ def optimize_harness(
     ips_instance,
     problem_setup,
     cost_field_weights,
-    bundle_weight,
-    save_harness=True,
-    id=0,
+    bundling_factor,
+    harness_id=None,
 ):
     new_field = combine_cost_fields(
         problem_setup.cost_fields, cost_field_weights, normalize_fields=True
@@ -19,17 +18,23 @@ def optimize_harness(
         ips_instance,
         problem_setup.harness_setup,
         new_field,
-        bundle_weight=bundle_weight,
-        save_harness=save_harness,
-        id=id,
+        bundling_factor=bundling_factor,
+        harness_id=harness_id,
     )
-    costs = []
+    bundle_costs = []
+    total_costs = []
+
     for cost_field in problem_setup.cost_fields:
         bundle_cost, total_cost = evaluate_harness(new_harness, cost_field)
-        costs.append(bundle_cost)
-        costs.append(total_cost)
+        bundle_costs.append(bundle_cost)
+        total_costs.append(total_cost)
+
     # bundle_cost, total_cost = harness.evaluate_harness(new_harness, problem_setup.cost_fields[0])
-    return costs, new_harness.numb_of_clips
+    return (
+        np.array([bundle_costs]),
+        np.array([total_costs]),
+        np.array([new_harness.numb_of_clips], dtype=int),
+    )
 
 
 def combine_cost_fields(cost_fields, weights, normalize_fields=True):
