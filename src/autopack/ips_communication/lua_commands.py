@@ -97,15 +97,11 @@ def setup_export_cost_field():
 
 def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harness_id=0):
     commands = []
-    cost_field_size = np.shape(cost_field.costs)
-    for i in range(cost_field_size[0]):
-        for ii in range(cost_field_size[1]):
-            for iii in range(cost_field_size[2]):
-                if cost_field.costs[i, ii, iii] > 9999999999999999999:
-                    cmd = f"sim:setNodeCost({i}, {ii}, {iii}, 9999999999999999999)"
-                else:
-                    cmd = f"sim:setNodeCost({i}, {ii}, {iii}, {cost_field.costs[i, ii, iii]})"
-                commands.append(cmd)
+    max_valid_cost = 1e19 - 1
+    capped_costs = np.clip(cost_field.costs, -np.inf, max_valid_cost)
+    for (i_x, i_y, i_z), cost in np.ndenumerate(capped_costs):
+        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {cost})"
+        commands.append(cmd)
     new_line = "\n"
     final_command = f"""
     {new_line.join(commands)}
