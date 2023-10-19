@@ -15,7 +15,6 @@ dependencies = [
   "botorch",    # Bayesian optimization
   "facit",
   "numpy",
-  "openmdao",
   "pydantic",
   "smt",        # Surrogate modelling toolbox
   "matplotlib",
@@ -47,8 +46,7 @@ channels = ["pytorch", "nvidia", "conda-forge", "defaults"]
 [tool.conda-lock.dependencies]
 # Extra dependencies for conda-lock. *Only* add packages here if they
 # are not available on PyPI.
-7zip = "*"                  # For packaging
-facit = { source = "pypi" } # TODO: remove this when facit is on conda-forge
+7zip = "*"         # For packaging
 pip = "*"
 python = ">=3.9"
 pytorch-cuda = "*"
