@@ -167,6 +167,22 @@ def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
     )
 
 
+def global_optimize_harness(
+    ips_instance, problem_setup, init_samples=8, batches=4, batch_size=4
+):
+    problem = problem_from_setup(problem_setup, ips_instance)
+    minimize(
+        problem=problem,
+        batches=batches,
+        batch_size=batch_size,
+        init_samples=init_samples,
+    )
+
+    dataset = xr.concat(problem.state["batch_datasets"], dim="case")
+
+    return dataset
+
+
 def initialize_model(problem, train_x, train_obj, train_con):
     # define models for objective and constraint
     train_x = normalize(train_x, bounds=problem.bounds.T)
