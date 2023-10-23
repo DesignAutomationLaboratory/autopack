@@ -1,5 +1,4 @@
 import pathlib
-from itertools import product
 
 import numpy as np
 
@@ -12,43 +11,16 @@ def create_costfield(ips_instance, harness_setup):
     command1 = lua_commands.setup_harness_routing(harness_setup)
     command2 = lua_commands.setup_export_cost_field()
     command = command1 + command2
-    str_cost_field = ips_instance.call(command)
-    str_cost_field = str_cost_field.decode("utf-8").strip('"')
-    str_cost_field = str_cost_field[:-2]
-    array_cost_field = str_cost_field.split()
-    cost_field_size = (
-        int(array_cost_field[0]),
-        int(array_cost_field[1]),
-        int(array_cost_field[2]),
-    )
-    array_cost_field = array_cost_field[3:]
-    coordinates = [value for i, value in enumerate(array_cost_field) if (i % 4 != 3)]
-    coordinates_grouped = [
-        coordinates[i : i + 3] for i in range(0, len(coordinates), 3)
-    ]
-    costs = [value for i, value in enumerate(array_cost_field) if (i % 4 == 3)]
+    response = ips_instance.call_unpack(command)
 
-    np_costs = np.empty(cost_field_size, dtype=float)
-    np_coords = np.empty(
-        (cost_field_size[0], cost_field_size[1], cost_field_size[2], 3), dtype=float
-    )
-    n = 0
-    for x, y, z in product(
-        range(cost_field_size[0]), range(cost_field_size[1]), range(cost_field_size[2])
-    ):
-        cost_str = costs[n]
-        np_costs[x, y, z] = float(cost_str)
-        np_coords[x, y, z] = [
-            float(coordinates_grouped[n][0]),
-            float(coordinates_grouped[n][1]),
-            float(coordinates_grouped[n][2]),
-        ]
-        n += 1
-    ips_field = CostField(name="ips", coordinates=np_coords, costs=np_costs)
+    coords = np.array(response["coords"])
+    costs = np.array(response["costs"])
+
+    ips_field = CostField(name="ips", coordinates=coords, costs=costs)
     length_field = CostField(
         name="length",
-        coordinates=np_coords,
-        costs=np.ones(cost_field_size, dtype=float),
+        coordinates=coords,
+        costs=np.ones_like(costs),
     )
     return ips_field, length_field
 

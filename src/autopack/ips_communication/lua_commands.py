@@ -70,27 +70,26 @@ def setup_harness_routing(harness):
 
 def setup_export_cost_field():
     command = """
-    local numbOfCostNodes = sim:getGridSize()
-
-    -- Format cost field to string
-    local outputTable = {}
-    table.insert(outputTable, numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2])
-
-    --output = numbOfCostNodes[0] .. " " .. numbOfCostNodes[1] .. " " .. numbOfCostNodes[2]
-    for i = 0,numbOfCostNodes[0]-1,1
-    do
-        for ii = 0, numbOfCostNodes[1]-1,1
-        do
-            for iii = 0, numbOfCostNodes[2]-1,1
-            do
-                local pos = sim:getNodePosition(i,ii,iii)
-                --output = output .. " " .. pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i,ii,iii)
-                table.insert(outputTable, pos[0] .. " " .. pos[1] .. " " .. pos[2] .. " " .. sim:getNodeCost(i, ii, iii))
+    local gridSize = sim:getGridSize()
+    local coords = {}
+    local costs = {}
+    -- Using 1-based indexing to get arrays when packing with msgpack
+    for i_x = 1, gridSize[0], 1 do
+        coords[i_x] = {}
+        costs[i_x] = {}
+        for i_y = 1, gridSize[1], 1 do
+            coords[i_x][i_y] = {}
+            costs[i_x][i_y] = {}
+            for i_z = 1, gridSize[2], 1 do
+                -- IPS uses 0-based indexing for grid nodes
+                local coord = sim:getNodePosition(i_x - 1, i_y - 1, i_z - 1)
+                local cost = sim:getNodeCost(i_x - 1, i_y - 1, i_z - 1)
+                coords[i_x][i_y][i_z] = {coord.x, coord.y, coord.z}
+                costs[i_x][i_y][i_z] = cost
             end
         end
     end
-    return table.concat(outputTable, " ")
-    --return output
+    return autopack.pack({coords=coords, costs=costs})
     """
     return command
 
