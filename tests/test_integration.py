@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
+import xarray as xr
 
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
 from autopack.harness_optimization import optimize_harness
 from autopack.ips_communication.ips_commands import create_costfield, load_scene
+from autopack.optimization import minimize, problem_from_setup, global_optimize_harness
 
 
 @pytest.fixture
@@ -69,3 +71,29 @@ def test_integration(simple_plate_harness_setup, ips_instance):
     )
     print("costs: ", costs)
     print("Number of clips: ", numb_of_clips)
+
+
+def test_global_optimization_smoke(
+    simple_plate_harness_setup, test_scenes_path, ips_instance
+):
+    scene_path = test_scenes_path / "simple_plate.ips"
+    load_scene(ips_instance, str(scene_path.resolve()))
+
+    cost_field_ips, cost_field_length = create_costfield(
+        ips_instance, simple_plate_harness_setup
+    )
+    problem_setup = ProblemSetup(
+        harness_setup=simple_plate_harness_setup,
+        cost_fields=[cost_field_ips, cost_field_length],
+    )
+
+    dataset = global_optimize_harness(
+        ips_instance=ips_instance,
+        problem_setup=problem_setup,
+        init_samples=2,
+        batches=2,
+        batch_size=2,
+    )
+
+    assert isinstance(dataset, xr.Dataset)
+    # TODO: make more assertions

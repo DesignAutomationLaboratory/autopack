@@ -95,17 +95,13 @@ def setup_export_cost_field():
     return command
 
 
-def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harness_id=0):
+def setup_harness_optimization(cost_field, bundling_factor=0.5, harness_id=None):
     commands = []
-    cost_field_size = np.shape(cost_field.costs)
-    for i in range(cost_field_size[0]):
-        for ii in range(cost_field_size[1]):
-            for iii in range(cost_field_size[2]):
-                if cost_field.costs[i, ii, iii] > 9999999999999999999:
-                    cmd = f"sim:setNodeCost({i}, {ii}, {iii}, 9999999999999999999)"
-                else:
-                    cmd = f"sim:setNodeCost({i}, {ii}, {iii}, {cost_field.costs[i, ii, iii]})"
-                commands.append(cmd)
+    max_valid_cost = 1e19 - 1
+    capped_costs = np.clip(cost_field.costs, -np.inf, max_valid_cost)
+    for (i_x, i_y, i_z), cost in np.ndenumerate(capped_costs):
+        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {cost})"
+        commands.append(cmd)
     new_line = "\n"
     final_command = f"""
     {new_line.join(commands)}
@@ -113,7 +109,8 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
     if sim:getNumSolutions() == 0 then
         return
     else
-        num = {weight}*sim:getNumSolutions()
+        num_solutions = sim:getNumSolutions()
+        num = {bundling_factor} * (num_solutions - 1)
         solution_to_capture = math.floor(num + 0.5)
         smoothed_solution = sim:buildPresmoothSegments(solution_to_capture)
         segments = sim:buildDiscreteSegments(solution_to_capture)
@@ -139,8 +136,8 @@ def setup_harness_optimization(cost_field, weight=0.5, save_harness=True, harnes
         unsmoothed = static_objects:getLastChild()
         Ips.deleteTreeObject(unsmoothed)
         smoothed = static_objects:getLastChild()
-        if {bool_to_string_lower(save_harness)} then
-            smoothed:setLabel("harness{harness_id}")
+        if {bool_to_string_lower(bool(harness_id))} then
+            smoothed:setLabel("{harness_id}")
         else
             Ips.deleteTreeObject(smoothed)
         end

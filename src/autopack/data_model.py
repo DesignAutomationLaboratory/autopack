@@ -62,3 +62,8 @@ class Result(BaseModel):
     dataset: Any
     ips_path: str
     scene_path: str
+
+
+class GlobalOptimizationSetup(BaseModel):
+    problem_setup: ProblemSetup
+    ips_instance: Any
