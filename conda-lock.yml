@@ -15,7 +15,7 @@
 version: 1
 metadata:
   content_hash:
-    win-64: 472d0fe525abe093b40084e261f6e3349a670a11b85a87a9d32bf2ce30481912
+    win-64: 9467ce1c60b6969bbb019a3ca928257b9c75eca4506e489709206b67dd2522c7
   channels:
   - url: pytorch
     used_env_vars: []
@@ -1634,6 +1634,22 @@ package:
     sha256: b6d10f64043bd3123ae5fe850057498440fe0c5ffc5dfb6b3197b927d99eb112
   category: dev
   optional: true
+- name: pyinstrument
+  version: 4.6.0
+  manager: conda
+  platform: win-64
+  dependencies:
+    python: '>=3.11,<3.12.0a0'
+    python_abi: 3.11.*
+    ucrt: '>=10.0.20348.0'
+    vc: '>=14.2,<15'
+    vc14_runtime: '>=14.29.30139'
+  url: https://conda.anaconda.org/conda-forge/win-64/pyinstrument-4.6.0-py311ha68e1ae_1.conda
+  hash:
+    md5: 1a1fd77bae39c9927915dc460f61ea1d
+    sha256: 2a3c1cf7487e2c01ffc197dce49915019b844d129a8891e51acaa9c87b58d063
+  category: dev
+  optional: true
 - name: pylev
   version: 1.4.0
   manager: conda
@@ -2948,7 +2964,7 @@ package:
   category: main
   optional: false
 - name: virtualenv
-  version: 20.24.4
+  version: 20.24.6
   manager: conda
   platform: win-64
   dependencies:
@@ -2956,10 +2972,10 @@ package:
     filelock: <4,>=3.12.2
     platformdirs: <4,>=3.9.1
     python: '>=3.8'
-  url: https://conda.anaconda.org/conda-forge/noarch/virtualenv-20.24.4-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/virtualenv-20.24.6-pyhd8ed1ab_0.conda
   hash:
-    md5: c3feaf947264a59a125e8c26e98c3c5a
-    sha256: 85c96449202ca87ec12783d8675b3655b4cd7b7afe49f2dc37d743adb0ed177f
+    md5: fb1fc875719e217ed799a7aae11d3be4
+    sha256: 09492f89a22dc17d9b32f2a791deee93d06e99fb312c3d47430fe35343b7fbde
   category: dev
   optional: true
 - name: cachecontrol

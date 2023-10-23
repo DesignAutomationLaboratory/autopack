@@ -24,13 +24,14 @@ dependencies = [
 [project.optional-dependencies]
 # Dependencies that are only needed for development/testing/building
 dev = [
-  "conda-lock",  # Dependency locking
-  "hatch",       # Project management
-  "invoke",      # Task automation
-  "ipykernel",   # Jupyter notebooks in VSCode
+  "conda-lock",   # Dependency locking
+  "hatch",        # Project management
+  "invoke",       # Task automation
+  "ipykernel",    # Jupyter notebooks in VSCode
   "pyinstaller",
+  "pyinstrument", # Profiling
   "pytest",
-  "ruff",        # Code formatting
+  "ruff",         # Code formatting
 ]
 
 [project.urls]
