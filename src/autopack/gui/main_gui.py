@@ -6,12 +6,14 @@ import panel as pn
 import param
 
 from autopack.data_model import HarnessSetup
+from autopack.default_commands import create_default_prob_setup
 from autopack.gui.select_path import (
     dump_json,
     load_json,
     select_file_path,
     select_save_file_path,
 )
+from autopack.ips_communication.ips_class import IPSInstance
 
 max_width_left_column = "200px"  # or whatever width you desire
 
@@ -24,12 +26,17 @@ class GuiSetup(param.Parameterized):
     run_imma = param.Parameter(
         False, doc="Boolean describing if an Imma analyse will be run or not"
     )
-    cost_fields = param.Parameter("", doc="List of cost fields used")
     problem_setup = None
     result = None
 
 
 gui_setup = GuiSetup()
+
+
+def create_ips_instance():
+    ips = IPSInstance(gui_setup.ips_path)
+    ips.start()
+    return ips
 
 
 def save_to_file(event):
@@ -68,18 +75,17 @@ def click_select_optimization_setup(event):
     gui_setup.harness_path = file_path
 
 
-def click_create_cost_fields(event):
+def click_run_optimization(event):
     with open(gui_setup.harness_path, "r") as f:
         user_json_str = f.read()
     harness_setup = HarnessSetup.model_validate_json(user_json_str)
-    load_scene(ips, setup1.scene_path)
-    cost_field_ips, cost_field_length = create_costfield(ips, setup1)
+    ips_instance = create_ips_instance()
+    prob_setup = create_default_prob_setup(
+        ips_instance, harness_setup, create_imma=gui_setup.run_imma
+    )
+    gui_setup.problem_setup = prob_setup
     # data = ["Item 1", "Item 2", "Item 3", "Item 4"]
     # gui_setup.cost_fields = "\n".join(f"- {item}" for item in data)
-
-
-def click_run_optimization(event):
-    print("run optimization")
 
 
 button_save = pn.widgets.Button(name="Save")
@@ -103,17 +109,15 @@ ips_path = pn.widgets.StaticText(
 button_select_optimization_setup = pn.widgets.Button(name="Select harness setup")
 button_select_optimization_setup.on_click(click_select_optimization_setup)
 harness_path = pn.widgets.StaticText(
-    name="Harness setup", value=gui_setup.param.harness_path
+    name="Harness setup",
+    value=gui_setup.param.harness_path,
+    style={"max-width": max_width_left_column},
 )
 
 imma_checkbox = pn.widgets.Checkbox(
     name="Perform IMMA analyse", value=gui_setup.param.run_imma
 )
 
-button_create_cost_fields = pn.widgets.Button(name="Create cost fields")
-button_create_cost_fields.on_click(click_create_cost_fields)
-
-list_panel = pn.pane.Markdown(value=gui_setup.param.cost_fields)
 
 button_run_optimization = pn.widgets.Button(name="Run optimization")
 button_run_optimization.on_click(click_run_optimization)
@@ -125,8 +129,6 @@ setup_column = pn.Column(
     button_select_optimization_setup,
     harness_path,
     imma_checkbox,
-    button_create_cost_fields,
-    list_panel,
     button_run_optimization,
     styles=dict(background="#ff9999"),
 )
