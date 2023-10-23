@@ -38,6 +38,7 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
     def normalized_costs(self):
         mask = self.costs < 999999
         max_value = np.amax(self.costs[mask])
+        assert max_value != 0, "Max cost is 0, can't normalize"
         normalized_arr = self.costs / max_value
         return normalized_arr
 

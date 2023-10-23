@@ -40,6 +40,7 @@ def load_scene(ips_instance, scene_file_path):
 def ips_optimize_harness(
     ips_instance, harness_setup, cost_field, bundling_factor=0.5, harness_id=None
 ):
+    assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
     command1 = lua_commands.setup_harness_routing(harness_setup)
     command2 = lua_commands.setup_harness_optimization(
         cost_field, bundling_factor=bundling_factor, harness_id=harness_id
