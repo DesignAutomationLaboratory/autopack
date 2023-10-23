@@ -4,6 +4,8 @@ from typing import Any, List, Literal, Optional
 import numpy as np
 from pydantic import BaseModel
 
+from .ips_communication.ips_class import IPSInstance  # noqa
+
 
 class Cable(BaseModel):
     start_node: str
