@@ -1,6 +1,3 @@
-import json
-import pickle
-
 import pandas as pd
 import panel as pn
 import param
@@ -14,6 +11,7 @@ from autopack.gui.select_path import (
     select_save_file_path,
 )
 from autopack.ips_communication.ips_class import IPSInstance
+from autopack.optimization import global_optimize_harness
 
 max_width_left_column = "200px"  # or whatever width you desire
 
@@ -84,6 +82,10 @@ def click_run_optimization(event):
         ips_instance, harness_setup, create_imma=gui_setup.run_imma
     )
     gui_setup.problem_setup = prob_setup
+    results = global_optimize_harness(
+        ips_instance, prob_setup, init_samples=8, batches=4, batch_size=4
+    )
+    gui_setup.result = results
     # data = ["Item 1", "Item 2", "Item 3", "Item 4"]
     # gui_setup.cost_fields = "\n".join(f"- {item}" for item in data)
 
