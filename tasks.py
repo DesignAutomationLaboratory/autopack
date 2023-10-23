@@ -23,6 +23,8 @@ def env(c, env_name=DEFAULT_ENV_NAME):
     Installs the Python development environment.
     """
     c.run(f"conda lock install -n {env_name} conda-lock.yml")
+    # For some reason, the conda-forge msgpack does not include compiled extensions
+    conda_run(c, "pip install --force-reinstall -U msgpack==1.0.7", env_name=env_name)
     conda_run(c, "pip install --no-deps -e .", env_name=env_name)
 
 

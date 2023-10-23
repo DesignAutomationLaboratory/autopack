@@ -14,6 +14,7 @@ authors = [
 dependencies = [
   "botorch",    # Bayesian optimization
   "facit",
+  "msgpack",
   "numpy",
   "pydantic",
   "smt",        # Surrogate modelling toolbox

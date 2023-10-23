@@ -15,7 +15,7 @@
 version: 1
 metadata:
   content_hash:
-    win-64: 30f47be8c53444cf00da0eb4d6cf2e6ba2c1534fae29a9b804c1dc2e9463fc14
+    win-64: 472d0fe525abe093b40084e261f6e3349a670a11b85a87a9d32bf2ce30481912
   channels:
   - url: pytorch
     used_env_vars: []
@@ -42,14 +42,14 @@ package:
   category: main
   optional: false
 - name: cuda-cccl
-  version: 12.2.140
+  version: 12.3.52
   manager: conda
   platform: win-64
   dependencies: {}
-  url: https://conda.anaconda.org/nvidia/win-64/cuda-cccl-12.2.140-0.tar.bz2
+  url: https://conda.anaconda.org/nvidia/win-64/cuda-cccl-12.3.52-0.tar.bz2
   hash:
-    md5: 8f0ac204b0b625461ed5317414a5f384
-    sha256: 3090cf4c1663d79d4dcef877aee3dd23bb88a92bccdd2fb1701520b4e080e254
+    md5: f7311109c5b41bc07d5213e4a2b4b850
+    sha256: a53689bbf0c8a9a7b3da055193eb8dbf982467b242a32c6adde4df50463f93d0
   category: main
   optional: false
 - name: cuda-cudart
@@ -97,25 +97,25 @@ package:
   category: main
   optional: false
 - name: cuda-opencl
-  version: 12.2.140
+  version: 12.3.52
   manager: conda
   platform: win-64
   dependencies: {}
-  url: https://conda.anaconda.org/nvidia/win-64/cuda-opencl-12.2.140-0.tar.bz2
+  url: https://conda.anaconda.org/nvidia/win-64/cuda-opencl-12.3.52-0.tar.bz2
   hash:
-    md5: 0ef002cd113ee084679ccfbc89ffa58e
-    sha256: 58154032d4705256b366f539c4115a85712d8fa1335bca68fe185f4883e6e5f8
+    md5: d5d04aa69d1b22f0c9475b3282e1273b
+    sha256: 169752460ddcfdad4a7d6995278f7645206264bb7841150d23402c2093f55a9f
   category: main
   optional: false
 - name: cuda-profiler-api
-  version: 12.2.140
+  version: 12.3.52
   manager: conda
   platform: win-64
   dependencies: {}
-  url: https://conda.anaconda.org/nvidia/win-64/cuda-profiler-api-12.2.140-0.tar.bz2
+  url: https://conda.anaconda.org/nvidia/win-64/cuda-profiler-api-12.3.52-0.tar.bz2
   hash:
-    md5: 461c12ff76880f3f759497317f00abeb
-    sha256: c7a7618b25dde67637bc7cf5b30b9c1550485f5526a9a5498ef0ec811abbaffe
+    md5: f30dcdf27ce754ad527d3ec9f2508a87
+    sha256: 0f641ac49118127db6e28a8a516e5b41670e1315549ad612525ea1450a2b423e
   category: main
   optional: false
 - name: intel-openmp
@@ -152,14 +152,14 @@ package:
   category: main
   optional: false
 - name: libcurand
-  version: 10.3.3.141
+  version: 10.3.4.52
   manager: conda
   platform: win-64
   dependencies: {}
-  url: https://conda.anaconda.org/nvidia/win-64/libcurand-10.3.3.141-0.tar.bz2
+  url: https://conda.anaconda.org/nvidia/win-64/libcurand-10.3.4.52-0.tar.bz2
   hash:
-    md5: f037379ba2792f74cfaf4a20df11f22e
-    sha256: a49273de04df6eaa7b59a7555006c49e2e8c259d172df51f13705a365c551d2b
+    md5: 5c3eddcace0fee067444849b99565337
+    sha256: 8004989ca8f607e89779ed53c89c9991b23c0fca4da6a18c5fb59b338cbbeb7b
   category: main
   optional: false
 - name: libcusolver
@@ -342,15 +342,15 @@ package:
   category: main
   optional: false
 - name: cuda-opencl-dev
-  version: 12.2.140
+  version: 12.3.52
   manager: conda
   platform: win-64
   dependencies:
-    cuda-opencl: '>=12.2.140'
-  url: https://conda.anaconda.org/nvidia/win-64/cuda-opencl-dev-12.2.140-0.tar.bz2
+    cuda-opencl: '>=12.3.52'
+  url: https://conda.anaconda.org/nvidia/win-64/cuda-opencl-dev-12.3.52-0.tar.bz2
   hash:
-    md5: de2e6da61f4df260769a8589d2b6274b
-    sha256: 919da8ce1831cdeb3542fee59fc482f40b6daeb46aeb232d7751a4218da2d759
+    md5: cafe143bd9e662d843fd646792ccdcee
+    sha256: 9c52a4bde99e0ac53454a3046ff54bc1ad99e489e8efc42c1a47f1e40f6d5955
   category: main
   optional: false
 - name: libcublas-dev
@@ -378,15 +378,15 @@ package:
   category: main
   optional: false
 - name: libcurand-dev
-  version: 10.3.3.141
+  version: 10.3.4.52
   manager: conda
   platform: win-64
   dependencies:
-    libcurand: '>=10.3.3.141'
-  url: https://conda.anaconda.org/nvidia/win-64/libcurand-dev-10.3.3.141-0.tar.bz2
+    libcurand: '>=10.3.4.52'
+  url: https://conda.anaconda.org/nvidia/win-64/libcurand-dev-10.3.4.52-0.tar.bz2
   hash:
-    md5: 4a9f67c5375dc961657474ae86c25323
-    sha256: fc3701163fc8e1cab0567660da94455299ea13f28d1ce30fa8d68489dd911f12
+    md5: 764b880aaf44ac7ca89028a6827019f7
+    sha256: 9aeba4fb3a562bf73b59d2652f3f3bd909b1cb59caaab4fe572f09f65b7c2dda
   category: main
   optional: false
 - name: libcusolver-dev
@@ -949,17 +949,18 @@ package:
   category: main
   optional: false
 - name: zeromq
-  version: 4.3.4
+  version: 4.3.5
   manager: conda
   platform: win-64
   dependencies:
     libsodium: '>=1.0.18,<1.0.19.0a0'
-    vc: '>=14.1,<15.0a0'
-    vs2015_runtime: '>=14.16.27012'
-  url: https://conda.anaconda.org/conda-forge/win-64/zeromq-4.3.4-h0e60522_1.tar.bz2
+    ucrt: '>=10.0.20348.0'
+    vc: '>=14.2,<15'
+    vc14_runtime: '>=14.29.30139'
+  url: https://conda.anaconda.org/conda-forge/win-64/zeromq-4.3.5-h63175ca_0.conda
   hash:
-    md5: e1aff0583dda5fb917eb3d2c1025aa80
-    sha256: 0489cc6c3bff50620879890431d7142fd6e66b7770ddc6f2d7852094471c0d6c
+    md5: e954e1881091405f36416f772292b396
+    sha256: f8377793c36e19da17bbb8cf517f1a969b89e1cc7cb9622dc6d60c3d1383c919
   category: dev
   optional: true
 - name: zstd
@@ -1082,15 +1083,15 @@ package:
   category: main
   optional: false
 - name: charset-normalizer
-  version: 3.3.0
+  version: 3.3.1
   manager: conda
   platform: win-64
   dependencies:
     python: '>=3.7'
-  url: https://conda.anaconda.org/conda-forge/noarch/charset-normalizer-3.3.0-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/charset-normalizer-3.3.1-pyhd8ed1ab_0.conda
   hash:
-    md5: fef8ef5f0a54546b9efee39468229917
-    sha256: 3407cd21af7e85aeb9499c377e7db25d2bbb9cbaf2f47d92626b3471dca65b4c
+    md5: 985378f74689fccce52f158027bd9acd
+    sha256: a31739c49c4b1c8e0cbdec965ba152683d36ce6e23bdaefcfee99937524dabd1
   category: main
   optional: false
 - name: colorama
@@ -1762,11 +1763,11 @@ package:
     ucrt: '>=10.0.20348.0'
     vc: '>=14.2,<15'
     vc14_runtime: '>=14.29.30139'
-    zeromq: '>=4.3.4,<4.3.5.0a0'
-  url: https://conda.anaconda.org/conda-forge/win-64/pyzmq-25.1.1-py311h7b3f143_1.conda
+    zeromq: '>=4.3.5,<4.3.6.0a0'
+  url: https://conda.anaconda.org/conda-forge/win-64/pyzmq-25.1.1-py311h9250fbb_2.conda
   hash:
-    md5: e3d0dd062963011239017d79be3ecdaa
-    sha256: 7412e89a3574d4fb476a3fe1c5f0356f1748d9a0fa611c6301e637456571588c
+    md5: e2e285b5528875d9008c0f1527f8436e
+    sha256: 11e347a6756cef1454322de743fc1c7aff634a5d0161dd57261c5c610cae2a40
   category: dev
   optional: true
 - name: ruamel.yaml.clib
@@ -1786,7 +1787,7 @@ package:
   category: dev
   optional: true
 - name: ruff
-  version: 0.1.0
+  version: 0.1.1
   manager: conda
   platform: win-64
   dependencies:
@@ -1795,10 +1796,10 @@ package:
     ucrt: '>=10.0.20348.0'
     vc: '>=14.2,<15'
     vc14_runtime: '>=14.29.30139'
-  url: https://conda.anaconda.org/conda-forge/win-64/ruff-0.1.0-py311hc14472d_0.conda
+  url: https://conda.anaconda.org/conda-forge/win-64/ruff-0.1.1-py311hc14472d_0.conda
   hash:
-    md5: e0a2d41efceb3b690d58b96d92f2baf3
-    sha256: 7c23a665e5e16ea473eb4ce4ae7cb6655b9ee0fab2a8858573294d65b2148b10
+    md5: 070be80ee7e211f5cc98ca011defdc89
+    sha256: 2242b79b90e9b8f36a461d73614463dfaedd7ae642d57bfe9df151ab4f05a55b
   category: dev
   optional: true
 - name: setuptools
@@ -1838,15 +1839,15 @@ package:
   category: main
   optional: false
 - name: smmap
-  version: 3.0.5
+  version: 5.0.0
   manager: conda
   platform: win-64
   dependencies:
-    python: ''
-  url: https://conda.anaconda.org/conda-forge/noarch/smmap-3.0.5-pyh44b312d_0.tar.bz2
+    python: '>=3.5'
+  url: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.0-pyhd8ed1ab_0.tar.bz2
   hash:
-    md5: 3a8dc70789709aa315325d5df06fb7e4
-    sha256: 091de70ee6bfe063e0c0f77336975d124fd1e3f49b9c58d97c0c7b3d287c0002
+    md5: 62f26a3d1387acee31322208f0cfa3e0
+    sha256: 23011cb3e064525bdb8787c75126a2e78d2344a72cd6773922006d1da1f2af16
   category: dev
   optional: true
 - name: sniffio
@@ -2173,16 +2174,16 @@ package:
   category: dev
   optional: true
 - name: gitdb
-  version: 4.0.10
+  version: 4.0.11
   manager: conda
   platform: win-64
   dependencies:
-    python: '>=3.4'
-    smmap: '>=3.0.1,<4'
-  url: https://conda.anaconda.org/conda-forge/noarch/gitdb-4.0.10-pyhd8ed1ab_0.conda
+    python: '>=3.7'
+    smmap: '>=3.0.1,<6'
+  url: https://conda.anaconda.org/conda-forge/noarch/gitdb-4.0.11-pyhd8ed1ab_0.conda
   hash:
-    md5: 3706d2f3d7cb5dae600c833345a76132
-    sha256: 0003ab2b971913380633c711bf49a54dcf06e179986c725b0925854b58878377
+    md5: 623b19f616f2ca0c261441067e18ae40
+    sha256: 52ab2798be31b8f509eeec458712f447ced4f96ecb672c6c9a42778f47e07b1b
   category: dev
   optional: true
 - name: h11
@@ -2419,17 +2420,17 @@ package:
   category: dev
   optional: true
 - name: pip
-  version: '23.3'
+  version: 23.3.1
   manager: conda
   platform: win-64
   dependencies:
     python: '>=3.7'
     setuptools: ''
     wheel: ''
-  url: https://conda.anaconda.org/conda-forge/noarch/pip-23.3-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/pip-23.3.1-pyhd8ed1ab_0.conda
   hash:
-    md5: a06f102f59c8e3bb8b3e46e71c384709
-    sha256: cfebbb8c0bd13adc753601f35e5a8aa81f8e0266140f4246fddf30aa5fede27a
+    md5: 2400c0b86889f43aa52067161e1fb108
+    sha256: 435829a03e1c6009f013f29bb83de8b876c388820bf8cf69a7baeec25f6a3563
   category: main
   optional: false
 - name: pysocks
@@ -2478,7 +2479,7 @@ package:
   category: main
   optional: false
 - name: ruamel.yaml
-  version: 0.17.36
+  version: 0.17.39
   manager: conda
   platform: win-64
   dependencies:
@@ -2489,10 +2490,10 @@ package:
     ucrt: '>=10.0.20348.0'
     vc: '>=14.2,<15'
     vc14_runtime: '>=14.29.30139'
-  url: https://conda.anaconda.org/conda-forge/win-64/ruamel.yaml-0.17.36-py311ha68e1ae_0.conda
+  url: https://conda.anaconda.org/conda-forge/win-64/ruamel.yaml-0.17.39-py311ha68e1ae_0.conda
   hash:
-    md5: a43d4d90a82d88e187f0977c1a785178
-    sha256: 3ba1892035c2fc834e58c962fe330c2135bd6ec441f205cf07e48b4e4b0ca331
+    md5: 27c24841506e5ebb0c8fdb2b55f7b48c
+    sha256: 9f630d108f3d42ddc1c0fc79910eaa04ca06f8f047da9e2b6e88772d7bd88bab
   category: dev
   optional: true
 - name: sympy
@@ -2777,17 +2778,17 @@ package:
   category: dev
   optional: true
 - name: urllib3
-  version: 1.26.17
+  version: 1.26.18
   manager: conda
   platform: win-64
   dependencies:
     brotli-python: '>=1.0.9'
     pysocks: '>=1.5.6,<2.0,!=1.5.7'
     python: '>=3.7'
-  url: https://conda.anaconda.org/conda-forge/noarch/urllib3-1.26.17-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/urllib3-1.26.18-pyhd8ed1ab_0.conda
   hash:
-    md5: 3b94800e11804555e40971c97fd3e801
-    sha256: 6fbd62aa5fc060bfada26a0f4ad1dab6709a1fe62b3b04dbed49fcc94663979d
+    md5: bf61cfd2a7f212efba378167a07d4a6a
+    sha256: 1cc0bab65a6ad0f5a8bd7657760a4fb4e670d30377f9dab88b792977cb3687e7
   category: main
   optional: false
 - name: userpath
@@ -2924,10 +2925,10 @@ package:
     pydantic-core: 2.10.1
     python: '>=3.7'
     typing-extensions: '>=4.6.1'
-  url: https://conda.anaconda.org/conda-forge/noarch/pydantic-2.4.2-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/pydantic-2.4.2-pyhd8ed1ab_1.conda
   hash:
-    md5: 9239f393a710c57ce959b29fbc54a01c
-    sha256: e77a457b28a34a3f59316d41647c0ff253766802a8a825d7bb4606dee43ffdbc
+    md5: aad1d187156725d52e1f8ee7756c20f6
+    sha256: dc6330364f92de95a315a19e842a26605d6ca5c7d346e77811d42ad0438e32d8
   category: main
   optional: false
 - name: requests
@@ -3161,7 +3162,7 @@ package:
   category: main
   optional: false
 - name: conda-lock
-  version: 2.4.0
+  version: 2.4.1
   manager: conda
   platform: win-64
   dependencies:
@@ -3189,10 +3190,10 @@ package:
     typing_extensions: ''
     urllib3: '>=1.26.5,<2.0'
     virtualenv: '>=20.0.26'
-  url: https://conda.anaconda.org/conda-forge/noarch/conda-lock-2.4.0-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/conda-lock-2.4.1-pyhd8ed1ab_0.conda
   hash:
-    md5: edcd5c7565a5cd1c7862a911a899fb20
-    sha256: f3829c7be0d0b37c4a7146cf65123c23cd37b1c21fc051cc93c812d5bc8d4ff7
+    md5: deb6e2f8d8b4de933563cc681165b833
+    sha256: 08cd768d033db260e043982ba91de007213adbde5210a76fd2decad3c135e666
   category: dev
   optional: true
 - name: contourpy
@@ -3238,7 +3239,7 @@ package:
   category: dev
   optional: true
 - name: jaxtyping
-  version: 0.2.21
+  version: 0.2.22
   manager: conda
   platform: win-64
   dependencies:
@@ -3246,10 +3247,10 @@ package:
     python: '>=3.9'
     typeguard: '>=2.13.3'
     typing-extensions: '>=3.7.4.1'
-  url: https://conda.anaconda.org/conda-forge/noarch/jaxtyping-0.2.21-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/jaxtyping-0.2.22-pyhd8ed1ab_0.conda
   hash:
-    md5: bcf45751f842bf2cd049daf8ee78d67c
-    sha256: c8e0e6bc1491cc7a89797cd599f3e506b269a78a41fc7e8cceabac7afc0c1557
+    md5: bae127df232f89f99de6f403f7680910
+    sha256: 7ee967d75263185c3e5945cf8832e843639c0d7e470d16b268ae227abfdf9577
   category: main
   optional: false
 - name: numcodecs
@@ -3369,7 +3370,7 @@ package:
   category: main
   optional: false
 - name: openmdao
-  version: 3.28.0
+  version: 3.29.0
   manager: conda
   platform: win-64
   dependencies:
@@ -3379,10 +3380,10 @@ package:
     python: '>=3.7'
     requests: ''
     scipy: ''
-  url: https://conda.anaconda.org/conda-forge/noarch/openmdao-3.28.0-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/openmdao-3.29.0-pyhc1e730c_0.conda
   hash:
-    md5: b61512ee34ac9bdd7f856ff9e885ba32
-    sha256: 20d9aa16b6c756ec1215d053a661dbc9ad14fcca0c3dc2c0eb4723e2ea902e89
+    md5: eec4732055317f380b6b82b86507ec9f
+    sha256: 2b90357c8aa74399bd6bb27d82b36e19a5db63b4355477f6cc5118458d225fd0
   category: main
   optional: false
 - name: pydoe2
@@ -3420,18 +3421,18 @@ package:
   category: main
   optional: false
 - name: xarray
-  version: 2023.9.0
+  version: 2023.10.1
   manager: conda
   platform: win-64
   dependencies:
-    numpy: '>=1.21'
+    numpy: '>=1.22'
     packaging: '>=21.3'
     pandas: '>=1.4'
     python: '>=3.9'
-  url: https://conda.anaconda.org/conda-forge/noarch/xarray-2023.9.0-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/xarray-2023.10.1-pyhd8ed1ab_0.conda
   hash:
-    md5: 158c89bbc0f2597f33e8ce1aea59e0ee
-    sha256: fd86c6b5da4469df74aec93d8dbc8c8903377a81d7c245a14745b38b70799803
+    md5: 9b20e5d68eea6878a0a6fc57a3043889
+    sha256: 6062114745e9c01813506527d7e48c75dbe5eb6017e4c60ce8c98ef9fd757db2
   category: main
   optional: false
 - name: zarr

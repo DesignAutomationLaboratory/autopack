@@ -1,7 +1,25 @@
+import base64
 import os
+import pathlib
 import subprocess
 
+import msgpack
 import zmq
+
+LUALIB_PATH = pathlib.Path(__file__).parent / "lualib" / "?.lua"
+LOAD_LUALIB_SCRIPT = f"""
+    Script.resetStateWhenFinished(false)
+    package.path = package.path .. ';{LUALIB_PATH.absolute().as_posix()}'
+    local msgpack = require("MessagePack")
+    local base64 = require("base64")
+
+    local function pack(data)
+        return base64.encode(msgpack.pack(data))
+    end
+    _G.autopack = {{pack=pack}}
+    _G.msgpack = msgpack
+    _G.base64 = base64
+"""
 
 
 def get_ips_path():
@@ -13,6 +31,10 @@ def get_ips_path():
         )
 
 
+def unpack(payload):
+    return msgpack.unpackb(base64.b64decode(payload))
+
+
 class IPSInstance:
     def __init__(self, ips_path=None, port="24768"):
         if ips_path is None:
@@ -21,7 +43,7 @@ class IPSInstance:
         self.port = port
         self.socket = None
 
-    def start(self):
+    def start(self, verify_connection=True, load_libs=True):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
         subprocess.Popen(
             ["IPS.exe", "-port", self.port],
@@ -36,10 +58,27 @@ class IPSInstance:
         self.socket = context.socket(zmq.REQ)
         self.socket.connect("tcp://127.0.0.1:" + self.port)
 
+        if verify_connection:
+            response = self.call('return "ping"')
+            assert (
+                response == b'"ping"\n'
+            ), f"IPS did not respond as expected: {response}"
+            self.call(
+                f"print('Connection to Autopack on port {self.port} successfully verified!')"
+            )
+
+        if load_libs:
+            self.call(LOAD_LUALIB_SCRIPT)
+
     def call(self, command):
         self.socket.send_string(command)
         msg = self.socket.recv()
         return msg
+
+    def call_unpack(self, command):
+        raw_response = self.call(command)
+        stripped_response = raw_response.strip(b"\n").strip(b'"')
+        return unpack(stripped_response)
 
     def kill(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
