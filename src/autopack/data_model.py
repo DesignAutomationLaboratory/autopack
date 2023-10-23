@@ -63,8 +63,6 @@ class Harness(BaseModel):
 class Result(BaseModel):
     problem_setup: ProblemSetup
     dataset: Any
-    ips_path: str
-    scene_path: str
 
 
 class GlobalOptimizationSetup(BaseModel):

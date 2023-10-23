@@ -5,6 +5,7 @@ import pandas as pd
 import panel as pn
 import param
 
+from autopack.data_model import HarnessSetup
 from autopack.gui.select_path import (
     dump_json,
     load_json,
@@ -24,6 +25,8 @@ class GuiSetup(param.Parameterized):
         False, doc="Boolean describing if an Imma analyse will be run or not"
     )
     cost_fields = param.Parameter("", doc="List of cost fields used")
+    problem_setup = None
+    result = None
 
 
 gui_setup = GuiSetup()
@@ -66,8 +69,13 @@ def click_select_optimization_setup(event):
 
 
 def click_create_cost_fields(event):
-    data = ["Item 1", "Item 2", "Item 3", "Item 4"]
-    gui_setup.cost_fields = "\n".join(f"- {item}" for item in data)
+    with open(gui_setup.harness_path, "r") as f:
+        user_json_str = f.read()
+    harness_setup = HarnessSetup.model_validate_json(user_json_str)
+    load_scene(ips, setup1.scene_path)
+    cost_field_ips, cost_field_length = create_costfield(ips, setup1)
+    # data = ["Item 1", "Item 2", "Item 3", "Item 4"]
+    # gui_setup.cost_fields = "\n".join(f"- {item}" for item in data)
 
 
 def click_run_optimization(event):
