@@ -2,6 +2,7 @@ import pandas as pd
 import panel as pn
 import param
 import os
+import math
 from autopack.data_model import HarnessSetup
 from autopack.default_commands import create_default_prob_setup
 from autopack.gui.select_path import (
@@ -12,6 +13,9 @@ from autopack.gui.select_path import (
 )
 from autopack.ips_communication.ips_class import IPSInstance
 from autopack.optimization import global_optimize_harness
+import autopack.gui.visualisation_support.plots as plots
+import autopack.gui.visualisation_support.elements as elements
+import autopack.gui.visualisation_support.design_selection as design_selection
 
 max_width_left_column = "200px"  # or whatever width you desire
 
@@ -101,7 +105,7 @@ def click_select_optimization_setup(event):
 
 
 def click_run_optimization(event):
-    computational_budget = 3
+    computational_budget = numb_of_designs_to_run.value
     optimization_status.value = "Creating cost fields..."
     with open(gui_setup.harness_path, "r") as f:
         user_json_str = f.read()
@@ -112,13 +116,19 @@ def click_run_optimization(event):
     )
     gui_setup.problem_setup = prob_setup
     optimization_status.value = "Performing global optimization..."
+    init_samples = max(2,int(computational_budget*0.2))
+    batches = max(1,int(math.sqrt(computational_budget*0.8)))
+    batch_size = max(2,int(math.sqrt(computational_budget*0.8)))
     results = global_optimize_harness(
-        ips_instance, prob_setup, init_samples=2, batches=1, batch_size=2
+        ips_instance, prob_setup, init_samples=init_samples, batches=batches, batch_size=batch_size
     )
     gui_setup.result = results
     optimization_status.value = "Global optimization finished"
     gui_setup.pandas_result = update_pandas_result(results)
-    table.value = gui_setup.pandas_result
+    scatter_card2 = generate_scatter(gui_setup.pandas_result)
+    scatter_card.objects = scatter_card2.objects
+    radar_card2 = generate_radar(gui_setup.pandas_result)
+    radar_card.objects = radar_card2.objects
     # data = ["Item 1", "Item 2", "Item 3", "Item 4"]
     # gui_setup.cost_fields = "\n".join(f"- {item}" for item in data)
 
@@ -157,6 +167,7 @@ imma_checkbox = pn.widgets.Checkbox(
 
 button_run_optimization = pn.widgets.Button(name="Run optimization")
 button_run_optimization.on_click(click_run_optimization)
+numb_of_designs_to_run = pn.widgets.IntInput(name='Number of designs wanted', value=5, step=1, start=0, end=1000)
 
 optimization_status = pn.widgets.StaticText(
     value=""
@@ -168,23 +179,93 @@ setup_column = pn.Column(
     button_select_optimization_setup,
     harness_path,
     imma_checkbox,
+    numb_of_designs_to_run,
     button_run_optimization,
     optimization_status,
     styles=dict(background="#ff9999"),
 )
 
-table = pn.widgets.DataFrame(gui_setup.pandas_result)
+def generate_scatter(df2):
+    d = {'col1': [0], 'col2': [0]}
+    df1 = pd.DataFrame(data=d)
+    #df2 = variables_used.my_setup.optimization_results
+
+    if len(df2.columns) < 1:
+        df = df1
+    else:
+        df = df2
+
+    ####        Scatter plot        ####
+    scatter = plots.create_interactive_scatter(df, select_on_top=True)
+    table = pn.widgets.DataFrame(df)
+    scatter_row = pn.Row(
+        scatter,
+        table
+    )
+    scatter_card = pn.Card(scatter_row, title='Scatter', styles={'background': 'WhiteSmoke'})
+    ####        ------------        ####
+    return scatter_card
+scatter_card = generate_scatter(gui_setup.pandas_result)
+
+def generate_radar(df2):
+    d = {'col1': [0], 'col2': [0]}
+    df1 = pd.DataFrame(data=d)
+    #df2 = variables_used.my_setup.optimization_results
+
+    if len(df2.columns) < 1:
+        df = df1
+    else:
+        df = df2
+    ####        Radar chart         ####
+    radar_plot, fig = plots.create_radar_chart(df)
+    row_select = elements.create_row_select(df)
+    column_select = elements.create_column_select(df)
+
+    def filter_dataframe(df, rows, cols):
+        return df.loc[rows, cols]
+
+    radar_button = pn.widgets.Button(name='Update radar', button_type='primary')
+    def b(event):
+        new_df = filter_dataframe(df, row_select.value, column_select.value)
+        new_plot, fig = plots.create_radar_chart(new_df)
+        radar_plot.object = fig
+    radar_button.on_click(b)
+
+    kmean_int_input = pn.widgets.IntInput(name='Nmb of designs', value=1, step=1, start=1, end=len(df.index))
+    kmean_button = pn.widgets.Button(name='Automatic select', button_type='primary')
+    def kmean_filter(event):
+        selected = design_selection.select_KMeans(df, kmean_int_input.value)
+        row_select.value = selected
+    kmean_button.on_click(kmean_filter)
+
+    k_mean_row = pn.Row(kmean_int_input, kmean_button)
+    radar = pn.Column(
+        pn.Row(
+            radar_plot,
+            pn.Column(
+                k_mean_row,
+                row_select,
+                column_select,
+                radar_button
+            )
+        )
+    )
+    radar_card = pn.Card(radar, title='Radar', styles={'background': 'WhiteSmoke'}, collapsed=True)
+    ####        ------------        ####
+    return radar_card
+radar_card = generate_radar(gui_setup.pandas_result)
+
+
 plot_area = pn.Column(
-    table
+    scatter_card,
+    radar_card
 )
-
-
 
 
 gspec = pn.GridSpec(sizing_mode="stretch_both")
 gspec[0, :6] = gspec_top
 gspec[1:12, 0] = setup_column
-gspec[1:12,1] = plot_area
+gspec[1:12,1:] = plot_area
 app = gspec
 
 app.servable()
