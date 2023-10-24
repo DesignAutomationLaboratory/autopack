@@ -9,24 +9,16 @@ def setup_harness_routing(harness):
     local treeObject = Ips.getActiveObjectsRoot();
     """
     for cable in harness.cables:
-        local_command = (
-            """
-        local startNode = treeObject:findFirstMatch(\'"""
-            + cable.start_node
-            + """\');
+        local_command = f"""
+        local startNode = treeObject:findFirstMatch('{cable.start_node}');
         local startFrame = startNode:getFirstChild();
         local startVis = startFrame:toCableMountFrameVisualization();
-        local endNode = treeObject:findFirstMatch(\'"""
-            + cable.end_node
-            + """\');
+        local endNode = treeObject:findFirstMatch('{cable.end_node}');
         local endFrame = endNode:getFirstChild();
         local endVis = endFrame:toCableMountFrameVisualization();
-        local myCableType = cableSim:getComponentTemplate(\'"""
-            + cable.cable_type
-            + """\');
+        local myCableType = cableSim:getComponentTemplate('{cable.cable_type}');
         sim:addSegmentTerminalMountFrames(startVis,endVis, myCableType);
         """
-        )
         command = command + local_command
 
     for geometry in harness.geometries:
@@ -36,20 +28,10 @@ def setup_harness_routing(harness):
             pref = 1
         else:
             pref = 2
-        local_command = (
-            """
-        t = treeObject:findFirstMatch(\'"""
-            + geometry.name
-            + """\')
-        sim:addEnvironmentGeometry(t,"""
-            + str(geometry.clearance)
-            + """/1000, """
-            + str(pref)
-            + """, """
-            + bool_to_string_lower(geometry.clipable)
-            + """);
+        local_command = f"""
+            local envGeom = treeObject:findFirstMatch('{geometry.name}');
+            sim:addEnvironmentGeometry(envGeom, {geometry.clearance}/1000, {pref}, {bool_to_string_lower(geometry.clipable)});
         """
-        )
         command = command + local_command
 
     command = (
