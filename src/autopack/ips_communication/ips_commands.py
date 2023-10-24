@@ -53,7 +53,7 @@ def route_harness(
 ):
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
     command1 = lua_commands.setup_harness_routing(harness_setup)
-    command2 = lua_commands.setup_harness_optimization(
+    command2 = lua_commands.route_harness_one_solution(
         cost_field, bundling_factor=bundling_factor, harness_id=harness_id
     )
     command = command1 + command2

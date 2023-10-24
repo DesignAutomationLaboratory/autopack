@@ -94,7 +94,7 @@ def setup_export_cost_field():
     return command
 
 
-def setup_harness_optimization(cost_field, bundling_factor=0.5, harness_id=None):
+def route_harness_one_solution(cost_field, bundling_factor=0.5, harness_id=None):
     commands = []
     max_valid_cost = 1e19 - 1
     capped_costs = np.clip(cost_field.costs, -np.inf, max_valid_cost)
