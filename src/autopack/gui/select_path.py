@@ -11,7 +11,6 @@ def select_file_path():
         parent=window,
         initialdir="",
         title="Select A File",
-        filetypes=(("Text files", "*.txt"), ("All files", "*")),
     )
     return filename
 

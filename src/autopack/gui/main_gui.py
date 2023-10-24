@@ -1,7 +1,7 @@
 import pandas as pd
 import panel as pn
 import param
-
+import os
 from autopack.data_model import HarnessSetup
 from autopack.default_commands import create_default_prob_setup
 from autopack.gui.select_path import (
@@ -26,13 +26,40 @@ class GuiSetup(param.Parameterized):
     )
     problem_setup = None
     result = None
+    pandas_result = pd.DataFrame([])
+
+def update_pandas_result(result_xarray):
+    # Convert to pandas DataFrame
+    ds = result_xarray
+    df2 = ds['cost_field_weight'].to_dataframe().unstack(level='cost_field')
+    df2.columns = [f'cost_field_weight_{col[1]}' for col in df2.columns]
+
+    df3 = ds['bundling_factor'].to_dataframe().reset_index()
+
+    df4 = ds['bundling_cost'].to_dataframe().unstack(level='cost_field')
+    df4.columns = [f'bundling_cost_{col[1]}' for col in df4.columns]
+    df4 = df4.reset_index(level='ips_solution', drop=True)
+
+    df5 = ds['total_cost'].to_dataframe().unstack(level='cost_field')
+    df5.columns = [f'total_cost_{col[1]}' for col in df5.columns]
+    df5 = df5.reset_index(level='ips_solution', drop=True)
+
+    df6 = ds['num_estimated_clips'].to_dataframe().reset_index(level='ips_solution', drop=True)
+
+    result = df2.merge(df3, on='case', how='left')
+    result = result.merge(df4, on='case', how='left')
+    result = result.merge(df5, on='case', how='left')
+    result = result.merge(df6, on='case', how='left')
+    return result
+
 
 
 gui_setup = GuiSetup()
 
 
 def create_ips_instance():
-    ips = IPSInstance(gui_setup.ips_path)
+    folder_path = os.path.dirname(gui_setup.ips_path)
+    ips = IPSInstance(folder_path)
     ips.start()
     return ips
 
@@ -74,6 +101,8 @@ def click_select_optimization_setup(event):
 
 
 def click_run_optimization(event):
+    computational_budget = 3
+    optimization_status.value = "Creating cost fields..."
     with open(gui_setup.harness_path, "r") as f:
         user_json_str = f.read()
     harness_setup = HarnessSetup.model_validate_json(user_json_str)
@@ -82,10 +111,14 @@ def click_run_optimization(event):
         ips_instance, harness_setup, create_imma=gui_setup.run_imma
     )
     gui_setup.problem_setup = prob_setup
+    optimization_status.value = "Performing global optimization..."
     results = global_optimize_harness(
-        ips_instance, prob_setup, init_samples=8, batches=4, batch_size=4
+        ips_instance, prob_setup, init_samples=2, batches=1, batch_size=2
     )
     gui_setup.result = results
+    optimization_status.value = "Global optimization finished"
+    gui_setup.pandas_result = update_pandas_result(results)
+    table.value = gui_setup.pandas_result
     # data = ["Item 1", "Item 2", "Item 3", "Item 4"]
     # gui_setup.cost_fields = "\n".join(f"- {item}" for item in data)
 
@@ -95,7 +128,8 @@ button_save.on_click(save_to_file)
 button_load = pn.widgets.Button(name="Load")
 button_load.on_click(load_from_file)
 save_column = pn.Column(button_save, button_load, styles=dict(background="#FF0000"))
-top_text = pn.widgets.StaticText(value="Autopack")
+#top_text = pn.widgets.StaticText(value="Autopack")
+top_text = pn.pane.HTML('<div style="font-size: 60px; color: white;">Autopack</div>', height=110)
 gspec_top = pn.GridSpec(sizing_mode="stretch_both")
 gspec_top[0, :6] = pn.Row(top_text, styles=dict(background="#FF0000"))
 gspec_top[0, 6:] = save_column
@@ -124,6 +158,9 @@ imma_checkbox = pn.widgets.Checkbox(
 button_run_optimization = pn.widgets.Button(name="Run optimization")
 button_run_optimization.on_click(click_run_optimization)
 
+optimization_status = pn.widgets.StaticText(
+    value=""
+)
 
 setup_column = pn.Column(
     button_select_ips_path,
@@ -132,13 +169,22 @@ setup_column = pn.Column(
     harness_path,
     imma_checkbox,
     button_run_optimization,
+    optimization_status,
     styles=dict(background="#ff9999"),
 )
+
+table = pn.widgets.DataFrame(gui_setup.pandas_result)
+plot_area = pn.Column(
+    table
+)
+
+
 
 
 gspec = pn.GridSpec(sizing_mode="stretch_both")
 gspec[0, :6] = gspec_top
-gspec[1:9, 0] = setup_column
+gspec[1:12, 0] = setup_column
+gspec[1:12,1] = plot_area
 app = gspec
 
 app.servable()

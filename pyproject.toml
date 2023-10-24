@@ -19,6 +19,7 @@ dependencies = [
   "pydantic",
   "smt",        # Surrogate modelling toolbox
   "matplotlib",
+  panel,
 ]
 
 [project.optional-dependencies]
