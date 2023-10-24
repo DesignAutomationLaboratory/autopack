@@ -147,6 +147,75 @@ def setup_harness_optimization(cost_field, bundling_factor=0.5, harness_id=None)
     return final_command
 
 
+def route_harness_all_solutions(cost_field, harness_id=None):
+    commands = []
+    max_valid_cost = 1e19 - 1
+    capped_costs = np.clip(cost_field.costs, -np.inf, max_valid_cost)
+    for (i_x, i_y, i_z), cost in np.ndenumerate(capped_costs):
+        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {cost})"
+        commands.append(cmd)
+    new_line = "\n"
+    final_command = f"""
+    {new_line.join(commands)}
+    sim:routeHarness();
+
+    local buildPresmoothSegments = false
+    local buildSmoothSegments = false
+
+    local numSolutions = sim:getNumSolutions()
+    local solutions = {{}}
+
+    if buildSmoothSegments then
+        sim:smoothHarness()
+    end
+
+    for sol = 0, numSolutions - 1 do
+        local segments = {{}}
+        local numSegments = sim:getNumBundleSegments(sol)
+        local presmoothSolution
+        local smoothSolution
+        if buildPresmoothSegments then
+            presmoothSolution = sim:buildPresmoothSegments(sol)
+        end
+
+        if buildSmoothSegments then
+            smoothSolution = sim:buildSmoothSegments(sol, true)
+        end
+
+        for seg = 0, numSegments - 1 do
+            local segment = {{
+                cables = autopack.ipsNVecToTable(sim:getCablesInSegment(sol, seg)),
+                discreteNodes = autopack.ipsNVecToTable(sim:getDiscreteSegment(sol, seg, false)),
+            }}
+
+            if buildPresmoothSegments then
+                segment.presmoothCoords = autopack.ipsNVecToTable(sim:getPresmoothSegment(sol, seg, false))
+            end
+
+            if buildSmoothSegments then
+                segment.smoothCoords = autopack.ipsNVecToTable(sim:getSmoothSegment(sol, seg, false))
+                segment.clipPositions = autopack.ipsNVecToTable(sim:getClipPositions(sol, seg))
+            end
+
+            segments[seg + 1] = segment
+        end
+
+
+        -- Gather the solution data
+        solutions[sol + 1] = {{
+            segments = segments,
+            estimatedNumClips = sim:estimateNumClips(sol),
+            objectiveWeightBundling = sim:getObjectiveWeightBundling(sol),
+            solutionObjectiveBundling = sim:getSolutionObjectiveBundling(sol),
+            solutionObjectiveLength = sim:getSolutionObjectiveLength(sol),
+        }}
+    end
+
+    return autopack.pack(solutions)
+    """
+    return final_command
+
+
 def check_coord_distances(measure_dist, harness_setup, coords):
     geos_to_consider = ""
     for geo in harness_setup.geometries:

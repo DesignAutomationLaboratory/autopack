@@ -88,6 +88,32 @@ def route_harness(
     return Harness(harness_segments=harness_segments, numb_of_clips=nmb_of_clips)
 
 
+def route_harness_all_solutions(
+    ips: IPSInstance, harness_setup: HarnessSetup, cost_field: CostField, harness_id
+):
+    command1 = lua_commands.setup_harness_routing(harness_setup)
+    command2 = lua_commands.route_harness_all_solutions(
+        cost_field, harness_id=harness_id
+    )
+    command = command1 + command2
+
+    response = ips.call_unpack(command)
+
+    solutions = [
+        Harness(
+            harness_segments=[
+                HarnessSegment(
+                    cables=segment["cables"], points=segment["discreteNodes"]
+                )
+                for segment in solution["segments"]
+            ],
+            numb_of_clips=solution["estimatedNumClips"],
+        )
+        for solution in response
+    ]
+    return solutions
+
+
 def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_dist):
     command = lua_commands.check_coord_distances(
         max_geometry_dist, harness_setup, coords
