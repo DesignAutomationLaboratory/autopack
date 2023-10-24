@@ -1,8 +1,15 @@
 import pathlib
+from typing import Optional
 
 import numpy as np
 
-from autopack.data_model import CostField, Harness, HarnessSegment
+from autopack.data_model import (
+    CostField,
+    Harness,
+    HarnessSegment,
+    HarnessSetup,
+    IPSInstance,
+)
 
 from . import lua_commands
 
@@ -37,8 +44,12 @@ def load_scene(ips_instance, scene_file_path):
     ips_instance.call(command)
 
 
-def ips_optimize_harness(
-    ips_instance, harness_setup, cost_field, bundling_factor=0.5, harness_id=None
+def route_harness(
+    ips_instance: IPSInstance,
+    harness_setup: HarnessSetup,
+    cost_field: CostField,
+    bundling_factor: float = 0.5,
+    harness_id: Optional[str] = None,
 ):
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
     command1 = lua_commands.setup_harness_routing(harness_setup)

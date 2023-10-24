@@ -1,10 +1,10 @@
 import numpy as np
 
 from autopack.data_model import CostField
-from autopack.ips_communication.ips_commands import ips_optimize_harness
+from autopack.ips_communication.ips_commands import route_harness
 
 
-def optimize_harness(
+def route_evaluate_harness(
     ips_instance,
     problem_setup,
     cost_field_weights,
@@ -14,7 +14,7 @@ def optimize_harness(
     new_field = combine_cost_fields(
         problem_setup.cost_fields, cost_field_weights, normalize_fields=True
     )
-    new_harness = ips_optimize_harness(
+    new_harness = route_harness(
         ips_instance,
         problem_setup.harness_setup,
         new_field,

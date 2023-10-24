@@ -3,7 +3,7 @@ import pytest
 import xarray as xr
 
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
-from autopack.harness_optimization import optimize_harness
+from autopack.harness_optimization import route_evaluate_harness
 from autopack.ips_communication.ips_commands import create_costfield, load_scene
 from autopack.optimization import global_optimize_harness
 
@@ -55,7 +55,7 @@ def test_harness_optimization_setup(simple_plate_harness_setup):
     )
 
 
-def test_optimize_harness(simple_plate_harness_setup, ips_instance):
+def test_route_evaluate_harness(simple_plate_harness_setup, ips_instance):
     load_scene(ips_instance, simple_plate_harness_setup.scene_path)
 
     cost_field_ips, cost_field_length = create_costfield(
@@ -66,7 +66,7 @@ def test_optimize_harness(simple_plate_harness_setup, ips_instance):
         cost_fields=[cost_field_ips, cost_field_length],
     )
 
-    bundling_costs, total_costs, numb_of_clips = optimize_harness(
+    bundling_costs, total_costs, numb_of_clips = route_evaluate_harness(
         ips_instance, opt_setup, [0.5, 0.5], 0.5, harness_id="test"
     )
 

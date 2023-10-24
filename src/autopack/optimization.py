@@ -23,7 +23,7 @@ from gpytorch.mlls.sum_marginal_log_likelihood import SumMarginalLogLikelihood
 from pydantic import BaseModel
 
 from . import data_model
-from .harness_optimization import optimize_harness
+from .harness_optimization import route_evaluate_harness
 
 CUDA_AVAILABLE = torch.cuda.is_available()
 
@@ -64,7 +64,7 @@ def batch_dss(
     for i, x in enumerate(xs):
         case_id = f"{meta.category}.{meta.batch}.{i}"
 
-        bundle_costs, total_costs, num_clips = optimize_harness(
+        bundle_costs, total_costs, num_clips = route_evaluate_harness(
             ips_instance,
             problem_setup,
             cost_field_weights=x[:-1],
