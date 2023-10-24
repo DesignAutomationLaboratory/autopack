@@ -3,5 +3,9 @@
     "charliermarsh.ruff",
     "ms-python.black-formatter",
     "ms-python.python",
-  ]
+  ],
+  "unwantedRecommendations": [
+    "ms-python.flake8",
+    "ms-python.isort",
+  ],
 }
