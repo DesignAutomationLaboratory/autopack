@@ -4,14 +4,15 @@
   "python.testing.pytestEnabled": true,
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
-  "editor.formatOnSave": true,
   "[python]": {
     "editor.tabSize": 4,
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
-    "editor.formatOnType": true,
+    "editor.formatOnType": false,
     "editor.codeActionsOnSave": {
-      "source.organizeImports.ruff": true
+      // Use only Ruff for organizing imports
+      "source.organizeImports": false,
+      "source.organizeImports.ruff": true,
     },
   },
   "python.formatting.provider": "none",
