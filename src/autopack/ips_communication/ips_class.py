@@ -10,15 +10,7 @@ LUALIB_PATH = pathlib.Path(__file__).parent / "lualib" / "?.lua"
 LOAD_LUALIB_SCRIPT = f"""
     Script.resetStateWhenFinished(false)
     package.path = package.path .. ';{LUALIB_PATH.absolute().as_posix()}'
-    local msgpack = require("MessagePack")
-    local base64 = require("base64")
-
-    local function pack(data)
-        return base64.encode(msgpack.pack(data))
-    end
-    _G.autopack = {{pack=pack}}
-    _G.msgpack = msgpack
-    _G.base64 = base64
+    _G.autopack = require('autopack')
 """
 
 
