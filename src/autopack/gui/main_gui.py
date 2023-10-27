@@ -125,10 +125,10 @@ def click_run_optimization(event):
     gui_setup.result = results
     optimization_status.value = "Global optimization finished"
     gui_setup.pandas_result = update_pandas_result(results)
-    scatter_card2 = generate_scatter(gui_setup.pandas_result)
-    scatter_card.objects = scatter_card2.objects
-    radar_card2 = generate_radar(gui_setup.pandas_result)
-    radar_card.objects = radar_card2.objects
+    new_scatter_row, new_table_row, new_radar_row = update_plots()
+    scatter_row.objects = new_scatter_row.objects
+    table_row.objects = new_table_row.objects
+    radar_row.objects = new_radar_row.objects
     # data = ["Item 1", "Item 2", "Item 3", "Item 4"]
     # gui_setup.cost_fields = "\n".join(f"- {item}" for item in data)
 
@@ -185,37 +185,16 @@ setup_column = pn.Column(
     styles=dict(background="#ff9999"),
 )
 
-def generate_scatter(df2):
-    d = {'col1': [0], 'col2': [0]}
-    df1 = pd.DataFrame(data=d)
-    #df2 = variables_used.my_setup.optimization_results
-
-    if len(df2.columns) < 1:
-        df = df1
-    else:
-        df = df2
-
-    ####        Scatter plot        ####
+def generate_scatter(df):
     scatter = plots.create_interactive_scatter(df, select_on_top=True)
-    table = pn.widgets.DataFrame(df)
     scatter_row = pn.Row(
-        scatter,
-        table
+        scatter
     )
-    scatter_card = pn.Card(scatter_row, title='Scatter', styles={'background': 'WhiteSmoke'})
-    ####        ------------        ####
-    return scatter_card
-scatter_card = generate_scatter(gui_setup.pandas_result)
+    return scatter_row
 
-def generate_radar(df2):
-    d = {'col1': [0], 'col2': [0]}
-    df1 = pd.DataFrame(data=d)
-    #df2 = variables_used.my_setup.optimization_results
-
-    if len(df2.columns) < 1:
-        df = df1
-    else:
-        df = df2
+def generate_radar(df):
+    filtered_columns = df[[col for col in df.columns if col.startswith('bundling_cost') or col.startswith('total_') or col.startswith('num_estim')]]
+    df = filtered_columns
     ####        Radar chart         ####
     radar_plot, fig = plots.create_radar_chart(df)
     row_select = elements.create_row_select(df)
@@ -239,26 +218,37 @@ def generate_radar(df2):
     kmean_button.on_click(kmean_filter)
 
     k_mean_row = pn.Row(kmean_int_input, kmean_button)
-    radar = pn.Column(
-        pn.Row(
-            radar_plot,
-            pn.Column(
-                k_mean_row,
-                row_select,
-                column_select,
-                radar_button
-            )
+    radar_row = pn.Row(
+        radar_plot,
+        pn.Column(
+            k_mean_row,
+            row_select,
+            column_select,
+            radar_button
         )
     )
-    radar_card = pn.Card(radar, title='Radar', styles={'background': 'WhiteSmoke'}, collapsed=True)
-    ####        ------------        ####
-    return radar_card
-radar_card = generate_radar(gui_setup.pandas_result)
+    return radar_row
 
+def update_plots():
+    df2 = gui_setup.pandas_result
+    d = {'col1': [0], 'col2': [0]}
+    df1 = pd.DataFrame(data=d)
+    #df2 = variables_used.my_setup.optimization_results
 
+    if len(df2.columns) < 1:
+        df = df1
+    else:
+        df = df2
+    scatter_row = generate_scatter(df)
+    table_row = pn.Row(pn.widgets.DataFrame(df))
+    radar_row = generate_radar(df)
+    return scatter_row, table_row, radar_row
+
+scatter_row, table_row, radar_row = update_plots()
 plot_area = pn.Column(
-    scatter_card,
-    radar_card
+    scatter_row,
+    table_row,
+    radar_row
 )
 
 
