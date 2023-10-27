@@ -417,7 +417,7 @@ def ergonomic_evaluation(parts, coords):
                 if i == 1 then
                     localpositionedObject = localrigidObject:getFirstChild()
                     localtoCopy = localpositionedObject:isPositionedTreeObject()
-                    
+
                 else
                     localpositionedObject = localpositionedObject:getNextSibling()
                     localtoCopy = localpositionedObject:isPositionedTreeObject()
@@ -431,7 +431,7 @@ def ergonomic_evaluation(parts, coords):
             localrigidObject:setLocked(true)
         end
     end
-    
+
     geos_table = split(geos, ",")
     copy_to_static_geometry(geos_table)
 
@@ -464,7 +464,7 @@ def ergonomic_evaluation(parts, coords):
         gp_geo1:setTControl(trans)
         Ips.moveTreeObject(gp, family);
         dist = measure_object:getValue()
-        if dist>0.1 then 
+        if dist>0.1 then
             f6_tostring = "99";
             f8_tostring = "99";
         else
@@ -510,7 +510,7 @@ def add_cost_field_vis(cost_field):
         string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
         return elements
     end
-    
+
     function tablelength(T)
         local count = 0
         for _ in pairs(T) do count = count + 1 end
@@ -522,15 +522,15 @@ def add_cost_field_vis(cost_field):
         if math.abs(maxcost - mincost) < 0.000000001 then -- If max and min cost are equal.
             ratio = 0.5
         end
-        
+
         local red = math.min(1.0, 2.0 * ratio)
         local green = math.min(1.0, 2.0 * (1.0 - ratio))
-        return red, green, 0.0	
+        return red, green, 0.0
     end
 
     value_table = split(values, ' ')
     local builder = GeometryBuilder()
-        
+
     for i = 1, tablelength(value_table), 4 do
         builder:pushVertex(tonumber(value_table[i]), tonumber(value_table[i+1]), tonumber(value_table[i+2]))
         local cost = tonumber(value_table[i+3])
@@ -539,10 +539,10 @@ def add_cost_field_vis(cost_field):
         else
             r, g, b = getRGBheatcost(min_cost, max_cost, cost)
         end
-        -- 
+        --
         builder:pushColor(r, g, b)
     end
-        
+
     builder:buildPoints()
     Ips.getGeometryRoot():getLastChild():setLabel("CostFieldVis")
     """
