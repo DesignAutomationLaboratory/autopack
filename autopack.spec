@@ -25,7 +25,6 @@ a = Analysis(
         "notebook",
         "PyQt5",
         "pytest",
-        "tkinter",
         "win32com",
     ],
     win_no_prefer_redirects=False,

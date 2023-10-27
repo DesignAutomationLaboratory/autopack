@@ -3,6 +3,7 @@ import pytest
 import xarray as xr
 
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
+from autopack.default_commands import create_default_prob_setup
 from autopack.harness_optimization import route_evaluate_harness
 from autopack.ips_communication.ips_commands import create_costfield, load_scene
 from autopack.optimization import global_optimize_harness
@@ -102,3 +103,25 @@ def test_global_optimization_smoke(
 
     assert isinstance(dataset, xr.Dataset)
     # TODO: make more assertions
+
+
+def test_create_problem_setup_without_imma(ips_instance, simple_plate_harness_setup):
+    problem_setup = create_default_prob_setup(
+        ips_instance=ips_instance,
+        harness_setup=simple_plate_harness_setup,
+        create_imma=False,
+    )
+
+    assert isinstance(problem_setup, ProblemSetup)
+    assert len(problem_setup.cost_fields) == 2
+
+
+def test_create_problem_setup_with_imma(ips_instance, simple_plate_harness_setup):
+    problem_setup = create_default_prob_setup(
+        ips_instance=ips_instance,
+        harness_setup=simple_plate_harness_setup,
+        create_imma=True,
+    )
+
+    assert isinstance(problem_setup, ProblemSetup)
+    assert len(problem_setup.cost_fields) == 4

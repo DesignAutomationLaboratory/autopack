@@ -22,7 +22,7 @@ class Geometry(BaseModel):
 
 
 class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
-    scene_path: str
+    scene_path: str  # Absolute path to scene
     geometries: List[Geometry]
     cables: List[Cable]
     clip_clip_dist: tuple[float, float] = (0.15, 0.45)  # min/max distance between clips
@@ -63,8 +63,6 @@ class Harness(BaseModel):
 class Result(BaseModel):
     problem_setup: ProblemSetup
     dataset: Any
-    ips_path: str
-    scene_path: str
 
 
 class GlobalOptimizationSetup(BaseModel):

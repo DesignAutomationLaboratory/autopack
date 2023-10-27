@@ -1,0 +1,51 @@
+{
+  "scene_path": "C:\\Users\\antwi87\\Documents\\GitHub\\autopack\\autopack\\tests\\scenes\\simple_plate.ips",
+  "geometries": [
+    {
+      "name": "part1",
+      "clearance": 5.0,
+      "preference": "Near",
+      "clipable": true,
+      "assembly": true
+    },
+    {
+      "name": "part2",
+      "clearance": 5.0,
+      "preference": "Near",
+      "clipable": true,
+      "assembly": true
+    },
+    {
+      "name": "part3",
+      "clearance": 5.0,
+      "preference": "Near",
+      "clipable": true,
+      "assembly": true
+    }
+  ],
+  "cables": [
+    {
+      "start_node": "Cable1_start",
+      "end_node": "Cable1_end",
+      "cable_type": "ID_Rubber_template"
+    },
+    {
+      "start_node": "Cable2_start",
+      "end_node": "Cable2_end",
+      "cable_type": "ID_Rubber_template"
+    },
+    {
+      "start_node": "Cable3_start",
+      "end_node": "Cable3_end",
+      "cable_type": "ID_Rubber_template"
+    }
+  ],
+  "clip_clip_dist": [
+    0.15,
+    0.45
+  ],
+  "branch_clip_dist": [
+    0.05,
+    2.0
+  ]
+}
