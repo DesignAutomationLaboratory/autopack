@@ -143,7 +143,8 @@ def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
     num_cost_fields = len(problem_setup.cost_fields)
     num_dims = num_cost_fields + 1
     num_objectives = 2 * num_cost_fields + 1
-    bounds = np.array([[0.0, 1.0]] * num_dims)
+    weights_bounds = np.array([[0.001, 1.0]] * num_cost_fields)
+    bounds = np.array([*weights_bounds, [0.0, 1.0]])
 
     batch_datasets = []
 
