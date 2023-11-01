@@ -91,6 +91,9 @@ def route_harness_from_dataset(
 
     combined_cf = combine_cost_fields(problem_setup.cost_fields, cost_field_weights)
 
+    # This assumes that the harness router is deterministic and
+    # will always return the same harness for the same inputs.
+    # FIXME: investigate whether this is true.
     return route_harness(
         ips_instance=ips,
         harness_setup=problem_setup.harness_setup,
