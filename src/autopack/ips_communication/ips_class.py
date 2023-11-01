@@ -34,6 +34,7 @@ class IPSInstance:
         self.ips_path = ips_path
         self.port = port
         self.socket = None
+        self._version = None
 
     def start(self, verify_connection=True, load_libs=True):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
@@ -74,3 +75,11 @@ class IPSInstance:
 
     def kill(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
+
+    @property
+    def version(self):
+        if self._version is None:
+            self._version = self.call("return Ips.getIPSVersion()").decode(
+                "unicode_escape"
+            )
+        return self._version
