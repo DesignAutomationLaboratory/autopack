@@ -76,7 +76,14 @@ def setup_export_cost_field():
     return command
 
 
-def route_harness_one_solution(cost_field, bundling_factor=0.5, harness_id=None):
+def route_harness_one_solution(
+    cost_field,
+    bundling_factor=0.5,
+    harness_id=None,
+    build_discrete_solution=False,
+    build_presmooth_solution=False,
+    build_smooth_solution=False,
+):
     commands = []
     max_valid_cost = 1e19 - 1
     capped_costs = np.clip(cost_field.costs, -np.inf, max_valid_cost)
@@ -87,15 +94,13 @@ def route_harness_one_solution(cost_field, bundling_factor=0.5, harness_id=None)
     final_command = f"""
     {new_line.join(commands)}
     sim:routeHarness();
-    if sim:getNumSolutions() == 0 then
+    num_solutions = sim:getNumSolutions()
+    if num_solutions == 0 then
         return
     else
-        num_solutions = sim:getNumSolutions()
         num = {bundling_factor} * (num_solutions - 1)
         solution_to_capture = math.floor(num + 0.5)
-        smoothed_solution = sim:buildPresmoothSegments(solution_to_capture)
-        segments = sim:buildDiscreteSegments(solution_to_capture)
-        nmb_of_segements = segments:size()
+        nmb_of_segements = sim:getNumBundleSegments(solution_to_capture)
         harness = sim:estimateNumClips(solution_to_capture)
         for n = 0,nmb_of_segements-1,1
         do
@@ -113,14 +118,25 @@ def route_harness_one_solution(cost_field, bundling_factor=0.5, harness_id=None)
                 harness = harness .. ',' .. segement[nn][0] .. ',' .. segement[nn][1] .. ',' .. segement[nn][2]
             end
         end
-        static_objects = Ips.getGeometryRoot()
-        unsmoothed = static_objects:getLastChild()
-        Ips.deleteTreeObject(unsmoothed)
-        smoothed = static_objects:getLastChild()
-        if {bool_to_string_lower(bool(harness_id))} then
-            smoothed:setLabel("{harness_id}")
-        else
-            Ips.deleteTreeObject(smoothed)
+
+        if {bool_to_string_lower(build_discrete_solution)} then
+            discreteSegmentsTreeVector = sim:buildDiscreteSegments(solution_to_capture)
+            discreteSolution = discreteSegmentsTreeVector[0]:getParent()
+            discreteSolution:setLabel("{harness_id} (discrete)")
+        end
+
+        if {bool_to_string_lower(build_presmooth_solution)} then
+            presmoothSegmentsTreeVector = sim:buildPresmoothSegments(solution_to_capture)
+            presmoothSolution = presmoothSegmentsTreeVector[0]:getParent()
+            presmoothSolution:setLabel("{harness_id} (presmooth)")
+        end
+
+        if {bool_to_string_lower(build_smooth_solution)} then
+            -- This will smooth ALL available solutions :(
+            sim:smoothHarness()
+            smoothSegmentsTreeVector = sim:buildSmoothSegments(solution_to_capture, true)
+            smoothSolution = smoothSegmentsTreeVector[0]:getParent()
+            smoothSolution:setLabel("{harness_id} (smooth)")
         end
 
         return harness
