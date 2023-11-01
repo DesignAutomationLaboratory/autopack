@@ -169,8 +169,12 @@ def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
 
 
 def global_optimize_harness(
-    ips_instance, problem_setup, init_samples=8, batches=4, batch_size=4
-):
+    ips_instance: data_model.IPSInstance,
+    problem_setup: data_model.ProblemSetup,
+    init_samples: int = 8,
+    batches: int = 4,
+    batch_size: int = 4,
+) -> xr.Dataset:
     problem = problem_from_setup(problem_setup, ips_instance)
     minimize(
         problem=problem,
@@ -180,6 +184,11 @@ def global_optimize_harness(
     )
 
     dataset = xr.concat(problem.state["batch_datasets"], dim="case")
+    dataset.attrs["problem_setup"] = problem_setup
+    dataset.attrs["init_samples"] = init_samples
+    dataset.attrs["batches"] = batches
+    dataset.attrs["batch_size"] = batch_size
+    dataset.attrs["ips_version"] = ips_instance.version
 
     return dataset
 
