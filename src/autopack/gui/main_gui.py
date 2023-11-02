@@ -16,7 +16,11 @@ from autopack.gui.select_path import (
     select_file_path,
     select_save_file_path,
 )
-from autopack.harness_optimization import combine_cost_fields, global_optimize_harness
+from autopack.harness_optimization import (
+    combine_cost_fields,
+    global_optimize_harness,
+    route_harness_from_dataset,
+)
 from autopack.ips_communication.ips_class import IPSInstance
 from autopack.ips_communication.ips_commands import cost_field_vis
 
@@ -291,7 +295,23 @@ def update_plots():
     else:
         df = df2
     scatter_row = generate_scatter(df)
-    table_row = pn.Row(pn.widgets.DataFrame(df))
+    result_table = pn.widgets.DataFrame(df)
+
+    def create_selected_harness(event):
+        selection = result_table.selection
+        if selection:
+            selected_df = df.iloc[selection, :]
+            for index, row in selected_df.iterrows():
+                route_harness_from_dataset(
+                    gui_setup.ips_instance,
+                    gui_setup.result,
+                    row["case"],
+                    build_smooth_solution=True,
+                )
+
+    button_create_harness = pn.widgets.Button(name="Create selected harness")
+    button_create_harness.on_click(create_selected_harness)
+    table_row = pn.Row(result_table, button_create_harness)
     radar_row = generate_radar(df)
     return scatter_row, table_row, radar_row
 
