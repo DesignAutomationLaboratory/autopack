@@ -680,17 +680,17 @@ package:
   category: dev
   optional: true
 - name: libsqlite
-  version: 3.43.2
+  version: 3.44.0
   manager: conda
   platform: win-64
   dependencies:
     ucrt: '>=10.0.20348.0'
     vc: '>=14.2,<15'
     vc14_runtime: '>=14.29.30139'
-  url: https://conda.anaconda.org/conda-forge/win-64/libsqlite-3.43.2-hcfcfb64_0.conda
+  url: https://conda.anaconda.org/conda-forge/win-64/libsqlite-3.44.0-hcfcfb64_0.conda
   hash:
-    md5: a4a81906f6ce911113f672973777f305
-    sha256: 54cc0f0591354e4f23395ee08ca44efe584ad6df57111358d5bcb4b10259cb2e
+    md5: 446fb1973cfeb8b32de4add3c9ac1057
+    sha256: b2be4125343d89765269b537e90ea5ab7f219e7398e7ad610ddcdcf31e7b9e65
   category: main
   optional: false
 - name: libuv
@@ -1002,18 +1002,6 @@ package:
     sha256: b3e9369529fe7d721b66f18680ff4b561e20dbf6507e209e1f60eac277c97560
   category: main
   optional: false
-- name: backcall
-  version: 0.2.0
-  manager: conda
-  platform: win-64
-  dependencies:
-    python: ''
-  url: https://conda.anaconda.org/conda-forge/noarch/backcall-0.2.0-pyh9f0ad1d_0.tar.bz2
-  hash:
-    md5: 6006a6d08a3fa99268a2681c7fb55213
-    sha256: ee62d6434090c1327a48551734e06bd10e65a64ef7f3b6e68719500dab0e42b9
-  category: dev
-  optional: true
 - name: backports
   version: '1.0'
   manager: conda
@@ -1083,15 +1071,15 @@ package:
   category: main
   optional: false
 - name: charset-normalizer
-  version: 3.3.1
+  version: 3.3.2
   manager: conda
   platform: win-64
   dependencies:
     python: '>=3.7'
-  url: https://conda.anaconda.org/conda-forge/noarch/charset-normalizer-3.3.1-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/charset-normalizer-3.3.2-pyhd8ed1ab_0.conda
   hash:
-    md5: 985378f74689fccce52f158027bd9acd
-    sha256: a31739c49c4b1c8e0cbdec965ba152683d36ce6e23bdaefcfee99937524dabd1
+    md5: 7f4a9e3fcff3f6356ae99244a014da6a
+    sha256: 20cae47d31fdd58d99c4d2e65fbdcefa0b0de0c84e455ba9d6356a4bdbc4b5b9
   category: main
   optional: false
 - name: colorama
@@ -1472,6 +1460,31 @@ package:
   hash:
     md5: 425fce3b531bed6ec3c74fab3e5f0a1c
     sha256: 7629aa4f9f8cdff45ea7a4701fe58dccce5bf2faa01c26eb44cbb27b7e15ca9d
+  category: main
+  optional: false
+- name: ordered-set
+  version: 4.1.0
+  manager: conda
+  platform: win-64
+  dependencies:
+    python: '>=3.7'
+  url: https://conda.anaconda.org/conda-forge/noarch/ordered-set-4.1.0-pyhd8ed1ab_0.tar.bz2
+  hash:
+    md5: 9a8714decb3967b290263817e876d8a9
+    sha256: 78d92f848a6b4a89148dfa1f6e65c0b75e8f3a267b6401be38fb3401853b4afa
+  category: main
+  optional: false
+- name: orjson
+  version: 3.9.10
+  manager: conda
+  platform: win-64
+  dependencies:
+    python: '>=3.11,<3.12.0a0'
+    python_abi: 3.11.*
+  url: https://conda.anaconda.org/conda-forge/win-64/orjson-3.9.10-py311h5443569_0.conda
+  hash:
+    md5: fde997497fe3193f406706aa7ad4eacf
+    sha256: 6f3eed96c4bdfee4eee169f92696cffd86d66d7d6b1d131efee1821b22adc797
   category: main
   optional: false
 - name: packaging
@@ -2241,6 +2254,20 @@ package:
     sha256: 11057745946a95ee7cc4c98900a60c7362266a4cb28bc97d96cd88e3056eb701
   category: dev
   optional: true
+- name: deepdiff
+  version: 6.6.1
+  manager: conda
+  platform: win-64
+  dependencies:
+    ordered-set: '>=4.1.0,<4.2.0'
+    orjson: ''
+    python: '>=3.7'
+  url: https://conda.anaconda.org/conda-forge/noarch/deepdiff-6.6.1-pyhd8ed1ab_0.conda
+  hash:
+    md5: a0d720375d5d6c38f7552fa4a8e30968
+    sha256: 4251cda25c9c550b7799921197050c55dd8520d67c6b9c456cd0d2a08774ef07
+  category: main
+  optional: false
 - name: gitdb
   version: 4.0.11
   manager: conda
@@ -3207,12 +3234,11 @@ package:
   category: dev
   optional: true
 - name: ipython
-  version: 8.16.1
+  version: 8.17.2
   manager: conda
   platform: win-64
   dependencies:
     __win: ''
-    backcall: ''
     colorama: ''
     decorator: ''
     exceptiongroup: ''
@@ -3225,10 +3251,10 @@ package:
     stack_data: ''
     traitlets: '>=5'
     typing_extensions: ''
-  url: https://conda.anaconda.org/conda-forge/noarch/ipython-8.16.1-pyh5737063_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/ipython-8.17.2-pyh5737063_0.conda
   hash:
-    md5: 1f0a208b45d0bf8d1cf09d2f2b549ab5
-    sha256: 9a09600613147838d6bd027d22078abc13e83300a53192b465e8deb1ef0eeb22
+    md5: f303446f1ce22bd9173650d3e722e87b
+    sha256: e9da075dab85ad01df4355e264220e156273f719a62f6fad588a686616e86a9c
   category: dev
   optional: true
 - name: liblapacke
@@ -3593,26 +3619,28 @@ package:
   category: main
   optional: false
 - name: facit
-  version: 0.2.0
+  version: 0.3.0
   manager: conda
   platform: win-64
   dependencies:
+    deepdiff: ''
     jsonpickle: ''
     numpy: ''
     openmdao: ''
     pandas: ''
     pydantic: ''
+    pydoe2: ''
     python: '>=3.9'
     xarray: ''
     zarr: ''
-  url: https://conda.anaconda.org/conda-forge/noarch/facit-0.2.0-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/facit-0.3.0-pyhd8ed1ab_0.conda
   hash:
-    md5: 9c637aa1ec1757fa45e95f682a4712ea
-    sha256: 9eae20506193d203bcdd0414cd279b3bbd3a7da5261c0bddbd23b08748cc42e0
+    md5: 3c321879008f391bc18c62751fef921b
+    sha256: 7005c7693e0aaff35778830a270b50c61405c94c2c6dc184d623dad21eba9e92
   category: main
   optional: false
 - name: panel
-  version: 1.3.0
+  version: 1.3.1
   manager: conda
   platform: win-64
   dependencies:
@@ -3629,10 +3657,10 @@ package:
     requests: ''
     tqdm: '>=4.48.0'
     typing_extensions: ''
-  url: https://conda.anaconda.org/conda-forge/noarch/panel-1.3.0-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/panel-1.3.1-pyhd8ed1ab_0.conda
   hash:
-    md5: 2caee6ff4ab76e1b4f2e151cf7d18ccb
-    sha256: 831a7a22455cb7aab66e948fe0cd943b4976271dc9632ff89f05765d617bacfd
+    md5: 12bca6ad6b48f9eb1a6f5579bc04b416
+    sha256: 752e88ad90a41ecc2fc61fd359ae18547271314271003077ce22c8d6310b1688
   category: main
   optional: false
 - name: pytorch

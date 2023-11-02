@@ -50,11 +50,19 @@ def route_harness(
     cost_field: CostField,
     bundling_factor: float = 0.5,
     harness_id: Optional[str] = None,
+    build_discrete_solution: bool = False,
+    build_presmooth_solution: bool = False,
+    build_smooth_solution: bool = False,
 ):
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
     command1 = lua_commands.setup_harness_routing(harness_setup)
     command2 = lua_commands.route_harness_one_solution(
-        cost_field, bundling_factor=bundling_factor, harness_id=harness_id
+        cost_field=cost_field,
+        bundling_factor=bundling_factor,
+        harness_id=harness_id,
+        build_discrete_solution=build_discrete_solution,
+        build_presmooth_solution=build_presmooth_solution,
+        build_smooth_solution=build_smooth_solution,
     )
     command = command1 + command2
     # print(command)

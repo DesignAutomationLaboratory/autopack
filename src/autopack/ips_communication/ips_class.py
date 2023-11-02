@@ -34,6 +34,7 @@ class IPSInstance:
         self.ips_path = ips_path
         self.port = port
         self.socket = None
+        self._version = None
 
     def start(self, verify_connection=True, load_libs=True):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
@@ -52,9 +53,7 @@ class IPSInstance:
 
         if verify_connection:
             response = self.call('return "ping"')
-            assert (
-                response == b'"ping"\n'
-            ), f"IPS did not respond as expected: {response}"
+            assert response == b"ping", f"IPS did not respond as expected: {response}"
             self.call(
                 f"print('Connection to Autopack on port {self.port} successfully verified!')"
             )
@@ -62,15 +61,25 @@ class IPSInstance:
         if load_libs:
             self.call(LOAD_LUALIB_SCRIPT)
 
-    def call(self, command):
+    def call(self, command, strip=True):
         self.socket.send_string(command)
         msg = self.socket.recv()
-        return msg
+        if strip:
+            return msg.strip(b"\n").strip(b'"')
+        else:
+            return msg
 
     def call_unpack(self, command):
-        raw_response = self.call(command)
-        stripped_response = raw_response.strip(b"\n").strip(b'"')
-        return unpack(stripped_response)
+        response = self.call(command, strip=True)
+        return unpack(response)
 
     def kill(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
+
+    @property
+    def version(self):
+        if self._version is None:
+            self._version = self.call("return Ips.getIPSVersion()").decode(
+                "unicode_escape"
+            )
+        return self._version

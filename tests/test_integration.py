@@ -1,10 +1,12 @@
 import numpy as np
 import pytest
 import xarray as xr
+from facit.testing import assert_ds_equal
 
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
 from autopack.default_commands import create_default_prob_setup
 from autopack.harness_optimization import route_evaluate_harness
+from autopack.io import load_dataset, save_dataset
 from autopack.ips_communication.ips_commands import create_costfield, load_scene
 from autopack.optimization import global_optimize_harness
 
@@ -79,18 +81,11 @@ def test_route_evaluate_harness(simple_plate_harness_setup, ips_instance):
     assert np.all(numb_of_clips >= 0)
 
 
-def test_global_optimization_smoke(
-    simple_plate_harness_setup, test_scenes_path, ips_instance
-):
-    scene_path = test_scenes_path / "simple_plate.ips"
-    load_scene(ips_instance, str(scene_path.resolve()))
-
-    cost_field_ips, cost_field_length = create_costfield(
-        ips_instance, simple_plate_harness_setup
-    )
-    problem_setup = ProblemSetup(
+def test_global_optimization_smoke(simple_plate_harness_setup, ips_instance, tmpdir):
+    problem_setup = create_default_prob_setup(
+        ips_instance=ips_instance,
         harness_setup=simple_plate_harness_setup,
-        cost_fields=[cost_field_ips, cost_field_length],
+        create_imma=False,
     )
 
     dataset = global_optimize_harness(
@@ -102,7 +97,14 @@ def test_global_optimization_smoke(
     )
 
     assert isinstance(dataset, xr.Dataset)
-    # TODO: make more assertions
+    assert dataset.attrs["problem_setup"] == problem_setup
+    assert dataset.attrs["ips_version"] == ips_instance.version
+
+    ds_path = tmpdir / "test.zarr"
+    save_dataset(dataset, ds_path)
+    loaded_dataset = load_dataset(ds_path)
+
+    assert_ds_equal(dataset, loaded_dataset)
 
 
 def test_create_problem_setup_without_imma(ips_instance, simple_plate_harness_setup):
