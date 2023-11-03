@@ -1,5 +1,6 @@
 import math
 import os
+import re
 
 import pandas as pd
 import panel as pn
@@ -11,9 +12,8 @@ import autopack.gui.visualisation_support.plots as plots
 from autopack.data_model import HarnessSetup
 from autopack.default_commands import create_default_prob_setup
 from autopack.gui.select_path import (
-    dump_json,
-    load_json,
     select_file_path,
+    select_folder_path,
     select_save_file_path,
 )
 from autopack.harness_optimization import (
@@ -21,8 +21,9 @@ from autopack.harness_optimization import (
     global_optimize_harness,
     route_harness_from_dataset,
 )
+from autopack.io import load_dataset, save_dataset
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.ips_communication.ips_commands import cost_field_vis
+from autopack.ips_communication.ips_commands import cost_field_vis, load_scene
 
 max_width_left_column = "200px"  # or whatever width you desire
 
@@ -80,25 +81,35 @@ def create_ips_instance():
     return ips
 
 
+def reconnect_ips(event):
+    gui_setup.ips_instance = create_ips_instance()
+    scene_file_path = gui_setup.problem_setup.harness_setup.scene_path
+    load_scene(gui_setup.ips_instance, scene_file_path)
+
+
 def save_to_file(event):
     """
     Saves the GuiSetup instance to a file.
     """
-    filename = select_save_file_path()
-    print(gui_setup.ips_path)
-    dump_json(gui_setup, filename)
+    filename = select_folder_path()
+    save_dataset(gui_setup.result, filename)
 
 
 def load_from_file(event):
     """
     Loads the GuiSetup instance from a file.
     """
-    file_path = select_file_path()
-    new_setup = load_json(file_path)
-    gui_setup.ips_path = new_setup.ips_path
-    gui_setup.harness_path = new_setup.harness_path
-    gui_setup.run_imma = new_setup.run_imma
-    gui_setup.cost_fields = new_setup.cost_fields
+    file_path = select_folder_path()
+    gui_setup.result = load_dataset(file_path)
+    gui_setup.pandas_result = update_pandas_result(gui_setup.result)
+    problem_setup = gui_setup.result.attrs.get("problem_setup", "")
+    gui_setup.problem_setup = problem_setup
+    new_scatter_row, new_table_row, new_radar_row = update_plots()
+    scatter_row.objects = new_scatter_row.objects
+    table_row.objects = new_table_row.objects
+    radar_row.objects = new_radar_row.objects
+    new_cost_field_vis_row = vis_cost_field_row(gui_setup.result)
+    cost_field_vis_row.objects = new_cost_field_vis_row.objects
 
 
 def click_load(event):
@@ -123,14 +134,17 @@ def click_run_optimization(event):
         user_json_str = f.read()
     harness_setup = HarnessSetup.model_validate_json(user_json_str)
     ips_instance = create_ips_instance()
+    print("test", 1)
     prob_setup = create_default_prob_setup(
-        ips_instance, harness_setup, create_imma=gui_setup.run_imma
+        ips_instance, harness_setup, create_imma=imma_checkbox.value
     )
+    print("test", 2)
     gui_setup.problem_setup = prob_setup
     optimization_status.value = "Performing global optimization..."
     init_samples = max(2, int(computational_budget * 0.2))
     batches = max(1, int(math.sqrt(computational_budget * 0.8)))
     batch_size = max(2, int(math.sqrt(computational_budget * 0.8)))
+    print("test", 3)
     results = global_optimize_harness(
         ips_instance,
         prob_setup,
@@ -138,6 +152,7 @@ def click_run_optimization(event):
         batches=batches,
         batch_size=batch_size,
     )
+    print("test", 4)
     gui_setup.ips_instance = ips_instance
     gui_setup.result = results
     optimization_status.value = "Global optimization finished"
@@ -156,7 +171,12 @@ button_save = pn.widgets.Button(name="Save")
 button_save.on_click(save_to_file)
 button_load = pn.widgets.Button(name="Load")
 button_load.on_click(load_from_file)
-save_column = pn.Column(button_save, button_load, styles=dict(background="#FF0000"))
+button_reconnect_IPS = pn.widgets.Button(name="Reconnect IPS")
+button_reconnect_IPS.on_click(reconnect_ips)
+
+save_column = pn.Column(
+    button_save, button_load, button_reconnect_IPS, styles=dict(background="#FF0000")
+)
 # top_text = pn.widgets.StaticText(value="Autopack")
 top_text = pn.pane.HTML(
     '<div style="font-size: 60px; color: white;">Autopack</div>', height=110

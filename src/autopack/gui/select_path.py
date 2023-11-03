@@ -15,6 +15,18 @@ def select_file_path():
     return filename
 
 
+def select_folder_path():
+    window = tk.Tk()
+    window.wm_attributes("-topmost", 1)
+    window.withdraw()  # this supress the tk window
+    filename = filedialog.askdirectory(
+        parent=window,
+        initialdir="",
+        title="Select A Folder",
+    )
+    return filename
+
+
 def select_save_file_path():
     window = tk.Tk()
     window.wm_attributes("-topmost", 1)
