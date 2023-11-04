@@ -2,7 +2,7 @@ import json
 from typing import Any, List, Literal, Optional
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .ips_communication.ips_class import IPSInstance  # noqa
 
@@ -37,8 +37,8 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
 
 class CostField(BaseModel, arbitrary_types_allowed=True):
     name: str
-    coordinates: np.ndarray
-    costs: np.ndarray
+    coordinates: np.ndarray = Field(repr=False)
+    costs: np.ndarray = Field(repr=False)
 
     def normalized_costs(self):
         mask = self.costs < 999999
