@@ -25,10 +25,13 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
     scene_path: str  # Absolute path to scene
     geometries: List[Geometry]
     cables: List[Cable]
-    clip_clip_dist: tuple[float, float] = (0.15, 0.45)  # min/max distance between clips
+    clip_clip_dist: tuple[float, float] = (
+        0.0375,
+        0.15,
+    )  # min/max distance between clips
     branch_clip_dist: tuple[float, float] = (
-        0.05,
-        2,
+        0.01875,
+        0.075,
     )  # min/max distance between branch and clip
 
 
