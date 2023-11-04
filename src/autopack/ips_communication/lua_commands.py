@@ -85,10 +85,9 @@ def route_harness_one_solution(
     build_smooth_solution=False,
 ):
     commands = []
-    max_valid_cost = 1e19 - 1
-    capped_costs = np.clip(cost_field.costs, -np.inf, max_valid_cost)
-    for (i_x, i_y, i_z), cost in np.ndenumerate(capped_costs):
-        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {cost})"
+    for (i_x, i_y, i_z), cost in np.ndenumerate(cost_field.costs):
+        lua_cost = "math.huge" if np.isinf(cost) else cost
+        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {lua_cost})"
         commands.append(cmd)
     new_line = "\n"
     final_command = f"""
