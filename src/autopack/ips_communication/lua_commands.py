@@ -76,6 +76,16 @@ def setup_export_cost_field():
     return command
 
 
+def set_node_costs(cost_field):
+    commands = []
+    for (i_x, i_y, i_z), cost in np.ndenumerate(cost_field.costs):
+        lua_cost = "math.huge" if np.isinf(cost) else cost
+        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {lua_cost})"
+        commands.append(cmd)
+    new_line = "\n"
+    return new_line.join(commands)
+
+
 def route_harness_one_solution(
     cost_field,
     bundling_factor=0.5,
@@ -84,14 +94,8 @@ def route_harness_one_solution(
     build_presmooth_solution=False,
     build_smooth_solution=False,
 ):
-    commands = []
-    for (i_x, i_y, i_z), cost in np.ndenumerate(cost_field.costs):
-        lua_cost = "math.huge" if np.isinf(cost) else cost
-        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {lua_cost})"
-        commands.append(cmd)
-    new_line = "\n"
-    final_command = f"""
-    {new_line.join(commands)}
+    return f"""
+    {set_node_costs(cost_field)}
     sim:routeHarness();
     num_solutions = sim:getNumSolutions()
     if num_solutions == 0 then
@@ -141,19 +145,11 @@ def route_harness_one_solution(
         return harness
     end
     """
-    return final_command
 
 
 def route_harness_all_solutions(cost_field, harness_id=None):
-    commands = []
-    max_valid_cost = 1e19 - 1
-    capped_costs = np.clip(cost_field.costs, -np.inf, max_valid_cost)
-    for (i_x, i_y, i_z), cost in np.ndenumerate(capped_costs):
-        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {cost})"
-        commands.append(cmd)
-    new_line = "\n"
-    final_command = f"""
-    {new_line.join(commands)}
+    return f"""
+    {set_node_costs(cost_field)}
     sim:routeHarness();
 
     local buildPresmoothSegments = false
@@ -210,7 +206,6 @@ def route_harness_all_solutions(cost_field, harness_id=None):
 
     return autopack.pack(solutions)
     """
-    return final_command
 
 
 def check_coord_distances(measure_dist, harness_setup, coords):
