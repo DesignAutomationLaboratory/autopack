@@ -5,7 +5,11 @@ local inspect = require("inspect")
 local msgpack = require("MessagePack")
 
 local function pack(data)
-    return base64.encode(msgpack.pack(data))
+  return base64.encode(msgpack.pack(data))
+end
+
+local function unpack(string)
+  return msgpack.unpack(base64.decode(string))
 end
 
 local function ips3VecToTable(vec)
@@ -38,6 +42,7 @@ local function ipsNVecToTable(vector)
 end
 
 module.pack = pack
+module.unpack = unpack
 module.ips3VecToTable = ips3VecToTable
 module.ipsNVecToTable = ipsNVecToTable
 

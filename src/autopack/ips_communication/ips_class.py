@@ -23,6 +23,10 @@ def get_ips_path():
         )
 
 
+def pack(payload):
+    return base64.b64encode(msgpack.packb(payload))
+
+
 def unpack(payload):
     return msgpack.unpackb(base64.b64decode(payload))
 

@@ -1,5 +1,18 @@
 import numpy as np
 
+from .ips_class import pack
+
+
+def to_inline_lua(obj):
+    """
+    Convert a Python value to a representation that can be used as part
+    of a Lua statement.
+    """
+    if isinstance(obj, bool):
+        return str(obj).lower()
+    # Brute force approach
+    return f"autopack.unpack('{pack(obj).decode('utf-8')}')"
+
 
 def setup_harness_routing(harness):
     command = """
@@ -30,7 +43,7 @@ def setup_harness_routing(harness):
             pref = 2
         local_command = f"""
             local envGeom = treeObject:findFirstMatch('{geometry.name}');
-            sim:addEnvironmentGeometry(envGeom, {geometry.clearance}/1000, {pref}, {bool_to_string_lower(geometry.clipable)});
+            sim:addEnvironmentGeometry(envGeom, {geometry.clearance}/1000, {pref}, {to_inline_lua(geometry.clipable)});
         """
         command = command + local_command
 
@@ -79,8 +92,7 @@ def setup_export_cost_field():
 def set_node_costs(cost_field):
     commands = []
     for (i_x, i_y, i_z), cost in np.ndenumerate(cost_field.costs):
-        lua_cost = "math.huge" if np.isinf(cost) else cost
-        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {lua_cost})"
+        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {to_inline_lua(cost)})"
         commands.append(cmd)
     new_line = "\n"
     return new_line.join(commands)
@@ -122,19 +134,19 @@ def route_harness_one_solution(
             end
         end
 
-        if {bool_to_string_lower(build_discrete_solution)} then
+        if {to_inline_lua(build_discrete_solution)} then
             discreteSegmentsTreeVector = sim:buildDiscreteSegments(solution_to_capture)
             discreteSolution = discreteSegmentsTreeVector[0]:getParent()
             discreteSolution:setLabel("{harness_id} (discrete)")
         end
 
-        if {bool_to_string_lower(build_presmooth_solution)} then
+        if {to_inline_lua(build_presmooth_solution)} then
             presmoothSegmentsTreeVector = sim:buildPresmoothSegments(solution_to_capture)
             presmoothSolution = presmoothSegmentsTreeVector[0]:getParent()
             presmoothSolution:setLabel("{harness_id} (presmooth)")
         end
 
-        if {bool_to_string_lower(build_smooth_solution)} then
+        if {to_inline_lua(build_smooth_solution)} then
             -- This will smooth ALL available solutions :(
             sim:smoothHarness()
             smoothSegmentsTreeVector = sim:buildSmoothSegments(solution_to_capture, true)
@@ -557,8 +569,3 @@ def add_cost_field_vis(cost_field):
     Ips.getGeometryRoot():getLastChild():setLabel("CostFieldVis")
     """
     return command
-
-
-def bool_to_string_lower(bool_val):
-    str_val = str(bool_val)
-    return str_val[0].lower() + str_val[1:]
