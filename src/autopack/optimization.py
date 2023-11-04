@@ -256,12 +256,18 @@ def optimize_qnehvi_and_get_candidates(
     else:
         ref_point = -problem.ref_point
 
+    # Use a non-zero alpha for high-dimensional problems, to use an
+    # approximated partitioning scheme for radically faster computation
+    # FIXME: this needs tuning
+    qnehvi_alpha = 0.1 if problem.num_objectives > 4 else 0.0
+
     acq_func = qNoisyExpectedHypervolumeImprovement(
         model=model,
         ref_point=ref_point,
         X_baseline=train_x,
         sampler=sampler,
         prune_baseline=True,
+        alpha=qnehvi_alpha,
         objective=objective,
         constraints=constraints,
     )
