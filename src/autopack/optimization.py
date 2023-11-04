@@ -224,6 +224,32 @@ def evaluate_batch(problem, xs, meta):
     )
 
 
+def feasible_pareto_front(objs, cons):
+    is_feas = (cons <= 0).all(dim=-1)
+    feas_objs = objs[is_feas]
+    if feas_objs.shape[0] > 0:
+        pareto_mask = is_non_dominated(feas_objs)
+        return feas_objs[pareto_mask]
+    else:
+        return torch.empty(0, objs.shape[-1], **tkwargs)
+
+
+def auto_ref_point(objs, cons):
+    pareto_objs = feasible_pareto_front(objs, cons)
+    if pareto_objs.shape[0] > 0:
+        used_objs = pareto_objs
+    else:
+        used_objs = objs
+
+    objs_diff = used_objs.max(dim=0).values - used_objs.min(dim=0).values
+    # If there is no difference between the max and min, use 1 as
+    # placeholder to guarantee that the ref point will always be worse
+    # in all objectives
+    objs_diff[objs_diff == 0] = 1
+
+    return used_objs.min(dim=0).values - objs_diff * 0.1
+
+
 def optimize_qnehvi_and_get_candidates(
     problem,
     train_x,
@@ -250,10 +276,11 @@ def optimize_qnehvi_and_get_candidates(
         constraints = None
 
     if problem.ref_point is None:
-        # BoTorch assumes maximization, so we use the minimum of the
-        # objectives as ref point
-        ref_point = train_obj.min(dim=0).values
+        ref_point = auto_ref_point(train_obj, train_con)
+        assert Hypervolume(ref_point).compute(train_obj) > 0, "Ref point is bad"
     else:
+        # BoTorch assumes maximization, but the input ref point assumes
+        # minimization
         ref_point = -problem.ref_point
 
     # Use a non-zero alpha for high-dimensional problems, to use an
