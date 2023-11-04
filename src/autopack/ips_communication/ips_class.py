@@ -33,12 +33,13 @@ class IPSInstance:
             ips_path = get_ips_path()
         self.ips_path = ips_path
         self.port = port
+        self.process = None
         self.socket = None
         self._version = None
 
     def start(self, verify_connection=True, load_libs=True):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
-        subprocess.Popen(
+        self.process = subprocess.Popen(
             ["IPS.exe", "-port", self.port],
             cwd=self.ips_path,
             env={
@@ -62,8 +63,12 @@ class IPSInstance:
             self.call(LOAD_LUALIB_SCRIPT)
 
     def call(self, command, strip=True):
-        self.socket.send_string(command)
-        msg = self.socket.recv()
+        self._wait_socket(zmq.POLLOUT)
+        self.socket.send_string(command, flags=zmq.NOBLOCK)
+
+        self._wait_socket(zmq.POLLIN)
+        msg = self.socket.recv(flags=zmq.NOBLOCK)
+
         if strip:
             return msg.strip(b"\n").strip(b'"')
         else:
@@ -75,6 +80,14 @@ class IPSInstance:
 
     def kill(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
+
+    def _wait_socket(self, flags, timeout=1000):
+        """Wait for socket or crashed process."""
+        while True:
+            if self.process.poll() is not None:
+                raise RuntimeError("Process died unexpectedly")
+            if self.socket.poll(timeout, flags) != 0:
+                return
 
     @property
     def version(self):
