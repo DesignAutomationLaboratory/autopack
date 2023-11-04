@@ -29,7 +29,7 @@ CUDA_AVAILABLE = torch.cuda.is_available()
 
 tkwargs = {
     "dtype": torch.double,
-    "device": torch.device("cuda:0" if CUDA_AVAILABLE else "cpu"),
+    "device": torch.device("cuda" if CUDA_AVAILABLE else "cpu"),
 }
 
 
