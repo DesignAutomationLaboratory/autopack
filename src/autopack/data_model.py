@@ -38,11 +38,14 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
 class CostField(BaseModel, arbitrary_types_allowed=True):
     name: str
     coordinates: np.ndarray = Field(repr=False)
-    costs: np.ndarray = Field(repr=False)
+    costs: np.ndarray = Field(
+        repr=False,
+        description="Cost for each grid node. Positive infinity implies an infeasible node.",
+    )
 
     def normalized_costs(self):
-        mask = self.costs < 999999
-        max_value = np.amax(self.costs[mask])
+        feasible_mask = np.invert(np.isposinf(self.costs))
+        max_value = np.amax(self.costs[feasible_mask])
         assert max_value != 0, "Max cost is 0, can't normalize"
         normalized_arr = self.costs / max_value
         return normalized_arr
