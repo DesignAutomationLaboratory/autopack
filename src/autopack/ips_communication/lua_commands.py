@@ -96,13 +96,13 @@ def route_harness_one_solution(
 ):
     return f"""
     {set_node_costs(cost_field)}
+    sim:setObjectiveWeights(1, {bundling_factor}, {bundling_factor})
     sim:routeHarness();
     num_solutions = sim:getNumSolutions()
     if num_solutions == 0 then
         return
     else
-        num = {bundling_factor} * (num_solutions - 1)
-        solution_to_capture = math.floor(num + 0.5)
+        solution_to_capture = 0
         nmb_of_segements = sim:getNumBundleSegments(solution_to_capture)
         harness = sim:estimateNumClips(solution_to_capture)
         for n = 0,nmb_of_segements-1,1
