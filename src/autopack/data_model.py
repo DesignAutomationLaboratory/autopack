@@ -54,13 +54,38 @@ class ProblemSetup(BaseModel):
 
 
 class HarnessSegment(BaseModel):
-    cables: list[int]
-    points: list[tuple[int, int, int]]
+    cables: list[int] = Field(
+        description="Indexes of cables that are included in the segment"
+    )
+    radius: float = Field(description="Total radius of the segment")
+    points: list[tuple[int, int, int]] = Field(
+        description="Grid node indexes that the discrete solution visits", repr=False
+    )
+    presmooth_coords: list[tuple[float, float, float]] = Field(
+        description="Coordinates that the presmoothed solution visits", repr=False
+    )
+    smooth_coords: Optional[list[tuple[float, float, float]]] = Field(
+        description="Coordinates that the smoothed solution visits, if available",
+        repr=False,
+    )
+    clip_positions: Optional[list[tuple[float, float, float]]] = Field(
+        description="Positions of clips from smoothed solution, if available",
+        repr=False,
+    )
 
 
 class Harness(BaseModel):
+    name: str
     harness_segments: list[HarnessSegment]
-    numb_of_clips: int = 0
+    numb_of_clips: int = Field(description="Estimated number of clips")
+    num_branch_points: int = Field(description="Number of branch points")
+    bundling_factor: float = Field(description="The bundling factor as returned by IPS")
+    bundling_objective: float = Field(
+        description="The bundling objective as returned by IPS"
+    )
+    length_objective: float = Field(
+        description="The length objective as returned by IPS"
+    )
 
 
 class Result(BaseModel):

@@ -44,64 +44,29 @@ def load_scene(ips_instance, scene_file_path):
     ips_instance.call(command)
 
 
-def route_harness(
-    ips_instance: IPSInstance,
+def route_harness_all_solutions(
+    ips: IPSInstance,
     harness_setup: HarnessSetup,
     cost_field: CostField,
-    bundling_factor: float = 0.5,
-    harness_id: Optional[str] = None,
-    build_discrete_solution: bool = False,
-    build_presmooth_solution: bool = False,
-    build_smooth_solution: bool = False,
-):
+    bundling_factor: float,
+    harness_id: str,
+    solutions_to_capture: Optional[list[str]] = None,
+    smooth_solutions: bool = False,
+    build_discrete_solutions: bool = False,
+    build_presmooth_solutions: bool = False,
+    build_smooth_solutions: bool = False,
+) -> list[Harness]:
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
     command1 = lua_commands.setup_harness_routing(harness_setup)
-    command2 = lua_commands.route_harness_one_solution(
+    command2 = lua_commands.route_harness(
         cost_field=cost_field,
         bundling_factor=bundling_factor,
-        harness_id=harness_id,
-        build_discrete_solution=build_discrete_solution,
-        build_presmooth_solution=build_presmooth_solution,
-        build_smooth_solution=build_smooth_solution,
-    )
-    command = command1 + command2
-    # print(command)
-    str_harness = ips_instance.call(command)
-    str_harness = str_harness.decode("utf-8").strip('"')
-    array_harness = str_harness.split(",")
-    array_harness[-1] = array_harness[-1].rstrip('"\n')
-    nmb_of_clips = int(array_harness[0])
-    array_harness = array_harness[1:]
-    nmb_of_segments = array_harness.count("break")
-    last_break = 0
-    harness_segments = []
-    for i in range(nmb_of_segments):
-        cables = array_harness[
-            last_break + 3 : last_break + 3 + int(array_harness[last_break + 2])
-        ]
-        cables_int = [int(x) for x in cables]
-        start_loop = last_break + 3 + int(array_harness[last_break + 2])
-        end_loop = start_loop + int(array_harness[last_break + 1]) * 3
-        points = []
-        for ii in range(start_loop, end_loop, 3):
-            local_points = (
-                int(array_harness[ii]),
-                int(array_harness[ii + 1]),
-                int(array_harness[ii + 2]),
-            )
-            points.append(local_points)
-        last_break = end_loop
-        harness_segments.append(HarnessSegment(cables=cables_int, points=points))
-
-    return Harness(harness_segments=harness_segments, numb_of_clips=nmb_of_clips)
-
-
-def route_harness_all_solutions(
-    ips: IPSInstance, harness_setup: HarnessSetup, cost_field: CostField, harness_id
-):
-    command1 = lua_commands.setup_harness_routing(harness_setup)
-    command2 = lua_commands.route_harness_all_solutions(
-        cost_field, harness_id=harness_id
+        case_id=harness_id,
+        solutions_to_capture=solutions_to_capture,
+        smooth_solutions=smooth_solutions,
+        build_discrete_solutions=build_discrete_solutions,
+        build_presmooth_solutions=build_presmooth_solutions,
+        build_smooth_solutions=build_smooth_solutions,
     )
     command = command1 + command2
 
@@ -109,17 +74,35 @@ def route_harness_all_solutions(
 
     solutions = [
         Harness(
+            name=solution["name"],
             harness_segments=[
                 HarnessSegment(
-                    cables=segment["cables"], points=segment["discreteNodes"]
+                    radius=segment["radius"],
+                    cables=segment["cables"],
+                    points=segment["discreteNodes"],
+                    presmooth_coords=segment["presmoothCoords"],
+                    smooth_coords=segment.get("smoothCoords", None),
+                    clip_positions=segment.get("clipPositions", None),
                 )
                 for segment in solution["segments"]
             ],
             numb_of_clips=solution["estimatedNumClips"],
+            num_branch_points=solution["numBranchPoints"],
+            bundling_factor=solution["objectiveWeightBundling"],
+            bundling_objective=solution["solutionObjectiveBundling"],
+            length_objective=solution["solutionObjectiveLength"],
         )
         for solution in response
     ]
     return solutions
+
+
+def route_harness(
+    *args,
+    **kwargs,
+) -> Harness:
+    solutions = route_harness_all_solutions(*args, **kwargs, solutions_to_capture=[0])
+    return solutions[0]
 
 
 def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_dist):

@@ -1,5 +1,8 @@
+from typing import Optional
+
 import numpy as np
 
+from ..data_model import CostField
 from .ips_class import pack
 
 
@@ -98,121 +101,95 @@ def set_node_costs(cost_field):
     return new_line.join(commands)
 
 
-def route_harness_one_solution(
-    cost_field,
-    bundling_factor=0.5,
-    harness_id=None,
-    build_discrete_solution=False,
-    build_presmooth_solution=False,
-    build_smooth_solution=False,
+def route_harness(
+    cost_field: CostField,
+    bundling_factor: float,
+    case_id: str,
+    solutions_to_capture: Optional[list[str]] = None,
+    smooth_solutions: bool = False,
+    build_discrete_solutions: bool = False,
+    build_presmooth_solutions: bool = False,
+    build_smooth_solutions: bool = False,
 ):
+    if solutions_to_capture is None:
+        solutions_to_capture = []
+
     return f"""
     {set_node_costs(cost_field)}
     sim:setObjectiveWeights(1, {bundling_factor}, {bundling_factor})
     sim:routeHarness();
-    num_solutions = sim:getNumSolutions()
-    if num_solutions == 0 then
-        return
-    else
-        solution_to_capture = 0
-        nmb_of_segements = sim:getNumBundleSegments(solution_to_capture)
-        harness = sim:estimateNumClips(solution_to_capture)
-        for n = 0,nmb_of_segements-1,1
-        do
-            in_seg = sim:getCablesInSegment(solution_to_capture,n)
-            -- print(in_seg:size())
-            segement = sim:getDiscreteSegment(solution_to_capture, n, false)
-            elements_in_segment = segement:size()
-            harness = harness .. "," .. "break" .. "," .. elements_in_segment .. "," .. in_seg:size()
-            for nnn = 0,in_seg:size()-1,1
-            do
-                harness = harness .. "," .. in_seg[nnn]
-            end
-            for nn = 0,elements_in_segment-1,1
-            do
-                harness = harness .. ',' .. segement[nn][0] .. ',' .. segement[nn][1] .. ',' .. segement[nn][2]
-            end
-        end
 
-        if {to_inline_lua(build_discrete_solution)} then
-            discreteSegmentsTreeVector = sim:buildDiscreteSegments(solution_to_capture)
-            discreteSolution = discreteSegmentsTreeVector[0]:getParent()
-            discreteSolution:setLabel("{harness_id} (discrete)")
-        end
-
-        if {to_inline_lua(build_presmooth_solution)} then
-            presmoothSegmentsTreeVector = sim:buildPresmoothSegments(solution_to_capture)
-            presmoothSolution = presmoothSegmentsTreeVector[0]:getParent()
-            presmoothSolution:setLabel("{harness_id} (presmooth)")
-        end
-
-        if {to_inline_lua(build_smooth_solution)} then
-            -- This will smooth ALL available solutions :(
-            sim:smoothHarness()
-            smoothSegmentsTreeVector = sim:buildSmoothSegments(solution_to_capture, true)
-            smoothSolution = smoothSegmentsTreeVector[0]:getParent()
-            smoothSolution:setLabel("{harness_id} (smooth)")
-        end
-
-        return harness
-    end
-    """
-
-
-def route_harness_all_solutions(cost_field, harness_id=None):
-    return f"""
-    {set_node_costs(cost_field)}
-    sim:routeHarness();
-
-    local buildPresmoothSegments = false
-    local buildSmoothSegments = false
+    local buildDiscreteSolutions = {to_inline_lua(build_discrete_solutions)}
+    local buildPresmoothSolutions = {to_inline_lua(build_presmooth_solutions)}
+    local buildSmoothSolutions = {to_inline_lua(build_smooth_solutions)}
+    local smoothSolutions = {to_inline_lua(smooth_solutions)} or buildSmoothSolutions
 
     local numSolutions = sim:getNumSolutions()
     local solutions = {{}}
 
-    if buildSmoothSegments then
+    -- To be able to build the smooth segments, this step needs to be run first
+    if smoothSolutions then
         sim:smoothHarness()
     end
 
-    for sol = 0, numSolutions - 1 do
+    local solutionIdxsToCapture = {to_inline_lua(solutions_to_capture)}
+    if #solutionIdxsToCapture == 0 then
+        -- If no solutions are specified, capture all of them
+        solutionIdxsToCapture = autopack.range(0, numSolutions - 1)
+    end
+
+    for _, solIdx in pairs(solutionIdxsToCapture) do
+        local solutionName = "{case_id}" .. "_" .. solIdx
+
         local segments = {{}}
-        local numSegments = sim:getNumBundleSegments(sol)
-        local presmoothSolution
-        local smoothSolution
-        if buildPresmoothSegments then
-            presmoothSolution = sim:buildPresmoothSegments(sol)
-        end
-
-        if buildSmoothSegments then
-            smoothSolution = sim:buildSmoothSegments(sol, true)
-        end
-
-        for seg = 0, numSegments - 1 do
+        local numSegments = sim:getNumBundleSegments(solIdx)
+        for segIdx = 0, numSegments - 1 do
             local segment = {{
-                cables = autopack.ipsNVecToTable(sim:getCablesInSegment(sol, seg)),
-                discreteNodes = autopack.ipsNVecToTable(sim:getDiscreteSegment(sol, seg, false)),
+                radius = sim:getSegmentRadius(solIdx, segIdx),
+                cables = autopack.ipsNVecToTable(sim:getCablesInSegment(solIdx, segIdx)),
+                discreteNodes = autopack.ipsNVecToTable(sim:getDiscreteSegment(solIdx, segIdx, false)),
+                presmoothCoords = autopack.ipsNVecToTable(sim:getPresmoothSegment(solIdx, segIdx, false)),
+                smoothCoords = nil,
+                clipPositions = nil,
             }}
 
-            if buildPresmoothSegments then
-                segment.presmoothCoords = autopack.ipsNVecToTable(sim:getPresmoothSegment(sol, seg, false))
+            if smoothSolutions then
+                -- These are only available if we have run the smoothing step
+                segment.smoothCoords = autopack.ipsNVecToTable(sim:getSmoothSegment(solIdx, segIdx, false))
+                segment.clipPositions = autopack.ipsNVecToTable(sim:getClipPositions(solIdx, segIdx))
             end
 
-            if buildSmoothSegments then
-                segment.smoothCoords = autopack.ipsNVecToTable(sim:getSmoothSegment(sol, seg, false))
-                segment.clipPositions = autopack.ipsNVecToTable(sim:getClipPositions(sol, seg))
-            end
-
-            segments[seg + 1] = segment
+            segments[segIdx + 1] = segment
         end
 
+        if buildDiscreteSolutions then
+            builtDiscreteSegmentsTreeVector = sim:buildDiscreteSegments(solIdx)
+            builtDiscreteSolution = builtDiscreteSegmentsTreeVector[0]:getParent()
+            builtDiscreteSolution:setLabel(solutionName .. " (discrete)")
+        end
+
+        if buildPresmoothSolutions then
+            builtPresmoothSegmentsTreeVector = sim:buildPresmoothSegments(solIdx)
+            builtPresmoothSolution = builtPresmoothSegmentsTreeVector[0]:getParent()
+            builtPresmoothSolution:setLabel(solutionName .. " (presmooth)")
+        end
+
+        if buildSmoothSolutions then
+            builtSmoothSegmentsTreeVector = sim:buildSmoothSegments(solIdx, true)
+            builtSmoothSolution = builtSmoothSegmentsTreeVector[0]:getParent()
+            builtSmoothSolution:setLabel(solutionName .. " (smooth)")
+        end
 
         -- Gather the solution data
-        solutions[sol + 1] = {{
+        -- Note that we index by 1 here for packing reasons
+        solutions[solIdx + 1] = {{
+            name = solutionName,
             segments = segments,
-            estimatedNumClips = sim:estimateNumClips(sol),
-            objectiveWeightBundling = sim:getObjectiveWeightBundling(sol),
-            solutionObjectiveBundling = sim:getSolutionObjectiveBundling(sol),
-            solutionObjectiveLength = sim:getSolutionObjectiveLength(sol),
+            estimatedNumClips = sim:estimateNumClips(solIdx),
+            numBranchPoints = sim:getNumBranchPoints(solIdx),
+            objectiveWeightBundling = sim:getObjectiveWeightBundling(solIdx),
+            solutionObjectiveBundling = sim:getSolutionObjectiveBundling(solIdx),
+            solutionObjectiveLength = sim:getSolutionObjectiveLength(solIdx),
         }}
     end
 

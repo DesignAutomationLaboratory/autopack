@@ -16,9 +16,9 @@ def route_evaluate_harness(
         problem_setup.cost_fields, cost_field_weights, normalize_fields=True
     )
     new_harness = route_harness(
-        ips_instance,
-        problem_setup.harness_setup,
-        new_field,
+        ips=ips_instance,
+        harness_setup=problem_setup.harness_setup,
+        cost_field=new_field,
         bundling_factor=bundling_factor,
         harness_id=harness_id,
     )
@@ -95,11 +95,12 @@ def route_harness_from_dataset(
     # will always return the same harness for the same inputs.
     # FIXME: investigate whether this is true.
     return route_harness(
-        ips_instance=ips,
+        ips=ips,
         harness_setup=problem_setup.harness_setup,
         cost_field=combined_cf,
         bundling_factor=bundling_factor,
-        harness_id=f"{case_id}_{ips_solution_idx}",
+        harness_id=case_id,
+        solutions_to_capture=[ips_solution_idx],
         build_discrete_solution=build_discrete_solution,
         build_presmooth_solution=build_presmooth_solution,
         build_smooth_solution=build_smooth_solution,

@@ -41,10 +41,22 @@ local function ipsNVecToTable(vector)
   return table
 end
 
+local function range(from, to)
+  -- Returns an iterator that iterates from `from` to `to`, inclusive.
+  -- From https://stackoverflow.com/a/39690945/6578978
+  return coroutine.wrap(function()
+    for i = from, to do
+      coroutine.yield(i)
+    end
+  end)
+end
+
+
 module.pack = pack
 module.unpack = unpack
 module.ips3VecToTable = ips3VecToTable
 module.ipsNVecToTable = ipsNVecToTable
+module.range = range
 
 module.base64 = base64
 module.inspect = inspect
