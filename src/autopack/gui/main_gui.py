@@ -12,7 +12,7 @@ from autopack.gui.select_path import (
     select_save_file_path,
 )
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.optimization import global_optimize_harness
+from autopack.harness_optimization import global_optimize_harness
 import autopack.gui.visualisation_support.plots as plots
 import autopack.gui.visualisation_support.elements as elements
 import autopack.gui.visualisation_support.design_selection as design_selection

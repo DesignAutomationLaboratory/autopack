@@ -5,10 +5,12 @@ from facit.testing import assert_ds_equal
 
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
 from autopack.default_commands import create_default_prob_setup
-from autopack.harness_optimization import route_evaluate_harness
+from autopack.harness_optimization import (
+    global_optimize_harness,
+    route_evaluate_harness,
+)
 from autopack.io import load_dataset, save_dataset
 from autopack.ips_communication.ips_commands import create_costfield, load_scene
-from autopack.optimization import global_optimize_harness
 
 
 @pytest.fixture
