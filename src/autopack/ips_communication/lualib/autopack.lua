@@ -42,13 +42,12 @@ local function ipsNVecToTable(vector)
 end
 
 local function range(from, to)
-  -- Returns an iterator that iterates from `from` to `to`, inclusive.
-  -- From https://stackoverflow.com/a/39690945/6578978
-  return coroutine.wrap(function()
-    for i = from, to do
-      coroutine.yield(i)
-    end
-  end)
+  -- Returns an array with values from `from` to `to`, inclusive.
+  local arr = {}
+  for v = from, to do
+    arr[#arr + 1] = v
+  end
+  return arr
 end
 
 
