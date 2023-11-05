@@ -1,5 +1,5 @@
 import time
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 import torch
@@ -34,18 +34,20 @@ class OptimizationResult(BaseModel, arbitrary_types_allowed=True):
     con: np.ndarray
 
 
+class OptimizationMeta(BaseModel, arbitrary_types_allowed=True):
+    category: str
+    batch: int
+
+
 class OptimizationProblem(BaseModel, arbitrary_types_allowed=True):
-    func: callable
+    func: Callable[
+        [np.ndarray, OptimizationMeta], tuple[np.ndarray, np.ndarray, np.ndarray]
+    ]
     bounds: np.ndarray | torch.Tensor
     num_objectives: int
     num_constraints: int = 0
     ref_point: Optional[np.ndarray | torch.Tensor] = None
     state: Optional[Any] = None
-
-
-class OptimizationMeta(BaseModel, arbitrary_types_allowed=True):
-    category: str
-    batch: int
 
 
 def initialize_model(problem, train_x, train_obj, train_con):
