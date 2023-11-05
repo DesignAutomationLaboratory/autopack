@@ -54,27 +54,39 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
 class ProblemSetup(BaseModel):
     harness_setup: HarnessSetup
     cost_fields: List[CostField]
+    smooth_solutions: bool = Field(
+        default=False,
+        description="Whether to smooth solutions during routing. This will increase the runtime but might improve fidelity of the metrics.",
+    )
 
 
-class HarnessSegment(BaseModel):
+class HarnessSegment(BaseModel, arbitrary_types_allowed=True):
     cables: list[int] = Field(
         description="Indexes of cables that are included in the segment"
     )
     radius: float = Field(description="Total radius of the segment")
-    points: list[tuple[int, int, int]] = Field(
+    discrete_nodes: np.ndarray = Field(
         description="Grid node indexes that the discrete solution visits", repr=False
     )
-    presmooth_coords: list[tuple[float, float, float]] = Field(
+    discrete_coords: np.ndarray = Field(
+        description="Coordinates that the discrete solution visits", repr=False
+    )
+    presmooth_coords: np.ndarray = Field(
         description="Coordinates that the presmoothed solution visits", repr=False
     )
-    smooth_coords: Optional[list[tuple[float, float, float]]] = Field(
+    smooth_coords: Optional[np.ndarray] = Field(
         description="Coordinates that the smoothed solution visits, if available",
         repr=False,
     )
-    clip_positions: Optional[list[tuple[float, float, float]]] = Field(
+    clip_coords: Optional[np.ndarray] = Field(
         description="Positions of clips from smoothed solution, if available",
         repr=False,
     )
+
+    @property
+    def points(self):
+        # For backwards compatibility
+        return self.discrete_nodes
 
 
 class Harness(BaseModel):

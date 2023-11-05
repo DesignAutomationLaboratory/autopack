@@ -11,6 +11,7 @@ from autopack.data_model import (
     IPSInstance,
 )
 
+from ..utils import grid_idxs_to_coords
 from . import lua_commands
 
 
@@ -72,20 +73,33 @@ def route_harness_all_solutions(
 
     response = ips.call_unpack(command)
 
+    def gen_harness_segments(segment_dict):
+        for segment in segment_dict:
+            discrete_nodes = np.array(segment["discreteNodes"])
+            discrete_coords = grid_idxs_to_coords(
+                grid_coords=cost_field.coordinates, grid_idxs=discrete_nodes
+            )
+            _smooth_coords = segment.get("smoothCoords", None)
+            smooth_coords = (
+                np.array(_smooth_coords) if _smooth_coords is not None else None
+            )
+            _clip_coords = segment.get("clipPositions", None)
+            clip_coords = np.array(_clip_coords) if _clip_coords is not None else None
+
+            yield HarnessSegment(
+                radius=segment["radius"],
+                cables=segment["cables"],
+                discrete_nodes=discrete_nodes,
+                discrete_coords=discrete_coords,
+                presmooth_coords=np.array(segment["presmoothCoords"]),
+                smooth_coords=smooth_coords,
+                clip_coords=clip_coords,
+            )
+
     solutions = [
         Harness(
             name=solution["name"],
-            harness_segments=[
-                HarnessSegment(
-                    radius=segment["radius"],
-                    cables=segment["cables"],
-                    points=segment["discreteNodes"],
-                    presmooth_coords=segment["presmoothCoords"],
-                    smooth_coords=segment.get("smoothCoords", None),
-                    clip_positions=segment.get("clipPositions", None),
-                )
-                for segment in solution["segments"]
-            ],
+            harness_segments=list(gen_harness_segments(solution["segments"])),
             numb_of_clips=solution["estimatedNumClips"],
             num_branch_points=solution["numBranchPoints"],
             bundling_factor=solution["objectiveWeightBundling"],

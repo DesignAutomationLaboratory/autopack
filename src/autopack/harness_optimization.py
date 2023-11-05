@@ -4,8 +4,9 @@ import xarray as xr
 
 from . import data_model
 from .data_model import CostField, IPSInstance, ProblemSetup
-from .ips_communication.ips_commands import route_harness
+from .ips_communication.ips_commands import route_harness, route_harness_all_solutions
 from .optimization import OptimizationMeta, OptimizationProblem, minimize
+from .utils import path_length
 
 
 def route_evaluate_harness(
@@ -77,6 +78,28 @@ def evaluate_harness(harness, cost_field):
     return bundle_cost, total_cost
 
 
+def harness_volume(harness: data_model.Harness) -> float:
+    # Use the first segments to see what kind of coordinates we have
+    first_segment = harness.harness_segments[0]
+
+    if first_segment.smooth_coords:
+        segment_lengths = np.array(
+            [path_length(seg.smooth_coords) for seg in harness.harness_segments]
+        )
+    elif first_segment.presmooth_coords:
+        segment_lengths = np.array(
+            [path_length(seg.presmooth_coords) for seg in harness.harness_segments]
+        )
+    else:
+        segment_lengths = np.array(
+            [path_length(seg.discrete_coords) for seg in harness.harness_segments]
+        )
+
+    segment_radii = np.array([seg.radius for seg in harness.harness_segments])
+
+    return np.sum(segment_lengths * segment_radii**2 * np.pi)
+
+
 def route_harness_from_dataset(
     ips: IPSInstance,
     ds: xr.Dataset,
@@ -85,7 +108,7 @@ def route_harness_from_dataset(
     build_discrete_solution=False,
     build_presmooth_solution=False,
     build_smooth_solution=False,
-):
+) -> data_model.Harness:
     problem_setup: ProblemSetup = ds.attrs["problem_setup"]
 
     selected_ds = ds.sel(case=case_id, ips_solution=ips_solution_idx)
@@ -97,17 +120,19 @@ def route_harness_from_dataset(
     # This assumes that the harness router is deterministic and
     # will always return the same harness for the same inputs.
     # FIXME: investigate whether this is true.
-    return route_harness(
+    return route_harness_all_solutions(
         ips=ips,
         harness_setup=problem_setup.harness_setup,
         cost_field=combined_cf,
         bundling_factor=bundling_factor,
         harness_id=case_id,
         solutions_to_capture=[ips_solution_idx],
-        build_discrete_solution=build_discrete_solution,
-        build_presmooth_solution=build_presmooth_solution,
-        build_smooth_solution=build_smooth_solution,
-    )
+        build_discrete_solutions=build_discrete_solution,
+        build_presmooth_solutions=build_presmooth_solution,
+        build_smooth_solutions=build_smooth_solution,
+    )[
+        0
+    ]  # We only capture one solution
 
 
 def design_point_ds(
@@ -123,15 +148,40 @@ def design_point_ds(
     case_id = f"{meta.category}.{meta.batch}.{iter_in_batch}"
     cost_field_ids = [cf.name for cf in problem_setup.cost_fields]
 
-    bundle_costs, total_costs, num_clips = route_evaluate_harness(
-        ips_instance=ips,
-        problem_setup=problem_setup,
-        cost_field_weights=x[:-1],
-        bundling_factor=x[-1],
-        harness_id=case_id,
+    combined_cost_field = combine_cost_fields(
+        cost_fields=problem_setup.cost_fields, weights=x[:-1], normalize_fields=True
     )
 
-    num_ips_solutions = 1
+    harness_solutions = route_harness_all_solutions(
+        ips=ips,
+        harness_setup=problem_setup.harness_setup,
+        cost_field=combined_cost_field,
+        bundling_factor=x[-1],
+        harness_id=case_id,
+        solutions_to_capture=[],
+        smooth_solutions=problem_setup.smooth_solutions,
+        build_discrete_solutions=False,
+        build_presmooth_solutions=False,
+        build_smooth_solutions=False,
+    )
+
+    num_ips_solutions = len(harness_solutions)
+
+    bundle_total_costs = np.array(
+        [
+            [
+                evaluate_harness(harness, cost_field)
+                for cost_field in problem_setup.cost_fields
+            ]
+            for harness in harness_solutions
+        ]
+    )
+    bundle_costs = bundle_total_costs[:, :, 0]
+    total_costs = bundle_total_costs[:, :, 1]
+
+    num_clips = np.array([h.numb_of_clips for h in harness_solutions])
+    volumes = np.array([harness_volume(h) for h in harness_solutions])
+
     ds = xr.Dataset(
         {
             "timestamp": pd.Timestamp.utcnow(),
@@ -141,7 +191,6 @@ def design_point_ds(
             "bundling_factor": xr.DataArray(x[-1]),
             "bundling_cost": xr.DataArray(
                 bundle_costs,
-                # dims=["cost_field", "ips_solution"],
                 coords={
                     "ips_solution": range(num_ips_solutions),
                     "cost_field": cost_field_ids,
@@ -149,7 +198,6 @@ def design_point_ds(
             ),
             "total_cost": xr.DataArray(
                 total_costs,
-                # dims=["cost_field", "ips_solution"],
                 coords={
                     "ips_solution": range(num_ips_solutions),
                     "cost_field": cost_field_ids,
@@ -157,8 +205,11 @@ def design_point_ds(
             ),
             "num_estimated_clips": xr.DataArray(
                 num_clips,
-                coords=[range(num_ips_solutions)],
-                dims=["ips_solution"],
+                coords={"ips_solution": range(num_ips_solutions)},
+            ),
+            "harness_volume": xr.DataArray(
+                volumes,
+                coords={"ips_solution": range(num_ips_solutions)},
             ),
         }
     )
