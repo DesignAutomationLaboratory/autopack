@@ -110,58 +110,60 @@ def route_harness_from_dataset(
     )
 
 
-def batch_dss(
-    ips_instance,
-    problem_setup: data_model.ProblemSetup,
-    xs: np.ndarray,
+def design_point_ds(
+    ips: IPSInstance,
+    problem_setup: ProblemSetup,
     meta: OptimizationMeta,
-):
+    x: np.ndarray,
+    iter_in_batch: int,
+) -> xr.Dataset:
+    """
+    Evaluates a design point and returns a dataset with the results.
+    """
+    case_id = f"{meta.category}.{meta.batch}.{iter_in_batch}"
     cost_field_ids = [cf.name for cf in problem_setup.cost_fields]
 
-    for i, x in enumerate(xs):
-        case_id = f"{meta.category}.{meta.batch}.{i}"
+    bundle_costs, total_costs, num_clips = route_evaluate_harness(
+        ips_instance=ips,
+        problem_setup=problem_setup,
+        cost_field_weights=x[:-1],
+        bundling_factor=x[-1],
+        harness_id=case_id,
+    )
 
-        bundle_costs, total_costs, num_clips = route_evaluate_harness(
-            ips_instance,
-            problem_setup,
-            cost_field_weights=x[:-1],
-            bundling_factor=x[-1],
-            harness_id=case_id,
-        )
-
-        num_ips_solutions = 1
-        ds = xr.Dataset(
-            {
-                "timestamp": pd.Timestamp.utcnow(),
-                "cost_field_weight": xr.DataArray(
-                    x[:-1], coords={"cost_field": cost_field_ids}
-                ),
-                "bundling_factor": xr.DataArray(x[-1]),
-                "bundling_cost": xr.DataArray(
-                    bundle_costs,
-                    # dims=["cost_field", "ips_solution"],
-                    coords={
-                        "ips_solution": range(num_ips_solutions),
-                        "cost_field": cost_field_ids,
-                    },
-                ),
-                "total_cost": xr.DataArray(
-                    total_costs,
-                    # dims=["cost_field", "ips_solution"],
-                    coords={
-                        "ips_solution": range(num_ips_solutions),
-                        "cost_field": cost_field_ids,
-                    },
-                ),
-                "num_estimated_clips": xr.DataArray(
-                    num_clips,
-                    coords=[range(num_ips_solutions)],
-                    dims=["ips_solution"],
-                ),
-            }
-        )
-        ds = ds.expand_dims({"case": [case_id]}, axis=0)
-        yield ds
+    num_ips_solutions = 1
+    ds = xr.Dataset(
+        {
+            "timestamp": pd.Timestamp.utcnow(),
+            "cost_field_weight": xr.DataArray(
+                x[:-1], coords={"cost_field": cost_field_ids}
+            ),
+            "bundling_factor": xr.DataArray(x[-1]),
+            "bundling_cost": xr.DataArray(
+                bundle_costs,
+                # dims=["cost_field", "ips_solution"],
+                coords={
+                    "ips_solution": range(num_ips_solutions),
+                    "cost_field": cost_field_ids,
+                },
+            ),
+            "total_cost": xr.DataArray(
+                total_costs,
+                # dims=["cost_field", "ips_solution"],
+                coords={
+                    "ips_solution": range(num_ips_solutions),
+                    "cost_field": cost_field_ids,
+                },
+            ),
+            "num_estimated_clips": xr.DataArray(
+                num_clips,
+                coords=[range(num_ips_solutions)],
+                dims=["ips_solution"],
+            ),
+        }
+    )
+    ds = ds.expand_dims({"case": [case_id]}, axis=0)
+    return ds
 
 
 def batch_voi(
@@ -208,8 +210,15 @@ def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
 
     def batch_analysis_func(xs: np.ndarray, meta: OptimizationMeta):
         this_batch_dataset = xr.concat(
-            batch_dss(
-                ips_instance=ips_instance, problem_setup=problem_setup, xs=xs, meta=meta
+            (
+                design_point_ds(
+                    ips=ips_instance,
+                    problem_setup=problem_setup,
+                    meta=meta,
+                    x=x,
+                    iter_in_batch=i,
+                )
+                for i, x in enumerate(xs)
             ),
             dim="case",
         )
