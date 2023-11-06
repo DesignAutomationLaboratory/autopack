@@ -1,4 +1,5 @@
 from PyInstaller.building.build_main import COLLECT, EXE, PYZ, Analysis
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 
@@ -11,7 +12,11 @@ a = Analysis(
     ["src/autopack/gui_entrypoint.py"],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        *collect_data_files("autopack"),
+        # torch.jit fails if we don't have the sources for linear_operator
+        *collect_data_files("linear_operator", include_py_files=True),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -19,7 +24,6 @@ a = Analysis(
     excludes=[
         "ipykernel",
         "IPython",
-        "matplotlib.backends",
         "nbconvert",
         "nbformat",
         "notebook",
