@@ -82,11 +82,11 @@ def harness_volume(harness: data_model.Harness) -> float:
     # Use the first segments to see what kind of coordinates we have
     first_segment = harness.harness_segments[0]
 
-    if first_segment.smooth_coords:
+    if first_segment.smooth_coords is not None:
         segment_lengths = np.array(
             [path_length(seg.smooth_coords) for seg in harness.harness_segments]
         )
-    elif first_segment.presmooth_coords:
+    elif len(first_segment.presmooth_coords) > 0:
         segment_lengths = np.array(
             [path_length(seg.presmooth_coords) for seg in harness.harness_segments]
         )
