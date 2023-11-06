@@ -8,7 +8,7 @@ PROJECT_NAME = "autopack"
 BUNDLE_NAME = PROJECT_NAME
 
 a = Analysis(
-    ["src/autopack/__init__.py"],
+    ["src/autopack/gui_entrypoint.py"],
     pathex=[],
     binaries=[],
     datas=[],
