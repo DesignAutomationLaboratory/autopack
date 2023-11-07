@@ -1,5 +1,6 @@
 import time
 from typing import Any, Callable, Optional
+import os
 
 import numpy as np
 import torch
@@ -22,9 +23,14 @@ from pydantic import BaseModel
 
 CUDA_AVAILABLE = torch.cuda.is_available()
 
+_USE_CUDA = os.environ.get("AUTOPACK_USE_CUDA", "false").lower() == "true"
+USE_CUDA = CUDA_AVAILABLE and _USE_CUDA
+
+print("GPU-accelerated optimization:", USE_CUDA)
+
 tkwargs = {
     "dtype": torch.double,
-    "device": torch.device("cuda" if CUDA_AVAILABLE else "cpu"),
+    "device": torch.device("cuda" if USE_CUDA else "cpu"),
 }
 
 
