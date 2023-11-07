@@ -1,5 +1,19 @@
 from PyInstaller.building.build_main import COLLECT, EXE, PYZ, Analysis
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, conda_support
+
+
+def collect_nvidia_libs(*args, **kwargs):
+    """
+    Nasty hack to collect nvidia-packaged libs from the conda
+    environment, that are stored in a non-standard location
+    (<conda_env>/bin).
+    """
+    old_lib_dir = conda_support.lib_dir
+    conda_support.lib_dir = conda_support.PackagePath("bin")
+    libs = conda_support.collect_dynamic_libs(*args, **kwargs)
+    conda_support.lib_dir = old_lib_dir
+    return libs
+
 
 block_cipher = None
 
@@ -11,7 +25,10 @@ BUNDLE_NAME = PROJECT_NAME
 a = Analysis(
     ["src/autopack/gui_entrypoint.py"],
     pathex=[],
-    binaries=[],
+    binaries=[
+        # Needed for CUDA support in PyTorch
+        *collect_nvidia_libs("cuda-nvrtc-dev"),
+    ],
     datas=[
         *collect_data_files("autopack"),
         # torch.jit fails if we don't have the sources for linear_operator
