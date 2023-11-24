@@ -92,15 +92,6 @@ def setup_export_cost_field():
     return command
 
 
-def set_node_costs(cost_field):
-    commands = []
-    for (i_x, i_y, i_z), cost in np.ndenumerate(cost_field.costs):
-        cmd = f"sim:setNodeCost({i_x}, {i_y}, {i_z}, {to_inline_lua(cost)})"
-        commands.append(cmd)
-    new_line = "\n"
-    return new_line.join(commands)
-
-
 def route_harness(
     cost_field: CostField,
     bundling_factor: float,
@@ -115,7 +106,8 @@ def route_harness(
         solutions_to_capture = []
 
     return f"""
-    {set_node_costs(cost_field)}
+    local nodeCosts = {to_inline_lua(cost_field.costs)}
+    autopack.setHarnessRouterNodeCosts(sim, nodeCosts)
     sim:setObjectiveWeights(1, {bundling_factor}, {bundling_factor})
     sim:routeHarness();
 

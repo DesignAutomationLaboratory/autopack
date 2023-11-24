@@ -50,12 +50,25 @@ local function range(from, to)
   return arr
 end
 
+local function setHarnessRouterNodeCosts(harnessRouter, costsArray)
+  -- Sets the costs of the harness router's nodes to the values in `costsArray`.
+  -- The array should be 1-indexed, but the router's nodes are 0-indexed.
+  -- i.e., `costsArray[1][1][1]` will be the cost of the router's node (0, 0, 0).
+  for x, xCosts in ipairs(costsArray) do
+    for y, yCosts in ipairs(xCosts) do
+      for z, cost in ipairs(yCosts) do
+        harnessRouter:setNodeCost(x - 1, y - 1, z - 1, cost)
+      end
+    end
+  end
+end
 
 module.pack = pack
 module.unpack = unpack
 module.ips3VecToTable = ips3VecToTable
 module.ipsNVecToTable = ipsNVecToTable
 module.range = range
+module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts
 
 module.base64 = base64
 module.inspect = inspect
