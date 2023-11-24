@@ -4,6 +4,7 @@ import pathlib
 import subprocess
 
 import msgpack
+import numpy as np
 import zmq
 
 LUALIB_PATH = pathlib.Path(__file__).parent / "lualib" / "?.lua"
@@ -23,8 +24,18 @@ def get_ips_path():
         )
 
 
+def encode_hook(obj, chain=None):
+    """
+    Hook for msgpack to pack custom objects.
+    """
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    else:
+        return obj if chain is None else chain(obj)
+
+
 def pack(payload):
-    return base64.b64encode(msgpack.packb(payload))
+    return base64.b64encode(msgpack.packb(payload, default=encode_hook))
 
 
 def unpack(payload):
