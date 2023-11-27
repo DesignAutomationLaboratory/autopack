@@ -377,27 +377,12 @@ def get_stl_meshes():
 
 
 def ergonomic_evaluation(parts, coords):
-    stl_paths = ",".join(parts)
-    coords_str = ",".join([" ".join(map(str, sublist)) for sublist in coords])
     command = f"""
-    geos = [[{stl_paths}]]
-    coordinates = [[{coords_str}]]
+    geo_names = {to_inline_lua(parts)}
+    coordinates = {to_inline_lua(coords)}
 
-    function split(source, delimiters)
-            local elements = {{}}
-            local pattern = '([^'..delimiters..']+)'
-            string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
-            return elements
-    end
-    function tablelength(T)
-        local count = 0
-        for _ in pairs(T) do count = count + 1 end
-        return count
-    end
     function copy_to_static_geometry(part_table)
-        numb_of_parts = tablelength(part_table)
-        for ii = 1,numb_of_parts,1 do
-            part_name = part_table[ii]
+        for _, part_name in pairs(part_table) do
             local localtreeobject = Ips.getActiveObjectsRoot();
             local localobject = localtreeobject:findFirstExactMatch(part_name);
             local localrigidObject = localobject:toRigidBodyObject()
@@ -408,7 +393,6 @@ def ergonomic_evaluation(parts, coords):
                 if i == 1 then
                     localpositionedObject = localrigidObject:getFirstChild()
                     localtoCopy = localpositionedObject:isPositionedTreeObject()
-
                 else
                     localpositionedObject = localpositionedObject:getNextSibling()
                     localtoCopy = localpositionedObject:isPositionedTreeObject()
@@ -417,14 +401,11 @@ def ergonomic_evaluation(parts, coords):
                     Ips.copyTreeObject(localpositionedObject, localgeometryRoot)
                 end
             end
-            --Ips.copyTreeObject
-            --positionedObject = object:toPositionedTreeObject()
             localrigidObject:setLocked(true)
         end
     end
 
-    geos_table = split(geos, ",")
-    copy_to_static_geometry(geos_table)
+    copy_to_static_geometry(geo_names)
 
     local treeobject = Ips.getActiveObjectsRoot();
 
@@ -434,7 +415,6 @@ def ergonomic_evaluation(parts, coords):
     local gp1=gp:toGripPointVisualization();
     local gp2=gp1:getGripPoint();
     local family = treeobject:findFirstExactMatch("Family 1");
-    print(family)
     local f1=family:toManikinFamilyVisualization();
     local f2=f1:getManikinFamily();
     f2:enableCollisionAvoidance();
@@ -442,36 +422,30 @@ def ergonomic_evaluation(parts, coords):
     measureTree = Ips.getMeasuresRoot()
     measure = measureTree:findFirstExactMatch("measure")
     measure_object = measure:toMeasure()
-    print(measure_object)
     local gp_geo = treeobject:findFirstExactMatch("gripGeo");
     gp_geo1 = gp_geo:toPositionedTreeObject()
-    --results = ""
-    local outputTable = {{}}
-    coord_array = split(coordinates, ",")
-    numb_of_coords = tablelength(coord_array)
-    for i = 1,numb_of_coords,1 do
-        coord = split(coord_array[i], " ")
-        local trans = Transf3(r, Vector3d(tonumber(coord[1]), tonumber(coord[2]), tonumber(coord[3])))
+
+    local ergoStandards = autopack.ipsNVecToTable(f2:getErgoStandards())
+    local outputTable = {{
+        ergoStandards = ergoStandards,
+        ergoValues = {{}},
+        gripDiffs = {{}},
+    }}
+    for coordIdx, coord in pairs(coordinates) do
+        local trans = Transf3(r, Vector3d(coord[1], coord[2], coord[3]))
         gp_geo1:setTControl(trans)
         Ips.moveTreeObject(gp, family);
         dist = measure_object:getValue()
-        if dist>0.1 then
-            f6_tostring = "99";
-            f8_tostring = "99";
-        else
-            local f4=f2:getErgoStandards();
-            local f5=f4[0];
-            local f7=f4[1];
-            local f6=f2:evaluateStaticErgo(f5, 0);
-            local f8=f2:evaluateStaticErgo(f7, 0);
-            f6_tostring = tostring(f6);
-            f8_tostring = tostring(f8);
+
+        local coordErgoValues = {{}}
+        for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
+            local ergoValue = f2:evaluateStaticErgo(ergoStandard, 0)
+            coordErgoValues[ergoStandardIdx] = ergoValue
         end
-        --results = results .. " " .. f6_tostring .. " " .. f8_tostring
-        table.insert(outputTable, f6_tostring .. " " .. f8_tostring)
+        outputTable.ergoValues[coordIdx] = coordErgoValues
+        outputTable.gripDiffs[coordIdx] = dist
     end
-    return table.concat(outputTable, " ")
-    --return results
+    return autopack.pack(outputTable)
     """
     return command
 

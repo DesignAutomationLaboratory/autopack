@@ -11,43 +11,51 @@ from autopack.ips_communication.ips_commands import (
 
 
 def create_ergonomic_cost_field(
-    ips, problem_setup, max_geometry_dist=0.2, min_point_dist=0.1
+    ips: IPSInstance,
+    problem_setup: ProblemSetup,
+    max_geometry_dist=0.2,
+    min_point_dist=0.1,
+    max_grip_diff=0.1,
 ):
+    ref_cost_field = problem_setup.cost_fields[0]
+    ref_costs = ref_cost_field.costs
+    ref_coords = ref_cost_field.coordinates
+    ref_coords_flat = ref_coords.reshape(-1, 3)
+
     geometries_to_consider = [
         geo.name for geo in problem_setup.harness_setup.geometries if geo.assembly
     ]
-    sparse_points = sparse_cost_field(problem_setup.cost_fields[0], min_point_dist)
+    sparse_points = sparse_cost_field(ref_cost_field, min_point_dist)
     points_close_to_surface = check_distance_of_points(
         ips, problem_setup.harness_setup, sparse_points, max_geometry_dist
     )
-    selected_coords = [
-        num for i, num in enumerate(sparse_points) if points_close_to_surface[i] == 1
-    ]
-    ergo_evaluations = ergonomic_evaluation(
-        ips, geometries_to_consider, selected_coords
+    eval_coords = np.array(
+        [num for i, num in enumerate(sparse_points) if points_close_to_surface[i] == 1]
     )
-    array1 = np.array(selected_coords)
-    REBA_vals = np.array(ergo_evaluations)[:, 0].reshape(-1, 1)
-    RULA_vals = np.array(ergo_evaluations)[:, 1].reshape(-1, 1)
-    REBA_res = np.hstack([array1, REBA_vals])
-    RULA_res = np.hstack([array1, RULA_vals])
-    wanted_coords = problem_setup.cost_fields[0].coordinates.reshape(-1, 3)
-    new_reba_values = interpolation(REBA_res, wanted_coords)[:, -1]
-    new_rula_values = interpolation(RULA_res, wanted_coords)[:, -1]
-    cost_field_shape = problem_setup.cost_fields[0].costs.shape
-    rula_costs = new_rula_values.reshape(cost_field_shape)
-    reba_costs = new_reba_values.reshape(cost_field_shape)
-    rula_cost_field = CostField(
-        name="RULA",
-        coordinates=problem_setup.cost_fields[0].coordinates,
-        costs=rula_costs,
-    )
-    reba_cost_field = CostField(
-        name="REBA",
-        coordinates=problem_setup.cost_fields[0].coordinates,
-        costs=reba_costs,
-    )
-    return rula_cost_field, reba_cost_field
+    ergo_eval = ergonomic_evaluation(ips, geometries_to_consider, eval_coords)
+    ergo_standards = ergo_eval["ergoStandards"]
+    ergo_values = np.array(ergo_eval["ergoValues"])
+    assert ergo_values.shape == (len(eval_coords), len(ergo_standards))
+    grip_distances = np.array(ergo_eval["gripDiffs"])
+    predicted_grip_diffs = interpolation(eval_coords, grip_distances, ref_coords_flat)
+    infeasible_mask = predicted_grip_diffs > max_grip_diff
+
+    cost_fields = []
+    for ergo_std_idx, ergo_std in enumerate(ergo_standards):
+        true_costs = ergo_values[:, ergo_std_idx]
+
+        predicted_costs = interpolation(eval_coords, true_costs, ref_coords_flat)
+        predicted_costs[infeasible_mask] = np.inf
+
+        cost_fields.append(
+            CostField(
+                name=ergo_std,
+                coordinates=ref_coords,
+                costs=predicted_costs.reshape(ref_costs.shape),
+            )
+        )
+
+    return cost_fields
 
 
 def sparse_cost_field(cost_field, min_point_dist):
@@ -62,19 +70,11 @@ def sparse_cost_field(cost_field, min_point_dist):
     return reshaped_array
 
 
-def interpolation(known_costs, new_cost_pos):
-    # known_costs = np array with known cost values size n*4 [[coord_x, coord_y, coord_z, cost],...]
-    # new_cost_pos = np array with new pos coordinates size m*3 [[coord_x, coord_y, coord_z],...]
-    # Splitting known_costs array into positions and costs
-    pos = known_costs[:, :3]  # positions
-    costs = known_costs[:, 3]  # costs
+def interpolation(known_x, known_y, predict_x):
     # Defining Kriging model
     sm = KRG(theta0=[1e-2] * 3, print_global=False)
-    # Training the model
-    sm.set_training_values(pos, costs)
+    sm.set_training_values(known_x, known_y)
     sm.train()
-    # Predicting the cost for the new positions
-    predicted_costs = sm.predict_values(new_cost_pos)
-    # Appending the predicted costs to new_cost_pos
-    new_cost_pos_with_costs = np.hstack((new_cost_pos, predicted_costs))
-    return new_cost_pos_with_costs
+    predict_y = sm.predict_values(predict_x)
+
+    return predict_y

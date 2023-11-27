@@ -138,12 +138,7 @@ def ergonomic_evaluation(ips_instance, parts, coords):
 
     time.sleep(1)
     command = lua_commands.ergonomic_evaluation(parts, coords)
-    results = ips_instance.call(command)
-    result_array = results.decode("utf-8").strip().replace('"', "").split()
-    output = []
-    for i in range(0, len(result_array) - 1, 2):
-        output.append([float(result_array[i]), float(result_array[i + 1])])
-    return output
+    return ips_instance.call_unpack(command)
 
 
 def cost_field_vis(ips_instance, cost_field):
