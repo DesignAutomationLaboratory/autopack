@@ -375,8 +375,6 @@ def ergonomic_evaluation(parts, coords):
 
     local treeobject = Ips.getActiveObjectsRoot();
 
-    r = Rot3(Vector3d(0, 0, 0),Vector3d(0, 0, 0),Vector3d(0, 0, 0))
-
     local gp = treeobject:findFirstExactMatch("gp1");
     local gp1=gp:toGripPointVisualization();
     local gp2=gp1:getGripPoint();
@@ -384,6 +382,7 @@ def ergonomic_evaluation(parts, coords):
     local f1=family:toManikinFamilyVisualization();
     local f2=f1:getManikinFamily();
     f2:enableCollisionAvoidance();
+    local representativeManikin = f2:getRepresentative();
 
     measureTree = Ips.getMeasuresRoot()
     measure = measureTree:findFirstExactMatch("measure")
@@ -398,14 +397,16 @@ def ergonomic_evaluation(parts, coords):
         gripDiffs = {{}},
     }}
     for coordIdx, coord in pairs(coordinates) do
-        local trans = Transf3(r, Vector3d(coord[1], coord[2], coord[3]))
-        gp_geo1:setTControl(trans)
+        gp_geo1:transform(coord[1], coord[2], coord[3], 0, 0, 0)
         Ips.moveTreeObject(gp, family);
+        f2:posePredict(10)
+        -- updateScreen needed for measure to work
+        Ips.updateScreen()
         dist = measure_object:getValue()
 
         local coordErgoValues = {{}}
         for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
-            local ergoValue = f2:evaluateStaticErgo(ergoStandard, 0)
+            local ergoValue = f2:evaluateStaticErgo(ergoStandard, representativeManikin)
             coordErgoValues[ergoStandardIdx] = ergoValue
         end
         outputTable.ergoValues[coordIdx] = coordErgoValues
