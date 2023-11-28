@@ -189,71 +189,37 @@ def route_harness(
     """
 
 
-def check_coord_distances(measure_dist, harness_setup, coords):
-    geos_to_consider = ""
-    for geo in harness_setup.geometries:
-        if geo.assembly:
-            geos_to_consider = geos_to_consider + geo.name + ","
-    if len(geos_to_consider) > 0:
-        geos_to_consider = geos_to_consider[:-1]
-    else:
-        return None
-    coords_str = ":".join(",".join(map(str, row)) for row in coords)
+def coord_distances_to_assembly_geo(harness_setup, coords):
+    geos_to_consider = [geo.name for geo in harness_setup.geometries if geo.assembly]
     command = f"""
-    measure_dist = {str(measure_dist)}
-    coords = "{coords_str}"
-    parts = "{geos_to_consider}"
-    function split(source, delimiters)
-        local elements = {{}}
-        local pattern = '([^'..delimiters..']+)'
-        string.gsub(source, pattern, function(value) elements[#elements + 1] =     value;  end);
-        return elements
-    end
-    function tablelength(T)
-    local count = 0
-    for _ in pairs(T) do count = count + 1 end
-    return count
-    end
+    coords = {to_inline_lua(coords)}
+    parts = {to_inline_lua(geos_to_consider)}
 
     local treeObject = Ips.getActiveObjectsRoot()
-    --sphere = Ips:createSphere(1.0, 1,1)
-    prim = PrimitiveShape.createSphere(0.001, 6,6)
+    prim = PrimitiveShape.createSphere(0.001, 6, 6)
     rigid_prim = Ips.createRigidBodyObject(prim)
-    geo2 = TreeObjectVector()
-    geo2:insert(0, rigid_prim)
+    primTree = TreeObjectVector()
+    primTree:insert(0, rigid_prim)
 
-    geo = TreeObjectVector()
-    parts_table = split(parts,',')
-    for i = 1,tablelength(parts_table),1 do
-        object = treeObject:findFirstMatch(parts_table[i])
-        geo:insert(0, object)
+    partsTree = TreeObjectVector()
+    for partIdx, part in pairs(parts) do
+        partsTree:insert(0, treeObject:findFirstMatch(part))
     end
 
+    r = Rot3(Vector3d(0, 0, 0), Vector3d(0, 0, 0), Vector3d(0, 0, 0))
+    measure = DistanceMeasure(1, partsTree, primTree)
 
-
-    r = Rot3(Vector3d(0, 0, 0),Vector3d(0, 0, 0),Vector3d(0, 0, 0))
-    measure = DistanceMeasure(1,geo, geo2)
-    measure_res = ""
-
-    coord_table = split(coords,':')
-    for i = 1,tablelength(coord_table),1 do
-        local_coords = split(coord_table[i],',')
-        local t = Vector3d(tonumber(local_coords[1]), tonumber(local_coords[2]), tonumber(local_coords[3]));
-        local trans = Transf3(r, t)
+    distances = {{}}
+    for coordIdx, coord in pairs(coords) do
+        local trans = Transf3(r, Vector3d(coord[1], coord[2], coord[3]))
         rigid_prim:setFrameInWorld(trans)
-        dist = measure:getDistance()
-        if dist<measure_dist-0.01 then
-            measure_res = measure_res .. " 1"
-        else
-            measure_res = measure_res .. " 0"
-        end
-
+        distances[coordIdx] = measure:getDistance()
     end
 
     Ips.deleteTreeObject(measure)
     Ips.deleteTreeObject(rigid_prim)
 
-    return measure_res
+    return autopack.pack(distances)
     """
 
     return command

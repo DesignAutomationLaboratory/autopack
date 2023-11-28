@@ -29,9 +29,7 @@ def create_ergonomic_cost_field(
     points_close_to_surface = check_distance_of_points(
         ips, problem_setup.harness_setup, sparse_points, max_geometry_dist
     )
-    eval_coords = np.array(
-        [num for i, num in enumerate(sparse_points) if points_close_to_surface[i] == 1]
-    )
+    eval_coords = sparse_points[points_close_to_surface]
     ergo_eval = ergonomic_evaluation(ips, geometries_to_consider, eval_coords)
     ergo_standards = ergo_eval["ergoStandards"]
     ergo_values = np.array(ergo_eval["ergoValues"])

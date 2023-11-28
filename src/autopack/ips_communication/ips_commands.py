@@ -120,14 +120,10 @@ def route_harness(
 
 
 def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_dist):
-    command = lua_commands.check_coord_distances(
-        max_geometry_dist, harness_setup, coords
-    )
-    # with open(r"C:\Users\antwi87\Documents\IPS\test_environment\filename.txt", "w") as file:
-    #    file.write(command)
-    str_checked = ips_instance.call(command)
-    numbers = [int(num) for num in str_checked.decode("utf-8").strip(' "\n').split()]
-    return numbers
+    command = lua_commands.coord_distances_to_assembly_geo(harness_setup, coords)
+    coord_distances_to_geo = np.array(ips_instance.call_unpack(command))
+
+    return coord_distances_to_geo <= max_geometry_dist
 
 
 def ergonomic_evaluation(ips_instance, parts, coords):
