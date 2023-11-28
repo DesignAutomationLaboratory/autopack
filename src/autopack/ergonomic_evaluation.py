@@ -36,7 +36,7 @@ def create_ergonomic_cost_field(
     assert ergo_values.shape == (len(eval_coords), len(ergo_standards))
     grip_distances = np.array(ergo_eval["gripDiffs"])
     bad_grip_mask = grip_distances > max_grip_diff
-    ergo_values[bad_grip_mask] = 99
+    ergo_values[bad_grip_mask] = 10
     # predicted_grip_diffs = interpolation(eval_coords, grip_distances, ref_coords_flat)
     # infeasible_mask = predicted_grip_diffs > max_grip_diff
 
