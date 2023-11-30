@@ -1,6 +1,7 @@
 import numpy as np
 from smt.surrogate_models import KRG
 
+from autopack import logger
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
 from autopack.ips_communication.ips_class import IPSInstance
 from autopack.ips_communication.ips_commands import (
@@ -17,6 +18,7 @@ def create_ergonomic_cost_field(
     min_point_dist=0.1,
     max_grip_diff=0.1,
 ):
+    logger.info("Creating ergonomy cost fields")
     ref_cost_field = problem_setup.cost_fields[0]
     ref_costs = ref_cost_field.costs
     ref_coords = ref_cost_field.coordinates
@@ -30,12 +32,16 @@ def create_ergonomic_cost_field(
         ips, problem_setup.harness_setup, sparse_points, max_geometry_dist
     )
     eval_coords = sparse_points[points_close_to_surface]
+    logger.info(f"Evaluating {eval_coords.shape[0]} points for ergonomy")
     ergo_eval = ergonomic_evaluation(ips, geometries_to_consider, eval_coords)
     ergo_standards = ergo_eval["ergoStandards"]
     ergo_values = np.array(ergo_eval["ergoValues"])
     assert ergo_values.shape == (len(eval_coords), len(ergo_standards))
     grip_distances = np.array(ergo_eval["gripDiffs"])
     bad_grip_mask = grip_distances > max_grip_diff
+    logger.info(
+        f"{bad_grip_mask.sum()} out of {eval_coords.shape[0]} points are unreachable"
+    )
     ergo_values[bad_grip_mask] = 10
     # predicted_grip_diffs = interpolation(eval_coords, grip_distances, ref_coords_flat)
     # infeasible_mask = predicted_grip_diffs > max_grip_diff
@@ -44,6 +50,7 @@ def create_ergonomic_cost_field(
     for ergo_std_idx, ergo_std in enumerate(ergo_standards):
         true_costs = ergo_values[:, ergo_std_idx]
 
+        logger.info(f"Interpolating {ergo_std} cost field")
         predicted_costs = interpolation(eval_coords, true_costs, ref_coords_flat)
         # predicted_costs[infeasible_mask] = np.inf
 

@@ -134,17 +134,14 @@ def click_run_optimization(event):
         user_json_str = f.read()
     harness_setup = HarnessSetup.model_validate_json(user_json_str)
     ips_instance = create_ips_instance()
-    print("test", 1)
     prob_setup = create_default_prob_setup(
         ips_instance, harness_setup, create_imma=imma_checkbox.value
     )
-    print("test", 2)
     gui_setup.problem_setup = prob_setup
     optimization_status.value = "Performing global optimization..."
     init_samples = max(2, int(computational_budget * 0.2))
     batches = max(1, int(math.sqrt(computational_budget * 0.8)))
     batch_size = max(2, int(math.sqrt(computational_budget * 0.8)))
-    print("test", 3)
     results = global_optimize_harness(
         ips_instance,
         prob_setup,
@@ -152,7 +149,6 @@ def click_run_optimization(event):
         batches=batches,
         batch_size=batch_size,
     )
-    print("test", 4)
     gui_setup.ips_instance = ips_instance
     gui_setup.result = results
     optimization_status.value = "Global optimization finished"

@@ -7,6 +7,8 @@ import msgpack
 import numpy as np
 import zmq
 
+from .. import logger
+
 LUALIB_PATH = pathlib.Path(__file__).parent / "lualib" / "?.lua"
 LOAD_LUALIB_SCRIPT = f"""
     Script.resetStateWhenFinished(false)
@@ -54,6 +56,7 @@ class IPSInstance:
 
     def start(self, verify_connection=True, load_libs=True):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
+        logger.info(f"Starting IPS on port {self.port}")
         self.process = subprocess.Popen(
             ["IPS.exe", "-port", self.port],
             cwd=self.ips_path,
@@ -70,6 +73,7 @@ class IPSInstance:
         if verify_connection:
             response = self.call('return "ping"')
             assert response == b"ping", f"IPS did not respond as expected: {response}"
+            logger.info(f"Connected to IPS {self.version} on port {self.port}")
             self.call(
                 f"print('Connection to Autopack on port {self.port} successfully verified!')"
             )
@@ -78,6 +82,7 @@ class IPSInstance:
             self.call(LOAD_LUALIB_SCRIPT)
 
     def call(self, command, strip=True):
+        logger.debug("Evaluating IPS script: \n{0}", command)
         self._wait_socket(zmq.POLLOUT)
         self.socket.send_string(command, flags=zmq.NOBLOCK)
 

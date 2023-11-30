@@ -1,6 +1,6 @@
+import os
 import time
 from typing import Any, Callable, Optional
-import os
 
 import numpy as np
 import torch
@@ -21,12 +21,14 @@ from botorch.utils.transforms import normalize, unnormalize
 from gpytorch.mlls.sum_marginal_log_likelihood import SumMarginalLogLikelihood
 from pydantic import BaseModel
 
+from . import logger
+
 CUDA_AVAILABLE = torch.cuda.is_available()
 
 _USE_CUDA = os.environ.get("AUTOPACK_USE_CUDA", "false").lower() == "true"
 USE_CUDA = CUDA_AVAILABLE and _USE_CUDA
 
-print("GPU-accelerated optimization:", USE_CUDA)
+logger.notice(f"GPU-accelerated optimization: {USE_CUDA}")
 
 tkwargs = {
     "dtype": torch.double,
@@ -73,6 +75,7 @@ def initialize_model(problem, train_x, train_obj, train_con):
 
 
 def evaluate_batch(problem, xs, meta):
+    logger.debug(f"Evaluating {meta}: {xs}")
     xs, objs, cons = problem.func(
         xs.cpu().numpy(),
         meta,
@@ -140,6 +143,7 @@ def optimize_qnehvi_and_get_candidates(
 
     if problem.ref_point is None:
         ref_point = auto_ref_point(train_obj, train_con)
+        logger.debug(f"Using auto reference point: {ref_point}")
         assert Hypervolume(ref_point).compute(train_obj) > 0, "Ref point is bad"
     else:
         # BoTorch assumes maximization, but the input ref point assumes
@@ -161,6 +165,7 @@ def optimize_qnehvi_and_get_candidates(
         objective=objective,
         constraints=constraints,
     )
+    logger.debug("Acquisition function built. Optimizing...")
     candidates, _ = optimize_acqf(
         acq_function=acq_func,
         bounds=standard_bounds,
@@ -186,6 +191,9 @@ def minimize(
     restarts=10,
     raw_samples=512,
 ):
+    logger.notice(
+        f"Optimizing in {batches} batches of {batch_size} samples each, with {init_samples} initial samples"
+    )
     problem.bounds = torch.tensor(problem.bounds, **tkwargs)
     problem.ref_point = (
         torch.tensor(problem.ref_point, **tkwargs)
@@ -259,6 +267,7 @@ def minimize(
         train_cons = torch.cat([train_cons, new_con])
 
         t1 = time.monotonic()
+        logger.notice(f"Batch {iteration + 1} finished after {t1 - t0:.2f}s")
 
     return OptimizationResult(
         x=train_xs.cpu().numpy(),
