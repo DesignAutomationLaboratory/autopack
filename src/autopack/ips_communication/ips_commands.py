@@ -16,10 +16,7 @@ from . import lua_commands
 
 
 def create_costfield(ips_instance, harness_setup):
-    command1 = lua_commands.setup_harness_routing(harness_setup)
-    command2 = lua_commands.setup_export_cost_field()
-    command = command1 + command2
-    response = ips_instance.eval(command)
+    response = ips_instance.call("autopack.getCostField", harness_setup)
 
     coords = np.array(response["coords"])
     costs = np.array(response["costs"])
@@ -34,7 +31,7 @@ def create_costfield(ips_instance, harness_setup):
 
 
 def load_scene(ips_instance, scene_file_path):
-    ips_instance.call("Ips.loadScene", scene_file_path)
+    return ips_instance.call("Ips.loadScene", scene_file_path)
 
 
 def route_harness_all_solutions(
@@ -43,27 +40,26 @@ def route_harness_all_solutions(
     cost_field: CostField,
     bundling_factor: float,
     harness_id: str,
-    solutions_to_capture: Optional[list[str]] = None,
+    solutions_to_capture: Optional[list[int]] = None,
     smooth_solutions: bool = False,
     build_discrete_solutions: bool = False,
     build_presmooth_solutions: bool = False,
     build_smooth_solutions: bool = False,
 ) -> list[Harness]:
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
-    command1 = lua_commands.setup_harness_routing(harness_setup)
-    command2 = lua_commands.route_harness(
-        cost_field=cost_field,
-        bundling_factor=bundling_factor,
-        case_id=harness_id,
-        solutions_to_capture=solutions_to_capture,
-        smooth_solutions=smooth_solutions,
-        build_discrete_solutions=build_discrete_solutions,
-        build_presmooth_solutions=build_presmooth_solutions,
-        build_smooth_solutions=build_smooth_solutions,
-    )
-    command = command1 + command2
 
-    response = ips.eval(command)
+    response = ips.call(
+        "autopack.routeHarnessSolutions",
+        harness_setup,
+        cost_field.costs,
+        bundling_factor,
+        harness_id,
+        solutions_to_capture or [],
+        smooth_solutions,
+        build_discrete_solutions,
+        build_presmooth_solutions,
+        build_smooth_solutions,
+    )
 
     def gen_harness_segments(segment_dict):
         for segment in segment_dict:
@@ -112,21 +108,21 @@ def route_harness(
 
 
 def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_dist):
-    command = lua_commands.coord_distances_to_assembly_geo(harness_setup, coords)
-    coord_distances_to_geo = np.array(ips_instance.eval(command))
+    geo_names = [geo.name for geo in harness_setup.geometries if geo.assembly]
+    coord_distances_to_geo = np.array(
+        ips_instance.call("autopack.coordDistancesToGeo", coords, geo_names)
+    )
 
     return coord_distances_to_geo <= max_geometry_dist
 
 
 def ergonomic_evaluation(ips_instance, parts, coords):
-    # ips_instance.start()
     ergo_path = pathlib.Path(__file__).parent / "ErgonomicEvaluation.ips"
     load_scene(ips_instance, str(ergo_path.resolve()))
     import time
 
     time.sleep(1)
-    command = lua_commands.ergonomic_evaluation(parts, coords)
-    return ips_instance.eval(command)
+    return ips_instance.call("autopack.evalErgo", parts, coords)
 
 
 def cost_field_vis(ips_instance, cost_field):

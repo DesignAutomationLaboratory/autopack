@@ -7,6 +7,7 @@ from typing import Any
 import msgpack
 import numpy as np
 import zmq
+from pydantic import BaseModel
 
 from .. import __version__, logger
 
@@ -59,6 +60,8 @@ def encode_hook(obj, chain=None):
     """
     if isinstance(obj, np.ndarray):
         return obj.tolist()
+    elif isinstance(obj, BaseModel):
+        return obj.model_dump()
     else:
         return obj if chain is None else chain(obj)
 
