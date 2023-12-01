@@ -50,6 +50,17 @@ local function range(from, to)
   return arr
 end
 
+local function loadAndFitScene(scenePath)
+  print("Loading scene " .. scenePath)
+  local loaded = Ips.loadScene(scenePath)
+  -- Fitting the scene helps with two things:
+  -- 1. The scene is loaded in the background, and this makes sure it's
+  --    done before we continue
+  -- 2. It makes it easier to see what's going on
+  Ips.fitScene()
+  return loaded
+end
+
 local function createHarnessRouter(harnessSetup)
   local cableSim = CableSimulation()
   local harnessRouter = HarnessRouter()
@@ -307,6 +318,7 @@ module.ips3VecToTable = ips3VecToTable
 module.ipsNVecToTable = ipsNVecToTable
 module.range = range
 
+module.loadAndFitScene = loadAndFitScene
 module.getCostField = getCostField
 module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts
 module.routeHarnessSolutions = routeHarnessSolutions

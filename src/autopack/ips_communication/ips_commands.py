@@ -31,7 +31,7 @@ def create_costfield(ips_instance, harness_setup):
 
 
 def load_scene(ips_instance, scene_file_path):
-    return ips_instance.call("Ips.loadScene", scene_file_path)
+    return ips_instance.call("autopack.loadAndFitScene", scene_file_path)
 
 
 def route_harness_all_solutions(
@@ -119,9 +119,6 @@ def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_d
 def ergonomic_evaluation(ips_instance, parts, coords):
     ergo_path = pathlib.Path(__file__).parent / "ErgonomicEvaluation.ips"
     load_scene(ips_instance, str(ergo_path.resolve()))
-    import time
-
-    time.sleep(1)
     return ips_instance.call("autopack.evalErgo", parts, coords)
 
 
