@@ -27,27 +27,24 @@ local function _type(obj)
   end
 end
 
-local function ips3VecToTable(vec)
+local function vectorToTable(vector)
   local table = {}
-
-  for i = 1, 3 do
-    -- IPS vectors are 0-indexed
-    table[i] = vec[i - 1]
+  local vecType = _type(vector)
+  local size
+  if vecType == "Vector3d" or vecType == "Vector3i" then
+    -- Vector3[id] does not have a size() method
+    size = 3
+  else
+    size = vector:size()
   end
 
-  return table
-end
-
-local function ipsNVecToTable(vector)
-  local table = {}
-
-  for i = 1, vector:size() do
+  for i = 1, size do
     -- IPS vectors are 0-indexed
     local element = vector[i - 1]
 
-    -- If the element is a userdata, assume it's a 3-vector
+    -- If the element is a userdata, assume it's a vector for now
     if type(element) == "userdata" then
-      table[i] = ips3VecToTable(element)
+      table[i] = vectorToTable(element)
     else
       table[i] = element
     end
@@ -178,17 +175,17 @@ local function routeHarnessSolutions(harnessSetup, costs, bundlingFactor, namePr
     for segIdx = 0, numSegments - 1 do
       local segment = {
         radius = harnessRouter:getSegmentRadius(solIdx, segIdx),
-        cables = ipsNVecToTable(harnessRouter:getCablesInSegment(solIdx, segIdx)),
-        discreteNodes = ipsNVecToTable(harnessRouter:getDiscreteSegment(solIdx, segIdx, false)),
-        presmoothCoords = ipsNVecToTable(harnessRouter:getPresmoothSegment(solIdx, segIdx, false)),
+        cables = vectorToTable(harnessRouter:getCablesInSegment(solIdx, segIdx)),
+        discreteNodes = vectorToTable(harnessRouter:getDiscreteSegment(solIdx, segIdx, false)),
+        presmoothCoords = vectorToTable(harnessRouter:getPresmoothSegment(solIdx, segIdx, false)),
         smoothCoords = nil,
         clipPositions = nil,
       }
 
       if smoothSolutions then
         -- These are only available if we have run the smoothing step
-        segment.smoothCoords = ipsNVecToTable(harnessRouter:getSmoothSegment(solIdx, segIdx, false))
-        segment.clipPositions = ipsNVecToTable(harnessRouter:getClipPositions(solIdx, segIdx))
+        segment.smoothCoords = vectorToTable(harnessRouter:getSmoothSegment(solIdx, segIdx, false))
+        segment.clipPositions = vectorToTable(harnessRouter:getClipPositions(solIdx, segIdx))
       end
 
       segments[segIdx + 1] = segment
@@ -302,7 +299,7 @@ local function evalErgo(geoNames, coords)
   local gp_geo = treeobject:findFirstExactMatch("gripGeo")
   local gp_geo1 = gp_geo:toPositionedTreeObject()
 
-  local ergoStandards = ipsNVecToTable(f2:getErgoStandards())
+  local ergoStandards = vectorToTable(f2:getErgoStandards())
   local outputTable = {
     ergoStandards = ergoStandards,
     ergoValues = {},
@@ -330,8 +327,7 @@ end
 module.type = _type
 module.pack = pack
 module.unpack = unpack
-module.ips3VecToTable = ips3VecToTable
-module.ipsNVecToTable = ipsNVecToTable
+module.vectorToTable = vectorToTable
 module.range = range
 
 module.loadAndFitScene = loadAndFitScene
