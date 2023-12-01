@@ -66,11 +66,11 @@ def encode_hook(obj, chain=None):
         return obj if chain is None else chain(obj)
 
 
-def pack(payload):
+def pack(payload: Any) -> bytes:
     return base64.b64encode(msgpack.packb(payload, default=encode_hook))
 
 
-def unpack(payload):
+def unpack(payload: bytes) -> Any:
     return msgpack.unpackb(base64.b64decode(payload))
 
 
