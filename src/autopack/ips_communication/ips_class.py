@@ -100,14 +100,16 @@ class IPSInstance:
         context = zmq.Context()
         self.socket = context.socket(zmq.REQ)
         self.socket.connect(f"tcp://127.0.0.1:{self.port}")
-        self.version = self.call(
+        self.version = self.eval(
             f'print("Connected to Autopack v{__version__} on port {self.port}"); return Ips.getIPSVersion()'
         )
         logger.info(f"Connected to IPS {self.version} on port {self.port}")
 
-    def eval(self, command) -> bytes:
+    def _eval(self, command: str) -> bytes:
         """
-        Evaluate a raw lua command in IPS and return the result.
+        Evaluates a raw lua script in IPS and returns the raw result.
+
+        You should probably not use this directly, use `eval` instead.
         """
         logger.debug("Evaluating IPS script: \n{0}", command)
         self._wait_socket(zmq.POLLOUT)
@@ -118,16 +120,16 @@ class IPSInstance:
 
         return msg.strip(b"\n").strip(b'"')
 
-    def call(self, command) -> Any:
+    def eval(self, command: str) -> Any:
         """
-        Runs a lua script in IPS, packs the result and returns it as a
+        Evaluates a lua script in IPS, packs the result and returns it as a
         Python object.
 
         Raises an `IPSError` if the script or the packing fails.
         """
         cmd = CALL_TEMPLATE % command
 
-        raw_response = self.eval(cmd)
+        raw_response = self._eval(cmd)
         response = unpack(raw_response)
 
         if response["success"]:
