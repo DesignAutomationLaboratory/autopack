@@ -141,6 +141,21 @@ class IPSInstance:
 
             raise IPSError(f"IPS call failed: {message}\n{traceback}")
 
+    def call(self, func_name: str, *args: Any) -> Any:
+        """
+        Calls a function in IPS with the given arguments and returns the
+        result.
+
+        Raises an `IPSError` if the function call fails.
+        """
+        packed_args = pack(args)
+        command = f"""
+            local funcArgs = autopack.unpack("{packed_args.decode()}")
+            return {func_name}(unpack(funcArgs))
+        """
+
+        return self.eval(command)
+
     def kill(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
 
