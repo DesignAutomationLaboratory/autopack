@@ -87,7 +87,7 @@ def setup_export_cost_field():
             end
         end
     end
-    return autopack.pack({coords=coords, costs=costs})
+    return {coords=coords, costs=costs}
     """
     return command
 
@@ -185,7 +185,7 @@ def route_harness(
         }}
     end
 
-    return autopack.pack(solutions)
+    return solutions
     """
 
 
@@ -219,7 +219,7 @@ def coord_distances_to_assembly_geo(harness_setup, coords):
     Ips.deleteTreeObject(measure)
     Ips.deleteTreeObject(rigid_prim)
 
-    return autopack.pack(distances)
+    return distances
     """
 
     return command
@@ -412,7 +412,7 @@ def ergonomic_evaluation(parts, coords):
         outputTable.ergoValues[coordIdx] = coordErgoValues
         outputTable.gripDiffs[coordIdx] = dist
     end
-    return autopack.pack(outputTable)
+    return outputTable
     """
     return command
 

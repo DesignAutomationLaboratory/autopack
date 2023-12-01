@@ -2,18 +2,45 @@ import base64
 import os
 import pathlib
 import subprocess
+from typing import Any
 
 import msgpack
 import numpy as np
 import zmq
 
-from .. import logger
+from .. import __version__, logger
 
 LUALIB_PATH = pathlib.Path(__file__).parent / "lualib" / "?.lua"
-LOAD_LUALIB_SCRIPT = f"""
-    Script.resetStateWhenFinished(false)
+CALL_TEMPLATE = f"""
     package.path = package.path .. ';{LUALIB_PATH.absolute().as_posix()}'
-    _G.autopack = require('autopack')
+    local autopack = require("autopack")
+
+    local function runFunc()
+        %s
+    end
+
+    local function packFunc(success, result)
+        return autopack.pack({{
+            success = success,
+            result = result,
+        }})
+    end
+
+    local function errHandler(err)
+        return {{
+            error = err,
+            traceback = debug.traceback(),
+        }}
+    end
+
+    local runSuccess, runResult = xpcall(runFunc, errHandler)
+    local packSuccess, packResult = xpcall(packFunc, errHandler, runSuccess, runResult)
+
+    if packSuccess then
+        return packResult
+    else
+        return packFunc(packSuccess, packResult)
+    end
 """
 
 
@@ -44,21 +71,25 @@ def unpack(payload):
     return msgpack.unpackb(base64.b64decode(payload))
 
 
+class IPSError(RuntimeError):
+    pass
+
+
 class IPSInstance:
-    def __init__(self, ips_path=None, port="24768"):
+    def __init__(self, ips_path=None, port=24768):
         if ips_path is None:
             ips_path = get_ips_path()
         self.ips_path = ips_path
         self.port = port
         self.process = None
         self.socket = None
-        self._version = None
+        self.version = None
 
-    def start(self, verify_connection=True, load_libs=True):
+    def start(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
-        logger.info(f"Starting IPS on port {self.port}")
+        logger.info(f"Starting IPS at {self.ips_path}")
         self.process = subprocess.Popen(
-            ["IPS.exe", "-port", self.port],
+            ["IPS.exe", "-port", str(self.port)],
             cwd=self.ips_path,
             env={
                 **os.environ,
@@ -68,20 +99,16 @@ class IPSInstance:
         )
         context = zmq.Context()
         self.socket = context.socket(zmq.REQ)
-        self.socket.connect("tcp://127.0.0.1:" + self.port)
+        self.socket.connect(f"tcp://127.0.0.1:{self.port}")
+        self.version = self.call(
+            f'print("Connected to Autopack v{__version__} on port {self.port}"); return Ips.getIPSVersion()'
+        )
+        logger.info(f"Connected to IPS {self.version} on port {self.port}")
 
-        if verify_connection:
-            response = self.call('return "ping"')
-            assert response == b"ping", f"IPS did not respond as expected: {response}"
-            logger.info(f"Connected to IPS {self.version} on port {self.port}")
-            self.call(
-                f"print('Connection to Autopack on port {self.port} successfully verified!')"
-            )
-
-        if load_libs:
-            self.call(LOAD_LUALIB_SCRIPT)
-
-    def call(self, command, strip=True):
+    def eval(self, command) -> bytes:
+        """
+        Evaluate a raw lua command in IPS and return the result.
+        """
         logger.debug("Evaluating IPS script: \n{0}", command)
         self._wait_socket(zmq.POLLOUT)
         self.socket.send_string(command, flags=zmq.NOBLOCK)
@@ -89,14 +116,28 @@ class IPSInstance:
         self._wait_socket(zmq.POLLIN)
         msg = self.socket.recv(flags=zmq.NOBLOCK)
 
-        if strip:
-            return msg.strip(b"\n").strip(b'"')
-        else:
-            return msg
+        return msg.strip(b"\n").strip(b'"')
 
-    def call_unpack(self, command):
-        response = self.call(command, strip=True)
-        return unpack(response)
+    def call(self, command) -> Any:
+        """
+        Runs a lua script in IPS, packs the result and returns it as a
+        Python object.
+
+        Raises an `IPSError` if the script or the packing fails.
+        """
+        cmd = CALL_TEMPLATE % command
+
+        raw_response = self.eval(cmd)
+        response = unpack(raw_response)
+
+        if response["success"]:
+            # void functions result in a `nil` that will not be packed
+            return response.get("result", None)
+        else:
+            message = response["result"]["error"]
+            traceback = response["result"]["traceback"]
+
+            raise IPSError(f"IPS call failed: {message}\n{traceback}")
 
     def kill(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
@@ -108,11 +149,3 @@ class IPSInstance:
                 raise RuntimeError("Process died unexpectedly")
             if self.socket.poll(timeout, flags) != 0:
                 return
-
-    @property
-    def version(self):
-        if self._version is None:
-            self._version = self.call("return Ips.getIPSVersion()").decode(
-                "unicode_escape"
-            )
-        return self._version

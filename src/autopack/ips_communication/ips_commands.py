@@ -19,7 +19,7 @@ def create_costfield(ips_instance, harness_setup):
     command1 = lua_commands.setup_harness_routing(harness_setup)
     command2 = lua_commands.setup_export_cost_field()
     command = command1 + command2
-    response = ips_instance.call_unpack(command)
+    response = ips_instance.call(command)
 
     coords = np.array(response["coords"])
     costs = np.array(response["costs"])
@@ -71,7 +71,7 @@ def route_harness_all_solutions(
     )
     command = command1 + command2
 
-    response = ips.call_unpack(command)
+    response = ips.call(command)
 
     def gen_harness_segments(segment_dict):
         for segment in segment_dict:
@@ -121,7 +121,7 @@ def route_harness(
 
 def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_dist):
     command = lua_commands.coord_distances_to_assembly_geo(harness_setup, coords)
-    coord_distances_to_geo = np.array(ips_instance.call_unpack(command))
+    coord_distances_to_geo = np.array(ips_instance.call(command))
 
     return coord_distances_to_geo <= max_geometry_dist
 
@@ -134,7 +134,7 @@ def ergonomic_evaluation(ips_instance, parts, coords):
 
     time.sleep(1)
     command = lua_commands.ergonomic_evaluation(parts, coords)
-    return ips_instance.call_unpack(command)
+    return ips_instance.call(command)
 
 
 def cost_field_vis(ips_instance, cost_field):
