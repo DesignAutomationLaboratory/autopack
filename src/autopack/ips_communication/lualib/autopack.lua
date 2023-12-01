@@ -3,6 +3,8 @@ local module = {}
 local base64 = require("base64")
 local inspect = require("inspect")
 local msgpack = require("MessagePack")
+-- IPS seems to use SLB (https://code.google.com/archive/p/slb/)
+local slb = require("SLB")
 
 local function pack(data)
   return base64.encode(msgpack.pack(data))
@@ -10,6 +12,19 @@ end
 
 local function unpack(string)
   return msgpack.unpack(base64.decode(string))
+end
+
+local function _type(obj)
+  -- Returns the type of `obj` as a string.
+  -- Unlike `type`, this function also works for IPS userdata.
+  local luaType = type(obj)
+  if luaType == "userdata" then
+    -- IPS objects are userdata without a metatable. Try to look up
+    -- using SLB but fall back to "userdata"
+    return slb.type(obj) or "userdata"
+  else
+    return luaType
+  end
 end
 
 local function ips3VecToTable(vec)
@@ -312,6 +327,7 @@ local function evalErgo(geoNames, coords)
   return outputTable
 end
 
+module.type = _type
 module.pack = pack
 module.unpack = unpack
 module.ips3VecToTable = ips3VecToTable
