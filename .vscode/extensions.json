@@ -3,6 +3,7 @@
     "charliermarsh.ruff",
     "ms-python.black-formatter",
     "ms-python.python",
+    "sumneko.lua",
   ],
   "unwantedRecommendations": [
     "ms-python.flake8",
