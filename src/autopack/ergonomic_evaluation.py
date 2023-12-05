@@ -28,6 +28,7 @@ def create_ergonomic_cost_field(
         geo.name for geo in problem_setup.harness_setup.geometries if geo.assembly
     ]
     sparse_points = sparse_cost_field(ref_cost_field, min_point_dist)
+    logger.info(f"Checking {sparse_points.shape[0]} points for distance to geometry")
     points_close_to_surface = check_distance_of_points(
         ips, problem_setup.harness_setup, sparse_points, max_geometry_dist
     )
@@ -39,7 +40,7 @@ def create_ergonomic_cost_field(
     assert ergo_values.shape == (len(eval_coords), len(ergo_standards))
     grip_distances = np.array(ergo_eval["gripDiffs"])
     bad_grip_mask = grip_distances > max_grip_diff
-    logger.info(
+    logger.notice(
         f"{bad_grip_mask.sum()} out of {eval_coords.shape[0]} points are unreachable"
     )
     ergo_values[bad_grip_mask] = 10
