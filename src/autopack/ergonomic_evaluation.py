@@ -1,5 +1,5 @@
 import numpy as np
-from smt.surrogate_models import KRG
+from smt import surrogate_models
 
 from autopack import logger
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
@@ -78,8 +78,7 @@ def sparse_cost_field(cost_field, min_point_dist):
 
 
 def interpolation(known_x, known_y, predict_x):
-    # Defining Kriging model
-    sm = KRG(theta0=[1e-2] * 3, print_global=False)
+    sm = surrogate_models.IDW(p=2, print_global=False)
     sm.set_training_values(known_x, known_y)
     sm.train()
     predict_y = sm.predict_values(predict_x)
