@@ -225,7 +225,7 @@ def batch_voi(
     interest (xs, objs, cons)
     """
     objs = (
-        batch_ds[["bundling_cost", "total_cost", "num_estimated_clips"]]
+        batch_ds[["harness_volume", "num_estimated_clips"]]
         .stack(combined=["case", "ips_solution"])
         .to_stacked_array(new_dim="obj", sample_dims=["combined"], name="objectives")
         .dropna("combined")
@@ -252,7 +252,7 @@ def batch_voi(
 def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
     num_cost_fields = len(problem_setup.cost_fields)
     num_dims = num_cost_fields + 1
-    num_objectives = 2 * num_cost_fields + 1
+    num_objectives = 2
     weights_bounds = np.array([[0.001, 1.0]] * num_cost_fields)
     bundling_factor_bounds = np.array([[0.05, 0.9]])
     bounds = np.array([*weights_bounds, *bundling_factor_bounds])
