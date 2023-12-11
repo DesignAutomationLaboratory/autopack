@@ -15,9 +15,9 @@ def version(c):
 
 
 @task
-def conda_run(c: Context, cmd, env_name=DEFAULT_ENV_NAME) -> Result:
+def conda_run(c: Context, cmd, env_name=DEFAULT_ENV_NAME, **kwargs) -> Result:
     with c.prefix(f"conda activate {env_name}"):
-        return c.run(cmd)
+        return c.run(cmd, **kwargs)
 
 
 @task
