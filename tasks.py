@@ -8,7 +8,9 @@ DEFAULT_ENV_NAME = "autopack"
 @task
 def version(c):
     version_response = conda_run(c, "hatch version")
-    return version_response.stdout.strip()
+    ver = version_response.stdout.strip()
+    assert ver != "", "Could not determine version"
+    return ver
 
 
 @task
