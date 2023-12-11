@@ -39,10 +39,10 @@ jobs:
       if: ${{ github.event_name == 'release' }}
       with:
         files: |
-          dist/archive/*.7z
+          dist/*.7z
     - name: Upload build artifact
       uses: actions/upload-artifact@v3
       if: ${{ github.event_name != 'release' }}
       with:
         name: bundle
-        path: dist/archive/*.7z
+        path: dist/*.7z
