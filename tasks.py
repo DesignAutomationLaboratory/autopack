@@ -1,6 +1,7 @@
 import pathlib
 
-from invoke import task
+from invoke import Context, task
+from invoke.runners import Result
 
 DEFAULT_ENV_NAME = "autopack"
 
@@ -14,13 +15,13 @@ def version(c):
 
 
 @task
-def conda_run(c, cmd, env_name=DEFAULT_ENV_NAME):
+def conda_run(c: Context, cmd, env_name=DEFAULT_ENV_NAME) -> Result:
     with c.prefix(f"conda activate {env_name}"):
         return c.run(cmd)
 
 
 @task
-def env(c, env_name=DEFAULT_ENV_NAME):
+def env(c: Context, env_name=DEFAULT_ENV_NAME):
     """
     Installs the Python development environment.
     """
@@ -31,12 +32,12 @@ def env(c, env_name=DEFAULT_ENV_NAME):
 
 
 @task
-def lock(c):
+def lock(c: Context):
     c.run("conda lock -f pyproject.toml --lockfile conda-lock.yml")
 
 
 @task
-def build(c, env_name=DEFAULT_ENV_NAME):
+def build(c: Context, env_name=DEFAULT_ENV_NAME):
     ver = version(c)
 
     # TODO: build docs so they can be included in the bundle by
@@ -69,5 +70,5 @@ def build(c, env_name=DEFAULT_ENV_NAME):
 
 
 @task
-def tests(c, env_name=DEFAULT_ENV_NAME):
+def tests(c: Context, env_name=DEFAULT_ENV_NAME):
     conda_run(c, "pytest -s -vvv --color=yes", env_name=env_name)
