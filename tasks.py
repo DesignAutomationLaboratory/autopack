@@ -48,7 +48,7 @@ def build(c, env_name=DEFAULT_ENV_NAME):
     # file using the built-in Windows unzipper, which doesn't support
     # long file names.
 
-    archive_path = pathlib.Path(f"dist/archive/autopack-{ver}.7z").resolve()
+    archive_path = pathlib.Path(f"dist/archive/autopack-v{ver}.7z").resolve()
     archive_path.unlink(missing_ok=True)
 
     with c.cd(bundle_path):
