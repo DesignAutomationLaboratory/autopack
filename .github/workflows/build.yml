@@ -34,8 +34,15 @@ jobs:
       run: invoke env
     - name: Build application bundle
       run: invoke build
+    - name: Upload to release
+      uses: softprops/action-gh-release@v1
+      if: ${{ github.event_name == 'release' }}
+      with:
+        files: |
+          dist/archive/*.7z
     - name: Upload build artifact
       uses: actions/upload-artifact@v3
+      if: ${{ github.event_name != 'release' }}
       with:
         name: bundle
         path: dist/archive/*.7z
