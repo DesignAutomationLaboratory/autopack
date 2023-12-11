@@ -1,16 +1,28 @@
 import pathlib
+import re
 
 from invoke import Context, task
 from invoke.runners import Result
+from packaging.version import VERSION_PATTERN, Version
 
 DEFAULT_ENV_NAME = "autopack"
 
 
 @task
-def version(c):
-    version_response = conda_run(c, "hatch version")
-    ver = version_response.stdout.strip()
-    assert ver != "", "Could not determine version"
+def version(c: Context):
+    """
+    Uses `hatch` to determine the version of the package from source.
+    """
+
+    # Why not use importlib.metadata.version? Because it does not
+    # reflect the version of the source but rather of the installed
+    # package.
+
+    result = conda_run(c, "hatch version", hide=True)
+    match = re.search(VERSION_PATTERN, result.stdout + result.stderr, re.VERBOSE)
+    assert match is not None, "Could not determine version"
+    ver = Version(match[0])
+    print(ver)
     return ver
 
 
