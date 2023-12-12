@@ -253,7 +253,7 @@ local function coordDistancesToGeo(coords, geoNames)
   return distances
 end
 
-local function evalErgo(geoNames, coords)
+local function evalErgo(geoNames, manikinFamilyName, coords)
   local function copy_to_static_geometry(part_table)
     for _, part_name in pairs(part_table) do
       local localtreeobject = Ips.getActiveObjectsRoot()

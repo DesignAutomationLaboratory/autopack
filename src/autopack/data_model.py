@@ -33,6 +33,7 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
         0.01875,
         0.075,
     )  # min/max distance between branch and clip
+    ergo_manikin_family: Optional[str] = None
 
 
 class CostField(BaseModel, arbitrary_types_allowed=True):

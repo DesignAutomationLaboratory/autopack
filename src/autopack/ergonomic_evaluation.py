@@ -4,11 +4,7 @@ from smt import surrogate_models
 from autopack import logger
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.ips_communication.ips_commands import (
-    check_distance_of_points,
-    ergonomic_evaluation,
-    load_scene,
-)
+from autopack.ips_communication.ips_commands import check_distance_of_points
 
 
 def create_ergonomic_cost_field(
@@ -34,7 +30,10 @@ def create_ergonomic_cost_field(
     )
     eval_coords = sparse_points[points_close_to_surface]
     logger.info(f"Evaluating {eval_coords.shape[0]} points for ergonomy")
-    ergo_eval = ergonomic_evaluation(ips, geometries_to_consider, eval_coords)
+    family_name = problem_setup.harness_setup.ergo_manikin_family
+    ergo_eval = ips.call(
+        "autopack.evalErgo", geometries_to_consider, family_name, eval_coords
+    )
     ergo_standards = ergo_eval["ergoStandards"]
     ergo_values = np.array(ergo_eval["ergoValues"])
     assert ergo_values.shape == (len(eval_coords), len(ergo_standards))

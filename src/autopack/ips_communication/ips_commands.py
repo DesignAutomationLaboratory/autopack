@@ -1,4 +1,3 @@
-import pathlib
 from typing import Optional
 
 import numpy as np
@@ -114,12 +113,6 @@ def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_d
     )
 
     return coord_distances_to_geo <= max_geometry_dist
-
-
-def ergonomic_evaluation(ips_instance, parts, coords):
-    ergo_path = pathlib.Path(__file__).parent / "ErgonomicEvaluation.ips"
-    load_scene(ips_instance, str(ergo_path.resolve()))
-    return ips_instance.call("autopack.evalErgo", parts, coords)
 
 
 def cost_field_vis(ips_instance, cost_field):

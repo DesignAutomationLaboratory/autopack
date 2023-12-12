@@ -45,6 +45,7 @@ def simple_plate_harness_setup(test_scenes_path):
         scene_path=scene_path,
         geometries=[part1, part2, part3],
         cables=[cable1, cable2, cable3],
+        ergo_manikin_family="Family 1",
     )
 
 
