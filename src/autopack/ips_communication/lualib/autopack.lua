@@ -73,6 +73,21 @@ local function loadAndFitScene(scenePath)
   return loaded
 end
 
+local function clearScene()
+  local roots = {
+    Ips.getActiveObjectsRoot(),
+    Ips.getGeometryRoot(),
+    Ips.getMeasuresRoot(),
+    Ips.getMechanismRoot(),
+  }
+  for _, root in pairs(roots) do
+    while root:getNumChildren() > 0 do
+      local child = root:getLastChild()
+      Ips.deleteTreeObject(child)
+    end
+  end
+end
+
 local function createHarnessRouter(harnessSetup)
   local cableSim = CableSimulation()
   local harnessRouter = HarnessRouter()
@@ -331,6 +346,7 @@ module.vectorToTable = vectorToTable
 module.range = range
 
 module.loadAndFitScene = loadAndFitScene
+module.clearScene = clearScene
 module.getCostField = getCostField
 module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts
 module.routeHarnessSolutions = routeHarnessSolutions
