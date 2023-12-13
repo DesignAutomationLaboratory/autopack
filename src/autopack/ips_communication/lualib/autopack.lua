@@ -6,11 +6,11 @@ local msgpack = require("MessagePack")
 -- IPS seems to use SLB (https://code.google.com/archive/p/slb/)
 local slb = require("SLB")
 
-local function pack(data)
+local function _pack(data)
   return base64.encode(msgpack.pack(data))
 end
 
-local function unpack(string)
+local function _unpack(string)
   return msgpack.unpack(base64.decode(string))
 end
 
@@ -340,8 +340,8 @@ local function evalErgo(geoNames, manikinFamilyName, coords)
 end
 
 module.type = _type
-module.pack = pack
-module.unpack = unpack
+module.pack = _pack
+module.unpack = _unpack
 module.vectorToTable = vectorToTable
 module.range = range
 
