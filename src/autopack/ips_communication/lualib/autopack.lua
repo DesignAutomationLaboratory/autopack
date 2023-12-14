@@ -27,6 +27,14 @@ local function _type(obj)
   end
 end
 
+local function pause(msg)
+  -- Pauses the script until the user presses enter.
+  local answer = Ips.question((msg or "") .. "\n\nContinue?")
+  if answer == false then
+    error("Script aborted")
+  end
+end
+
 local function vectorToTable(vector)
   local table = {}
   local vecType = _type(vector)
