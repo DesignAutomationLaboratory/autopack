@@ -96,7 +96,7 @@ class IPSInstance:
             cwd=self.ips_path,
             env={
                 **os.environ,
-                "RLM_LICENSE_NAMES": "ipsm01,ipsm02,ipsm04,ipsm12,ipsm05,ipsm28",
+                "RLM_LICENSE_NAMES": "ipsm01,ipsm02,ipsm03,ipsm04,ipsm12,ipsm05,ipsm28",
             },
             shell=True,
         )
