@@ -289,34 +289,35 @@ local function getManikinCtrlPoint(familyViz, ctrlPointName)
   return familyViz:findFirstExactMatch(ctrlPointName):toControlPointVisualization():getControlPoint()
 end
 
-local function evalErgo(geoNames, manikinFamilyName, coords)
-  local function copy_to_static_geometry(part_table)
-    for _, part_name in pairs(part_table) do
-      local localtreeobject = Ips.getActiveObjectsRoot()
-      local localobject = localtreeobject:findFirstExactMatch(part_name)
-      local localrigidObject = localobject:toRigidBodyObject()
-      localrigidObject:setLocked(false)
-      local localnum_of_childs = localrigidObject:getNumChildren()
-      local localgeometryRoot = Ips.getGeometryRoot()
-      local localpositionedObject
-      local localtoCopy
-      for i = 1, localnum_of_childs do
-        if i == 1 then
-          localpositionedObject = localrigidObject:getFirstChild()
-          localtoCopy = localpositionedObject:isPositionedTreeObject()
-        else
-          localpositionedObject = localpositionedObject:getNextSibling()
-          localtoCopy = localpositionedObject:isPositionedTreeObject()
-        end
-        if localtoCopy then
-          Ips.copyTreeObject(localpositionedObject, localgeometryRoot)
-        end
+local function copyToStaticGeometry(activeObjNames)
+  -- Copies the rigid bodies with the given names to the static geometry
+  -- root
+  local activeObjRoot = Ips.getActiveObjectsRoot()
+  local geoRoot = Ips.getGeometryRoot()
+  for _, activeObjName in pairs(activeObjNames) do
+    local rigidBody = activeObjRoot:findFirstExactMatch(activeObjName):toRigidBodyObject()
+    rigidBody:setLocked(false)
+    local numChildren = rigidBody:getNumChildren()
+    local treeObj
+    local shouldBeCopied
+    for i = 1, numChildren do
+      if i == 1 then
+        treeObj = rigidBody:getFirstChild()
+        shouldBeCopied = treeObj:isPositionedTreeObject()
+      else
+        treeObj = treeObj:getNextSibling()
+        shouldBeCopied = treeObj:isPositionedTreeObject()
       end
-      localrigidObject:setLocked(true)
+      if shouldBeCopied then
+        Ips.copyTreeObject(treeObj, geoRoot)
+      end
     end
+    rigidBody:setLocked(true)
   end
+end
 
-  copy_to_static_geometry(geoNames)
+local function evalErgo(geoNames, manikinFamilyName, coords)
+  copyToStaticGeometry(geoNames)
 
   local treeobject = Ips.getActiveObjectsRoot()
 
