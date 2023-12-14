@@ -74,11 +74,15 @@ local function loadAndFitScene(scenePath)
 end
 
 local function clearScene()
+  -- Clears the scene of all active objects, static geometry, measures,
+  -- and mechanisms
   local roots = {
     Ips.getActiveObjectsRoot(),
     Ips.getGeometryRoot(),
     Ips.getMeasuresRoot(),
     Ips.getMechanismRoot(),
+    Ips.getProcessRoot(),
+    Ips.getSimulationsRoot(),
   }
   for _, root in pairs(roots) do
     while root:getNumChildren() > 0 do
@@ -86,6 +90,7 @@ local function clearScene()
       Ips.deleteTreeObject(child)
     end
   end
+  print("Scene cleared")
 end
 
 local function createHarnessRouter(harnessSetup)
