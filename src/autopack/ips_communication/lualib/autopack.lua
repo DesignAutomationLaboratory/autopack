@@ -319,44 +319,72 @@ end
 local function evalErgo(geoNames, manikinFamilyName, coords)
   copyToStaticGeometry(geoNames)
 
-  local treeobject = Ips.getActiveObjectsRoot()
+  local msc = ManikinSimulationController()
 
-  local gp = treeobject:findFirstExactMatch("gp1")
-  local gp1=gp:toGripPointVisualization()
-  local gp2=gp1:getGripPoint()
-  local family = treeobject:findFirstExactMatch("Family 1")
-  local f1=family:toManikinFamilyVisualization()
-  local f2=f1:getManikinFamily()
-  f2:enableCollisionAvoidance()
-  local representativeManikin = f2:getRepresentative()
+  local activeObjsRoot = Ips.getActiveObjectsRoot()
+  local familyViz = assert(activeObjsRoot:findFirstExactMatch(manikinFamilyName), 'Could not find family with name "' .. manikinFamilyName .. '"'):toManikinFamilyVisualization()
+  local family = familyViz:getManikinFamily()
+  local ergoStandards = vectorToTable(family:getErgoStandards())
+  local reprManikinIdx = family:getRepresentative()
+  family:enableCollisionAvoidance()
+  local rightHandCtrlPoint = familyViz:findFirstExactMatch("Right Hand"):toControlPointVisualization():getControlPoint()
 
-  local measureTree = Ips.getMeasuresRoot()
-  local measure = measureTree:findFirstExactMatch("measure")
-  local measure_object = measure:toMeasure()
-  local gp_geo = treeobject:findFirstExactMatch("gripGeo")
-  local gp_geo1 = gp_geo:toPositionedTreeObject()
+  local gripPoint = msc:createGripPoint()
+  local gripPointViz = gripPoint:getVisualization()
+  -- genObjsRoot:insert(0, gripPoint)
+  gripPoint:setGripConfiguration("Tip Pinch")
+  gripPoint:setSymmetricRotationTolerances(math.huge, math.huge, math.huge)
+  gripPoint:setSymmetricTranslationTolerances(0.002, 0.002, 0.002)
 
-  local ergoStandards = vectorToTable(f2:getErgoStandards())
+  -- Move the grip point to the right hand attach it to get a good start state
+  moveGripPoint(gripPointViz, getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t)
+  family:attach(gripPointViz)
+  family:posePredict(1)
+
+  --Ips.updateScreen()
+  local reprStartState = family:getState(reprManikinIdx):clone()
+  local familyStartTransf = familyViz:getTWorld():clone()
+  local gripPointStartTransf = gripPoint:getTarget():clone()
+
+  local handRightTransl = getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t
+  local gripPointTransl = gripPoint:getTarget().t
+  print("start dist: " .. handRightTransl:distance(gripPointTransl))
+  print("start N2 norm: " .. family:getSolverConstraintError(reprManikinIdx))
+
   local outputTable = {
     ergoStandards = ergoStandards,
     ergoValues = {},
     gripDiffs = {},
+    solverErrors = {},
   }
   for coordIdx, coord in pairs(coords) do
-    gp_geo1:transform(coord[1], coord[2], coord[3], 0, 0, 0)
-    Ips.moveTreeObject(gp, family)
-    f2:posePredict(10)
-    -- updateScreen needed for measure to work
-    Ips.updateScreen()
-    local dist = measure_object:getValue()
+    -- Reset the state of the family
+    familyViz:setTWorld(familyStartTransf)
+    family:setState(reprStartState, reprManikinIdx)
+    moveGripPoint(gripPointViz, gripPointStartTransf.t)
+    family:posePredict(1)
+
+    -- Move the grip point to the new position and predict the pose
+    moveGripPoint(gripPointViz, Vector3d(coord[1], coord[2], coord[3]))
+    family:posePredict(100)
+
+    -- Ips.updateScreen()
+    -- pause()
+
+    -- The control point gets deleted (???) after manipulating the manikin, so we must get it when we need it
+    local handRightTransl = getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t
+    local gripPointTransl = gripPoint:getTarget().t
+    local dist = handRightTransl:distance(gripPointTransl)
+    print("dist: " .. dist .. ", N2 norm: " .. family:getSolverConstraintError(reprManikinIdx))
 
     local coordErgoValues = {}
     for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
-      local ergoValue = f2:evaluateStaticErgo(ergoStandard, representativeManikin)
+      local ergoValue = family:evaluateStaticErgo(ergoStandard, representativeManikin)
       coordErgoValues[ergoStandardIdx] = ergoValue
     end
     outputTable.ergoValues[coordIdx] = coordErgoValues
     outputTable.gripDiffs[coordIdx] = dist
+    outputTable.solverErrors[coordIdx] = family:getSolverConstraintError(reprManikinIdx)
   end
   return outputTable
 end
