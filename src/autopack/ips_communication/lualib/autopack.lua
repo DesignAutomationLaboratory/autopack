@@ -273,6 +273,22 @@ local function coordDistancesToGeo(coords, geoNames)
   return distances
 end
 
+local function moveGripPoint(gripPointViz, translationVector)
+  -- local r = Rot3(Vector3d(0, 0, 0), Vector3d(0, 0, 0), Vector3d(0, 0, 0))
+  -- local transf = Transf3(r, translationVector)
+  -- Does not work
+  -- gripPoint:setTarget(transf)
+  -- gripPoint:getVisualization():setTWorld(transf)
+  -- Almost works
+  -- gripPoint:getVisualization():setTControl(transf)
+  -- Works
+  return gripPointViz:transform(translationVector.x, translationVector.y, translationVector.z, 0, 0, 0)
+end
+
+local function getManikinCtrlPoint(familyViz, ctrlPointName)
+  return familyViz:findFirstExactMatch(ctrlPointName):toControlPointVisualization():getControlPoint()
+end
+
 local function evalErgo(geoNames, manikinFamilyName, coords)
   local function copy_to_static_geometry(part_table)
     for _, part_name in pairs(part_table) do
