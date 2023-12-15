@@ -393,6 +393,7 @@ local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp)
     outputTable.ergoValues[coordIdx] = coordErgoValues
     outputTable.gripDiffs[coordIdx] = dist
     outputTable.errorMsgs[coordIdx] = replay:getReplayErrorMessage(graspAction)
+    print("Autopack ergo evaluation: " .. coordIdx .. "/" .. #coords .. " done")
   end
   return outputTable
 end
