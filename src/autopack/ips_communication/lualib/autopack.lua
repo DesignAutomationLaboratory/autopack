@@ -268,30 +268,32 @@ local function routeHarnessSolutions(harnessSetup, costs, bundlingFactor, namePr
   return solutions
 end
 
-local function coordDistancesToGeo(coords, geoNames)
-  local treeObject = Ips.getActiveObjectsRoot()
-  local prim = PrimitiveShape.createSphere(0.001, 6, 6)
-  local rigid_prim = Ips.createRigidBodyObject(prim)
-  local primTree = TreeObjectVector()
-  primTree:insert(0, rigid_prim)
+local function coordDistancesToGeo(coords, geoNames, includeStaticGeo)
+  local activeObjsRoot = Ips.getActiveObjectsRoot()
+  local staticGeoRoot = Ips.getGeometryRoot()
+  local dot = Ips.createRigidBodyObject(PrimitiveShape.createSphere(0.0001, 6, 6))
 
-  local partsTree = TreeObjectVector()
+  local dotVector = TreeObjectVector()
+  dotVector:push_back(dot)
+
+  local partVector = TreeObjectVector()
   for _, part in pairs(geoNames) do
-    partsTree:insert(0, treeObject:findFirstMatch(part))
+    partVector:push_back(activeObjsRoot:findFirstExactMatch(part))
+  end
+  if includeStaticGeo then
+    partVector:push_back(staticGeoRoot)
   end
 
-  local r = Rot3(Vector3d(0, 0, 0), Vector3d(0, 0, 0), Vector3d(0, 0, 0))
-  local measure = DistanceMeasure(1, partsTree, primTree)
+  local measure = DistanceMeasure(DistanceMeasure.MODE_1_VS_2, partVector, dotVector)
 
   local distances = {}
   for coordIdx, coord in pairs(coords) do
-    local trans = Transf3(r, Vector3d(coord[1], coord[2], coord[3]))
-    rigid_prim:setFrameInWorld(trans)
+    dot:transform(coord[1], coord[2], coord[3], 0, 0, 0)
     distances[coordIdx] = measure:getDistance()
   end
 
   Ips.deleteTreeObject(measure)
-  Ips.deleteTreeObject(rigid_prim)
+  Ips.deleteTreeObject(dot)
 
   return distances
 end
