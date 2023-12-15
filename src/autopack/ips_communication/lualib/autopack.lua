@@ -341,7 +341,7 @@ local function copyToStaticGeometry(activeObjNames)
   end
 end
 
-local function evalErgo(geoNames, manikinFamilyName, coords)
+local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp)
   copyToStaticGeometry(geoNames)
 
   local msc = ManikinSimulationController()
@@ -359,39 +359,29 @@ local function evalErgo(geoNames, manikinFamilyName, coords)
   -- genObjsRoot:insert(0, gripPoint)
   gripPoint:setGripConfiguration("Tip Pinch")
   gripPoint:setSymmetricRotationTolerances(math.huge, math.huge, math.huge)
-  gripPoint:setSymmetricTranslationTolerances(0.002, 0.002, 0.002)
+  gripPoint:setSymmetricTranslationTolerances(0.005, 0.005, 0.005)
 
-  -- Move the grip point to the right hand attach it to get a good start state
-  moveGripPoint(gripPointViz, getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t)
-  family:attach(gripPointViz)
-  family:posePredict(1)
-
-  --Ips.updateScreen()
-  local reprStartState = family:getState(reprManikinIdx):clone()
-  local familyStartTransf = familyViz:getTWorld():clone()
-  local gripPointStartTransf = gripPoint:getTarget():clone()
-
-  local handRightTransl = getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t
-  local gripPointTransl = gripPoint:getTarget().t
-  print("start dist: " .. handRightTransl:distance(gripPointTransl))
-  print("start N2 norm: " .. family:getSolverConstraintError(reprManikinIdx))
+  local opSequence = OperationSequence()
+  opSequence:setLabel("Autopack ergo evaluation")
+  local familyActor = opSequence:addFamilyActor(familyViz)
+  familyActor:setCurrentStateAsStart()
+  local graspAction = opSequence:createManikinGraspAction(familyActor, gripPointViz)
+  if enableRbpp then
+    graspAction:enableRigidBodyPathPlanning()
+  else
+    graspAction:disableRigidBodyPathPlanning()
+  end
 
   local outputTable = {
     ergoStandards = ergoStandards,
     ergoValues = {},
     gripDiffs = {},
-    solverErrors = {},
+    errorMsgs = {},
   }
   for coordIdx, coord in pairs(coords) do
-    -- Reset the state of the family
-    familyViz:setTWorld(familyStartTransf)
-    family:setState(reprStartState, reprManikinIdx)
-    moveGripPoint(gripPointViz, gripPointStartTransf.t)
-    family:posePredict(1)
-
-    -- Move the grip point to the new position and predict the pose
     moveGripPoint(gripPointViz, Vector3d(coord[1], coord[2], coord[3]))
-    family:posePredict(100)
+    local replay = opSequence:executeSequence()
+    local graspActionEndTime = replay:getActionEndTime(graspAction)
 
     -- Ips.updateScreen()
     -- pause()
@@ -400,16 +390,15 @@ local function evalErgo(geoNames, manikinFamilyName, coords)
     local handRightTransl = getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t
     local gripPointTransl = gripPoint:getTarget().t
     local dist = handRightTransl:distance(gripPointTransl)
-    print("dist: " .. dist .. ", N2 norm: " .. family:getSolverConstraintError(reprManikinIdx))
 
     local coordErgoValues = {}
     for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
-      local ergoValue = family:evaluateStaticErgo(ergoStandard, representativeManikin)
-      coordErgoValues[ergoStandardIdx] = ergoValue
+      local ergoValues = replay:computeErgonomicScore(ergoStandard, graspActionEndTime, graspActionEndTime)
+      coordErgoValues[ergoStandardIdx] = ergoValues
     end
     outputTable.ergoValues[coordIdx] = coordErgoValues
     outputTable.gripDiffs[coordIdx] = dist
-    outputTable.solverErrors[coordIdx] = family:getSolverConstraintError(reprManikinIdx)
+    outputTable.errorMsgs[coordIdx] = replay:getReplayErrorMessage(graspAction)
   end
   return outputTable
 end
