@@ -397,6 +397,33 @@ local function evalErgo(geoNames, manikinFamilyName, coords)
   return outputTable
 end
 
+local function createColoredPointCloud(points, treeParent, treeObjName, removeExisting)
+  -- `points` is an array of arrays, where each sub-array is a point, described by 6 numbers:
+  -- x, y, z, r, g, b
+  local staticGeoRoot = Ips.getGeometryRoot()
+  if not treeParent then
+    treeParent = staticGeoRoot
+  end
+  if removeExisting then
+    local existingTreeObj = treeParent:findFirstExactMatch(treeObjName)
+    if existingTreeObj then
+      Ips.deleteTreeObject(existingTreeObj)
+    end
+  end
+  local builder = GeometryBuilder()
+  for pointIdx, point in pairs(points) do
+    builder:pushVertex(point[1], point[2], point[3])
+    builder:pushColor(point[4], point[5], point[6])
+  end
+
+  builder:buildPoints()
+  local treeObj = staticGeoRoot:getLastChild()
+  Ips.moveTreeObject(treeObj, treeParent)
+  treeObj:setLabel(treeObjName)
+
+  return treeObj
+end
+
 module.type = _type
 module.pack = _pack
 module.unpack = _unpack
@@ -410,6 +437,7 @@ module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts
 module.routeHarnessSolutions = routeHarnessSolutions
 module.coordDistancesToGeo = coordDistancesToGeo
 module.evalErgo = evalErgo
+module.createColoredPointCloud = createColoredPointCloud
 
 module.base64 = base64
 module.inspect = inspect
