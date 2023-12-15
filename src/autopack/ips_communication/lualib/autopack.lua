@@ -387,7 +387,7 @@ local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp)
 
     local coordErgoValues = {}
     for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
-      local ergoValues = replay:computeErgonomicScore(ergoStandard, graspActionEndTime, graspActionEndTime)
+      local ergoValues = vectorToTable(replay:computeErgonomicScore(ergoStandard, graspActionEndTime, graspActionEndTime))
       coordErgoValues[ergoStandardIdx] = ergoValues
     end
     outputTable.ergoValues[coordIdx] = coordErgoValues
