@@ -70,6 +70,19 @@ local function range(from, to)
   return arr
 end
 
+local function treeObjChildren(treeObj)
+  local children = {}
+  local numChildren = treeObj:getNumChildren()
+  for i = 1, numChildren do
+    if i == 1 then
+      children[i] = treeObj:getFirstChild()
+    else
+      children[i] = children[i - 1]:getNextSibling()
+    end
+  end
+  return children
+end
+
 local function loadAndFitScene(scenePath)
   print("Loading scene " .. scenePath)
   local loaded = Ips.loadScene(scenePath)
