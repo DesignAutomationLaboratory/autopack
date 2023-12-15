@@ -144,17 +144,23 @@ class IPSInstance:
 
             raise IPSError(f"IPS call failed: {message}\n{traceback}")
 
-    def call(self, func_name: str, *args: Any) -> Any:
+    def call(self, func_name: str, *args: Any, return_result: bool = True) -> Any:
         """
-        Calls a function in IPS with the given arguments and returns the
-        result.
+        Calls a function in IPS with the given arguments and
+        (optionally) returns the result.
+
+        `return_result` can be set to `False` to not pack and return the
+        result. This can be useful if the function e.g., returns
+        something that cannot be packed or if it is not desired. In this
+        case, the return value will be `nil`/`None`.
 
         Raises an `IPSError` if the function call fails.
         """
         packed_args = pack(args)
         command = f"""
             local funcArgs = autopack.unpack("{packed_args.decode()}")
-            return {func_name}(unpack(funcArgs))
+            local result = {func_name}(unpack(funcArgs))
+            return {"result" if return_result else "nil"}
         """
 
         return self.eval(command)
