@@ -298,6 +298,16 @@ local function coordDistancesToGeo(coords, geoNames, includeStaticGeo)
   return distances
 end
 
+local function copyRigidBodyGeometry(rigidBody, destTreeObj)
+  rigidBody:setLocked(false)
+  for _, child in pairs(treeObjChildren(rigidBody)) do
+    if child:isPositionedTreeObject() and not child:isFrame() then
+      Ips.copyTreeObject(child, destTreeObj)
+    end
+  end
+  rigidBody:setLocked(true)
+end
+
 local function moveGripPoint(gripPointViz, translationVector)
   -- local r = Rot3(Vector3d(0, 0, 0), Vector3d(0, 0, 0), Vector3d(0, 0, 0))
   -- local transf = Transf3(r, translationVector)
@@ -321,23 +331,7 @@ local function copyToStaticGeometry(activeObjNames)
   local geoRoot = Ips.getGeometryRoot()
   for _, activeObjName in pairs(activeObjNames) do
     local rigidBody = activeObjRoot:findFirstExactMatch(activeObjName):toRigidBodyObject()
-    rigidBody:setLocked(false)
-    local numChildren = rigidBody:getNumChildren()
-    local treeObj
-    local shouldBeCopied
-    for i = 1, numChildren do
-      if i == 1 then
-        treeObj = rigidBody:getFirstChild()
-        shouldBeCopied = treeObj:isPositionedTreeObject()
-      else
-        treeObj = treeObj:getNextSibling()
-        shouldBeCopied = treeObj:isPositionedTreeObject()
-      end
-      if shouldBeCopied then
-        Ips.copyTreeObject(treeObj, geoRoot)
-      end
-    end
-    rigidBody:setLocked(true)
+    copyRigidBodyGeometry(rigidBody, geoRoot)
   end
 end
 
