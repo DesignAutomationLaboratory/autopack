@@ -98,11 +98,13 @@ local function clearScene()
   -- Clears the scene of all active objects, static geometry, measures,
   -- and mechanisms
   local roots = {
+    -- Start with processes, as they may have dependencies that are
+    -- active objects
+    Ips.getProcessRoot(),
     Ips.getActiveObjectsRoot(),
     Ips.getGeometryRoot(),
     Ips.getMeasuresRoot(),
     Ips.getMechanismRoot(),
-    Ips.getProcessRoot(),
     Ips.getSimulationsRoot(),
   }
   for _, root in pairs(roots) do
