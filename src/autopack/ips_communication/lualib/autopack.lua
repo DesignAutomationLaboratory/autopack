@@ -335,7 +335,7 @@ local function copyToStaticGeometry(activeObjNames)
   end
 end
 
-local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp)
+local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp, updateScreen, keepGenObj)
   copyToStaticGeometry(geoNames)
 
   local msc = ManikinSimulationController()
@@ -377,8 +377,9 @@ local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp)
     local replay = opSequence:executeSequence()
     local graspActionEndTime = replay:getActionEndTime(graspAction)
 
-    -- Ips.updateScreen()
-    -- pause()
+    if updateScreen then
+      Ips.updateScreen()
+    end
 
     -- The control point gets deleted (???) after manipulating the manikin, so we must get it when we need it
     local handRightTransl = getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t
@@ -395,6 +396,12 @@ local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp)
     outputTable.errorMsgs[coordIdx] = replay:getReplayErrorMessage(graspAction)
     print("Autopack ergo evaluation: " .. coordIdx .. "/" .. #coords .. " done")
   end
+
+  if not keepGenObj then
+    Ips.deleteTreeObject(opSequence)
+    Ips.deleteTreeObject(gripPointViz)
+  end
+
   return outputTable
 end
 
