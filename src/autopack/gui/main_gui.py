@@ -325,7 +325,7 @@ def update_plots():
                     build_cable_simulation=True,
                 )
 
-    button_create_harness = pn.widgets.Button(name="Create selected harness")
+    button_create_harness = pn.widgets.Button(name="Create selected harnesses")
     button_create_harness.on_click(create_selected_harness)
     table_row = pn.Row(result_table, button_create_harness)
     radar_row = generate_radar(df)
