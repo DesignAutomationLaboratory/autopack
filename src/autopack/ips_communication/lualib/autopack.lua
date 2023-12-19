@@ -116,6 +116,26 @@ local function clearScene()
   print("Scene cleared")
 end
 
+local function getOrCreateActiveGroup(groupName, parent)
+  parent = parent or Ips.getActiveObjectsRoot()
+  local activeGroup = parent:findFirstExactMatch(groupName)
+  if not activeGroup then
+    activeGroup = Ips.createAssembly(groupName)
+    Ips.moveTreeObject(activeGroup, parent)
+  end
+  return activeGroup
+end
+
+local function getOrCreateGeometryGroup(groupName, parent)
+  parent = parent or Ips.getGeometryRoot()
+  local geoGroup = parent:findFirstExactMatch(groupName)
+  if not geoGroup then
+    geoGroup = Ips.createGeometryGroup(parent)
+    geoGroup:setLabel(groupName)
+  end
+  return geoGroup
+end
+
 local function createHarnessRouter(harnessSetup)
   local cableSim = CableSimulation()
   local harnessRouter = HarnessRouter()
@@ -203,6 +223,7 @@ local function routeHarnessSolutions(
   buildSmoothSolutions,
   buildCableSimulations
 )
+  local harnessGroupName = "Autopack harnesses"
   local harnessRouter = createHarnessRouter(harnessSetup)
   setHarnessRouterNodeCosts(harnessRouter, costs)
   harnessRouter:setObjectiveWeights(1, bundlingFactor, bundlingFactor)
@@ -249,23 +270,27 @@ local function routeHarnessSolutions(
       local builtDiscreteSegmentsTreeVector = harnessRouter:buildDiscreteSegments(solIdx)
       local builtDiscreteSolution = builtDiscreteSegmentsTreeVector[0]:getParent()
       builtDiscreteSolution:setLabel(solutionName .. " (discrete)")
+      Ips.moveTreeObject(builtDiscreteSolution, getOrCreateGeometryGroup(harnessGroupName))
     end
 
     if buildPresmoothSolutions then
       local builtPresmoothSegmentsTreeVector = harnessRouter:buildPresmoothSegments(solIdx)
       local builtPresmoothSolution = builtPresmoothSegmentsTreeVector[0]:getParent()
       builtPresmoothSolution:setLabel(solutionName .. " (presmooth)")
+      Ips.moveTreeObject(builtPresmoothSolution, getOrCreateGeometryGroup(harnessGroupName))
     end
 
     if buildSmoothSolutions then
       local builtSmoothSegmentsTreeVector = harnessRouter:buildSmoothSegments(solIdx, true)
       local builtSmoothSolution = builtSmoothSegmentsTreeVector[0]:getParent()
       builtSmoothSolution:setLabel(solutionName .. " (smooth)")
+      Ips.moveTreeObject(builtSmoothSolution, getOrCreateGeometryGroup(harnessGroupName))
     end
 
     if buildCableSimulations then
       local builtCableSimulation = harnessRouter:buildSimulationObject(solIdx, true)
       builtCableSimulation:setLabel(solutionName)
+      Ips.moveTreeObject(builtCableSimulation, getOrCreateActiveGroup(harnessGroupName))
     end
 
     -- Gather the solution data
