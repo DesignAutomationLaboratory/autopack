@@ -191,7 +191,18 @@ local function setHarnessRouterNodeCosts(harnessRouter, costsArray)
   end
 end
 
-local function routeHarnessSolutions(harnessSetup, costs, bundlingFactor, namePrefix, solutionIdxsToCapture, smoothSolutions, buildDiscreteSolutions, buildPresmoothSolutions, buildSmoothSolutions)
+local function routeHarnessSolutions(
+  harnessSetup,
+  costs,
+  bundlingFactor,
+  namePrefix,
+  solutionIdxsToCapture,
+  smoothSolutions,
+  buildDiscreteSolutions,
+  buildPresmoothSolutions,
+  buildSmoothSolutions,
+  buildCableSimulations
+)
   local harnessRouter = createHarnessRouter(harnessSetup)
   setHarnessRouterNodeCosts(harnessRouter, costs)
   harnessRouter:setObjectiveWeights(1, bundlingFactor, bundlingFactor)
@@ -250,6 +261,11 @@ local function routeHarnessSolutions(harnessSetup, costs, bundlingFactor, namePr
       local builtSmoothSegmentsTreeVector = harnessRouter:buildSmoothSegments(solIdx, true)
       local builtSmoothSolution = builtSmoothSegmentsTreeVector[0]:getParent()
       builtSmoothSolution:setLabel(solutionName .. " (smooth)")
+    end
+
+    if buildCableSimulations then
+      local builtCableSimulation = harnessRouter:buildSimulationObject(solIdx, true)
+      builtCableSimulation:setLabel(solutionName)
     end
 
     -- Gather the solution data

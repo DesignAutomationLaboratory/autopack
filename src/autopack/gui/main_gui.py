@@ -322,7 +322,7 @@ def update_plots():
                     gui_setup.ips_instance,
                     gui_setup.result,
                     row["case"],
-                    build_smooth_solution=True,
+                    build_cable_simulation=True,
                 )
 
     button_create_harness = pn.widgets.Button(name="Create selected harness")

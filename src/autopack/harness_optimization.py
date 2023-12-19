@@ -108,6 +108,7 @@ def route_harness_from_dataset(
     build_discrete_solution=False,
     build_presmooth_solution=False,
     build_smooth_solution=False,
+    build_cable_simulation=False,
 ) -> data_model.Harness:
     problem_setup: ProblemSetup = ds.attrs["problem_setup"]
 
@@ -130,6 +131,7 @@ def route_harness_from_dataset(
         build_discrete_solutions=build_discrete_solution,
         build_presmooth_solutions=build_presmooth_solution,
         build_smooth_solutions=build_smooth_solution,
+        build_cable_simulations=build_cable_simulation,
     )[
         0
     ]  # We only capture one solution

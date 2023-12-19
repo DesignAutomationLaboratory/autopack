@@ -44,6 +44,7 @@ def route_harness_all_solutions(
     build_discrete_solutions: bool = False,
     build_presmooth_solutions: bool = False,
     build_smooth_solutions: bool = False,
+    build_cable_simulations: bool = False,
 ) -> list[Harness]:
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
 
@@ -58,6 +59,7 @@ def route_harness_all_solutions(
         build_discrete_solutions,
         build_presmooth_solutions,
         build_smooth_solutions,
+        build_cable_simulations,
     )
 
     def gen_harness_segments(segment_dict):
