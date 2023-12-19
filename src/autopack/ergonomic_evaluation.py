@@ -1,6 +1,6 @@
 import numpy as np
+from scipy.interpolate import RBFInterpolator
 from scipy.spatial.distance import cdist
-from smt import surrogate_models
 
 from autopack import logger
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
@@ -131,9 +131,7 @@ def sparse_cost_field(cost_field, min_point_dist):
 
 
 def interpolation(known_x, known_y, predict_x):
-    sm = surrogate_models.IDW(p=2, print_global=False)
-    sm.set_training_values(known_x, known_y)
-    sm.train()
-    predict_y = sm.predict_values(predict_x)
+    rbf = RBFInterpolator(known_x, known_y)
+    predict_y = rbf(predict_x)
 
     return predict_y
