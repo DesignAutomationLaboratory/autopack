@@ -106,13 +106,18 @@ def route_harness(
     return solutions[0]
 
 
-def check_distance_of_points(ips_instance, harness_setup, coords, max_geometry_dist):
+def check_distance_of_points(
+    ips_instance, harness_setup, coords, min_geometry_dist, max_geometry_dist
+):
     geo_names = [geo.name for geo in harness_setup.geometries if geo.assembly]
     coord_distances_to_geo = np.array(
-        ips_instance.call("autopack.coordDistancesToGeo", coords, geo_names)
+        ips_instance.call("autopack.coordDistancesToGeo", coords, geo_names, True)
     )
 
-    return coord_distances_to_geo <= max_geometry_dist
+    return np.logical_and(
+        coord_distances_to_geo >= min_geometry_dist,
+        coord_distances_to_geo <= max_geometry_dist,
+    )
 
 
 def cost_field_vis(ips_instance, cost_field):

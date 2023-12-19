@@ -335,14 +335,28 @@ local function copyToStaticGeometry(activeObjNames)
   end
 end
 
-local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp, updateScreen, keepGenObj)
+local function getAllManikinFamilies()
+  local msc = ManikinSimulationController()
+  -- Manikin family IDs are UUIDs, not related to names or indices
+  local manikinFamilyIds = vectorToTable(msc:getManikinFamilyIDs())
+  local manikinFamilyNames = {}
+  for _, manikinFamilyId in pairs(manikinFamilyIds) do
+    manikinFamilyNames[#manikinFamilyNames+1] = {
+      id = manikinFamilyId,
+      name = msc:getManikinFamily(manikinFamilyId):getVisualization():getLabel(),
+    }
+  end
+
+  return manikinFamilyNames
+end
+
+local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScreen, keepGenObj)
   copyToStaticGeometry(geoNames)
 
   local msc = ManikinSimulationController()
-
   local activeObjsRoot = Ips.getActiveObjectsRoot()
-  local familyViz = assert(activeObjsRoot:findFirstExactMatch(manikinFamilyName), 'Could not find family with name "' .. manikinFamilyName .. '"'):toManikinFamilyVisualization()
-  local family = familyViz:getManikinFamily()
+  local family = msc:getManikinFamily(manikinFamilyId)
+  local familyViz = family:getVisualization()
   local ergoStandards = vectorToTable(family:getErgoStandards())
   local reprManikinIdx = family:getRepresentative()
   family:enableCollisionAvoidance()
@@ -359,12 +373,19 @@ local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp, updateS
   opSequence:setLabel("Autopack ergo evaluation")
   local familyActor = opSequence:addFamilyActor(familyViz)
   familyActor:setCurrentStateAsStart()
+  -- Add a pause action so we get a time where the manikin is steadily
+  -- in its start state
+  local pauseAction = opSequence:createManikinWaitAction(familyActor, 1e-6)
   local graspAction = opSequence:createManikinGraspAction(familyActor, gripPointViz)
   if enableRbpp then
     graspAction:enableRigidBodyPathPlanning()
   else
     graspAction:disableRigidBodyPathPlanning()
   end
+  -- Add a release action as it seems to help with resetting the
+  -- manikins properly
+  local releaseAction = opSequence:createManikinReleaseAction(familyActor, gripPointViz)
+  releaseAction:maintainCurrentPosture()
 
   local outputTable = {
     ergoStandards = ergoStandards,
@@ -372,9 +393,12 @@ local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp, updateS
     gripDiffs = {},
     errorMsgs = {},
   }
+  local replay -- Declared here to enable resetting after the loop
+  local pauseActionEndTime
   for coordIdx, coord in pairs(coords) do
     moveGripPoint(gripPointViz, Vector3d(coord[1], coord[2], coord[3]))
-    local replay = opSequence:executeSequence()
+    replay = opSequence:executeSequence()
+    pauseActionEndTime = replay:getActionEndTime(pauseAction)
     local graspActionEndTime = replay:getActionEndTime(graspAction)
 
     if updateScreen then
@@ -396,6 +420,10 @@ local function evalErgo(geoNames, manikinFamilyName, coords, enableRbpp, updateS
     outputTable.errorMsgs[coordIdx] = replay:getReplayErrorMessage(graspAction)
     print("Autopack ergo evaluation: " .. coordIdx .. "/" .. #coords .. " done")
   end
+  -- Make sure that the replay is rewinded, to set the manikin back to
+  -- its start state. Rewinding to 0.0 does not properly reset the start
+  -- state.
+  replay:setTime(pauseActionEndTime)
 
   if not keepGenObj then
     Ips.deleteTreeObject(opSequence)
@@ -444,6 +472,7 @@ module.getCostField = getCostField
 module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts
 module.routeHarnessSolutions = routeHarnessSolutions
 module.coordDistancesToGeo = coordDistancesToGeo
+module.getAllManikinFamilies = getAllManikinFamilies
 module.evalErgo = evalErgo
 module.createColoredPointCloud = createColoredPointCloud
 
