@@ -6,11 +6,11 @@ local msgpack = require("MessagePack")
 -- IPS seems to use SLB (https://code.google.com/archive/p/slb/)
 local slb = require("SLB")
 
-local function pack(data)
+local function _pack(data)
   return base64.encode(msgpack.pack(data))
 end
 
-local function unpack(string)
+local function _unpack(string)
   return msgpack.unpack(base64.decode(string))
 end
 
@@ -24,6 +24,14 @@ local function _type(obj)
     return slb.type(obj) or "userdata"
   else
     return luaType
+  end
+end
+
+local function pause(msg)
+  -- Pauses the script until the user presses enter.
+  local answer = Ips.question((msg or "") .. "\n\nContinue?")
+  if answer == false then
+    error("Script aborted")
   end
 end
 
@@ -62,6 +70,19 @@ local function range(from, to)
   return arr
 end
 
+local function treeObjChildren(treeObj)
+  local children = {}
+  local numChildren = treeObj:getNumChildren()
+  for i = 1, numChildren do
+    if i == 1 then
+      children[i] = treeObj:getFirstChild()
+    else
+      children[i] = children[i - 1]:getNextSibling()
+    end
+  end
+  return children
+end
+
 local function loadAndFitScene(scenePath)
   print("Loading scene " .. scenePath)
   local loaded = Ips.loadScene(scenePath)
@@ -71,6 +92,28 @@ local function loadAndFitScene(scenePath)
   -- 2. It makes it easier to see what's going on
   Ips.fitScene()
   return loaded
+end
+
+local function clearScene()
+  -- Clears the scene of all active objects, static geometry, measures,
+  -- and mechanisms
+  local roots = {
+    -- Start with processes, as they may have dependencies that are
+    -- active objects
+    Ips.getProcessRoot(),
+    Ips.getActiveObjectsRoot(),
+    Ips.getGeometryRoot(),
+    Ips.getMeasuresRoot(),
+    Ips.getMechanismRoot(),
+    Ips.getSimulationsRoot(),
+  }
+  for _, root in pairs(roots) do
+    while root:getNumChildren() > 0 do
+      local child = root:getLastChild()
+      Ips.deleteTreeObject(child)
+    end
+  end
+  print("Scene cleared")
 end
 
 local function createHarnessRouter(harnessSetup)
@@ -225,117 +268,213 @@ local function routeHarnessSolutions(harnessSetup, costs, bundlingFactor, namePr
   return solutions
 end
 
-local function coordDistancesToGeo(coords, geoNames)
-  local treeObject = Ips.getActiveObjectsRoot()
-  local prim = PrimitiveShape.createSphere(0.001, 6, 6)
-  local rigid_prim = Ips.createRigidBodyObject(prim)
-  local primTree = TreeObjectVector()
-  primTree:insert(0, rigid_prim)
+local function coordDistancesToGeo(coords, geoNames, includeStaticGeo)
+  local activeObjsRoot = Ips.getActiveObjectsRoot()
+  local staticGeoRoot = Ips.getGeometryRoot()
+  local dot = Ips.createRigidBodyObject(PrimitiveShape.createSphere(0.0001, 6, 6))
 
-  local partsTree = TreeObjectVector()
+  local dotVector = TreeObjectVector()
+  dotVector:push_back(dot)
+
+  local partVector = TreeObjectVector()
   for _, part in pairs(geoNames) do
-    partsTree:insert(0, treeObject:findFirstMatch(part))
+    partVector:push_back(activeObjsRoot:findFirstExactMatch(part))
+  end
+  if includeStaticGeo then
+    partVector:push_back(staticGeoRoot)
   end
 
-  local r = Rot3(Vector3d(0, 0, 0), Vector3d(0, 0, 0), Vector3d(0, 0, 0))
-  local measure = DistanceMeasure(1, partsTree, primTree)
+  local measure = DistanceMeasure(DistanceMeasure.MODE_1_VS_2, partVector, dotVector)
 
   local distances = {}
   for coordIdx, coord in pairs(coords) do
-    local trans = Transf3(r, Vector3d(coord[1], coord[2], coord[3]))
-    rigid_prim:setFrameInWorld(trans)
+    dot:transform(coord[1], coord[2], coord[3], 0, 0, 0)
     distances[coordIdx] = measure:getDistance()
   end
 
   Ips.deleteTreeObject(measure)
-  Ips.deleteTreeObject(rigid_prim)
+  Ips.deleteTreeObject(dot)
 
   return distances
 end
 
-local function evalErgo(geoNames, coords)
-  local function copy_to_static_geometry(part_table)
-    for _, part_name in pairs(part_table) do
-      local localtreeobject = Ips.getActiveObjectsRoot()
-      local localobject = localtreeobject:findFirstExactMatch(part_name)
-      local localrigidObject = localobject:toRigidBodyObject()
-      localrigidObject:setLocked(false)
-      local localnum_of_childs = localrigidObject:getNumChildren()
-      local localgeometryRoot = Ips.getGeometryRoot()
-      local localpositionedObject
-      local localtoCopy
-      for i = 1, localnum_of_childs do
-        if i == 1 then
-          localpositionedObject = localrigidObject:getFirstChild()
-          localtoCopy = localpositionedObject:isPositionedTreeObject()
-        else
-          localpositionedObject = localpositionedObject:getNextSibling()
-          localtoCopy = localpositionedObject:isPositionedTreeObject()
-        end
-        if localtoCopy then
-          Ips.copyTreeObject(localpositionedObject, localgeometryRoot)
-        end
-      end
-      localrigidObject:setLocked(true)
+local function copyRigidBodyGeometry(rigidBody, destTreeObj)
+  rigidBody:setLocked(false)
+  for _, child in pairs(treeObjChildren(rigidBody)) do
+    if child:isPositionedTreeObject() and not child:isFrame() then
+      Ips.copyTreeObject(child, destTreeObj)
     end
   end
+  rigidBody:setLocked(true)
+end
 
-  copy_to_static_geometry(geoNames)
+local function moveGripPoint(gripPointViz, translationVector)
+  -- local r = Rot3(Vector3d(0, 0, 0), Vector3d(0, 0, 0), Vector3d(0, 0, 0))
+  -- local transf = Transf3(r, translationVector)
+  -- Does not work
+  -- gripPoint:setTarget(transf)
+  -- gripPoint:getVisualization():setTWorld(transf)
+  -- Almost works
+  -- gripPoint:getVisualization():setTControl(transf)
+  -- Works
+  return gripPointViz:transform(translationVector.x, translationVector.y, translationVector.z, 0, 0, 0)
+end
 
-  local treeobject = Ips.getActiveObjectsRoot()
+local function getManikinCtrlPoint(familyViz, ctrlPointName)
+  return familyViz:findFirstExactMatch(ctrlPointName):toControlPointVisualization():getControlPoint()
+end
 
-  local gp = treeobject:findFirstExactMatch("gp1")
-  local gp1=gp:toGripPointVisualization()
-  local gp2=gp1:getGripPoint()
-  local family = treeobject:findFirstExactMatch("Family 1")
-  local f1=family:toManikinFamilyVisualization()
-  local f2=f1:getManikinFamily()
-  f2:enableCollisionAvoidance()
-  local representativeManikin = f2:getRepresentative()
+local function copyToStaticGeometry(activeObjNames)
+  -- Copies the rigid bodies with the given names to the static geometry
+  -- root
+  local activeObjRoot = Ips.getActiveObjectsRoot()
+  local geoRoot = Ips.getGeometryRoot()
+  for _, activeObjName in pairs(activeObjNames) do
+    local rigidBody = activeObjRoot:findFirstExactMatch(activeObjName):toRigidBodyObject()
+    copyRigidBodyGeometry(rigidBody, geoRoot)
+  end
+end
 
-  local measureTree = Ips.getMeasuresRoot()
-  local measure = measureTree:findFirstExactMatch("measure")
-  local measure_object = measure:toMeasure()
-  local gp_geo = treeobject:findFirstExactMatch("gripGeo")
-  local gp_geo1 = gp_geo:toPositionedTreeObject()
+local function getAllManikinFamilies()
+  local msc = ManikinSimulationController()
+  -- Manikin family IDs are UUIDs, not related to names or indices
+  local manikinFamilyIds = vectorToTable(msc:getManikinFamilyIDs())
+  local manikinFamilyNames = {}
+  for _, manikinFamilyId in pairs(manikinFamilyIds) do
+    manikinFamilyNames[#manikinFamilyNames+1] = {
+      id = manikinFamilyId,
+      name = msc:getManikinFamily(manikinFamilyId):getVisualization():getLabel(),
+    }
+  end
 
-  local ergoStandards = vectorToTable(f2:getErgoStandards())
+  return manikinFamilyNames
+end
+
+local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScreen, keepGenObj)
+  copyToStaticGeometry(geoNames)
+
+  local msc = ManikinSimulationController()
+  local activeObjsRoot = Ips.getActiveObjectsRoot()
+  local family = msc:getManikinFamily(manikinFamilyId)
+  local familyViz = family:getVisualization()
+  local ergoStandards = vectorToTable(family:getErgoStandards())
+  local reprManikinIdx = family:getRepresentative()
+  family:enableCollisionAvoidance()
+  local rightHandCtrlPoint = familyViz:findFirstExactMatch("Right Hand"):toControlPointVisualization():getControlPoint()
+
+  local gripPoint = msc:createGripPoint()
+  local gripPointViz = gripPoint:getVisualization()
+  -- genObjsRoot:insert(0, gripPoint)
+  gripPoint:setGripConfiguration("Tip Pinch")
+  gripPoint:setSymmetricRotationTolerances(math.huge, math.huge, math.huge)
+  gripPoint:setSymmetricTranslationTolerances(0.005, 0.005, 0.005)
+
+  local opSequence = OperationSequence()
+  opSequence:setLabel("Autopack ergo evaluation")
+  local familyActor = opSequence:addFamilyActor(familyViz)
+  familyActor:setCurrentStateAsStart()
+  -- Add a pause action so we get a time where the manikin is steadily
+  -- in its start state
+  local pauseAction = opSequence:createManikinWaitAction(familyActor, 1e-6)
+  local graspAction = opSequence:createManikinGraspAction(familyActor, gripPointViz)
+  if enableRbpp then
+    graspAction:enableRigidBodyPathPlanning()
+  else
+    graspAction:disableRigidBodyPathPlanning()
+  end
+  -- Add a release action as it seems to help with resetting the
+  -- manikins properly
+  local releaseAction = opSequence:createManikinReleaseAction(familyActor, gripPointViz)
+  releaseAction:maintainCurrentPosture()
+
   local outputTable = {
     ergoStandards = ergoStandards,
     ergoValues = {},
     gripDiffs = {},
+    errorMsgs = {},
   }
+  local replay -- Declared here to enable resetting after the loop
+  local pauseActionEndTime
   for coordIdx, coord in pairs(coords) do
-    gp_geo1:transform(coord[1], coord[2], coord[3], 0, 0, 0)
-    Ips.moveTreeObject(gp, family)
-    f2:posePredict(10)
-    -- updateScreen needed for measure to work
-    Ips.updateScreen()
-    local dist = measure_object:getValue()
+    moveGripPoint(gripPointViz, Vector3d(coord[1], coord[2], coord[3]))
+    replay = opSequence:executeSequence()
+    pauseActionEndTime = replay:getActionEndTime(pauseAction)
+    local graspActionEndTime = replay:getActionEndTime(graspAction)
+
+    if updateScreen then
+      Ips.updateScreen()
+    end
+
+    -- The control point gets deleted (???) after manipulating the manikin, so we must get it when we need it
+    local handRightTransl = getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t
+    local gripPointTransl = gripPoint:getTarget().t
+    local dist = handRightTransl:distance(gripPointTransl)
 
     local coordErgoValues = {}
     for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
-      local ergoValue = f2:evaluateStaticErgo(ergoStandard, representativeManikin)
-      coordErgoValues[ergoStandardIdx] = ergoValue
+      local ergoValues = vectorToTable(replay:computeErgonomicScore(ergoStandard, graspActionEndTime, graspActionEndTime))
+      coordErgoValues[ergoStandardIdx] = ergoValues
     end
     outputTable.ergoValues[coordIdx] = coordErgoValues
     outputTable.gripDiffs[coordIdx] = dist
+    outputTable.errorMsgs[coordIdx] = replay:getReplayErrorMessage(graspAction)
+    print("Autopack ergo evaluation: " .. coordIdx .. "/" .. #coords .. " done")
   end
+  -- Make sure that the replay is rewinded, to set the manikin back to
+  -- its start state. Rewinding to 0.0 does not properly reset the start
+  -- state.
+  replay:setTime(pauseActionEndTime)
+
+  if not keepGenObj then
+    Ips.deleteTreeObject(opSequence)
+    Ips.deleteTreeObject(gripPointViz)
+  end
+
   return outputTable
 end
 
+local function createColoredPointCloud(points, treeParent, treeObjName, removeExisting)
+  -- `points` is an array of arrays, where each sub-array is a point, described by 6 numbers:
+  -- x, y, z, r, g, b
+  local staticGeoRoot = Ips.getGeometryRoot()
+  if not treeParent then
+    treeParent = staticGeoRoot
+  end
+  if removeExisting then
+    local existingTreeObj = treeParent:findFirstExactMatch(treeObjName)
+    if existingTreeObj then
+      Ips.deleteTreeObject(existingTreeObj)
+    end
+  end
+  local builder = GeometryBuilder()
+  for pointIdx, point in pairs(points) do
+    builder:pushVertex(point[1], point[2], point[3])
+    builder:pushColor(point[4], point[5], point[6])
+  end
+
+  builder:buildPoints()
+  local treeObj = staticGeoRoot:getLastChild()
+  Ips.moveTreeObject(treeObj, treeParent)
+  treeObj:setLabel(treeObjName)
+
+  return treeObj
+end
+
 module.type = _type
-module.pack = pack
-module.unpack = unpack
+module.pack = _pack
+module.unpack = _unpack
 module.vectorToTable = vectorToTable
 module.range = range
 
 module.loadAndFitScene = loadAndFitScene
+module.clearScene = clearScene
 module.getCostField = getCostField
 module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts
 module.routeHarnessSolutions = routeHarnessSolutions
 module.coordDistancesToGeo = coordDistancesToGeo
+module.getAllManikinFamilies = getAllManikinFamilies
 module.evalErgo = evalErgo
+module.createColoredPointCloud = createColoredPointCloud
 
 module.base64 = base64
 module.inspect = inspect
