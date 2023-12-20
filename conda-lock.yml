@@ -15,7 +15,7 @@
 version: 1
 metadata:
   content_hash:
-    win-64: b531f9f9d7398c7c486965e8e193f8436e99db54d110933eb9d6b668c75c9aa6
+    win-64: 25193f0d90460cf33e56d46f984018cc25ae9fd627500afd3efd66b82c779360
   channels:
   - url: pytorch
     used_env_vars: []
@@ -417,6 +417,19 @@ package:
   hash:
     md5: 3faab06a954c2a04039983f2c4a50d99
     sha256: 2c1b2e9755ce3102bca8d69e8f26e4f087ece73f50418186aee7c74bef8e1698
+  category: main
+  optional: false
+- name: colorcet
+  version: 3.0.1
+  manager: conda
+  platform: win-64
+  dependencies:
+    pyct: '>=0.4.4'
+    python: '>=2.7'
+  url: https://conda.anaconda.org/conda-forge/noarch/colorcet-3.0.1-pyhd8ed1ab_0.tar.bz2
+  hash:
+    md5: 1e424f22b3e2713068fe12d57f2dec5b
+    sha256: 4e68730cc38236a736c8f1c6837c6460807cc0f0a5fd2166b3359d481e6f129f
   category: main
   optional: false
 - name: comm
@@ -991,6 +1004,27 @@ package:
     sha256: c445953db5ab087a4cd378c149db48ee4a886b0e6ce0ce469d779458ac251bc8
   category: dev
   optional: true
+- name: holoviews
+  version: 1.18.1
+  manager: conda
+  platform: win-64
+  dependencies:
+    bokeh: '>=3.1'
+    colorcet: ''
+    matplotlib-base: '>=3.0'
+    numpy: '>=1.0'
+    packaging: ''
+    pandas: '>=0.20.0'
+    panel: '>=1.0'
+    param: '>=1.12.0,<3.0'
+    python: '>=3.9'
+    pyviz_comms: '>=0.7.4'
+  url: https://conda.anaconda.org/conda-forge/noarch/holoviews-1.18.1-pyhd8ed1ab_0.conda
+  hash:
+    md5: bc06e444c2a2e62cfa730bc798af32c0
+    sha256: 3ae84d42970512160df677e22c70f4f76009fc60791050d10f02a45b1cc33243
+  category: main
+  optional: false
 - name: hpack
   version: 4.0.0
   manager: conda
@@ -1051,6 +1085,26 @@ package:
     sha256: 511f591643f9e67470d9217698a78dd40f3e6178798e79060c2142807e1d4861
   category: dev
   optional: true
+- name: hvplot
+  version: 0.9.0
+  manager: conda
+  platform: win-64
+  dependencies:
+    bokeh: '>=1.0.0'
+    colorcet: '>=2'
+    holoviews: '>=1.11.0'
+    numpy: '>=1.15'
+    packaging: ''
+    pandas: ''
+    panel: '>=0.11.0'
+    param: '>=1.9.0,<3.0'
+    python: '>=3.8'
+  url: https://conda.anaconda.org/conda-forge/noarch/hvplot-0.9.0-pyhd8ed1ab_0.conda
+  hash:
+    md5: a8de7286634ea0fad74e25b6fce670ad
+    sha256: e1e57deb40d8a5f27694bcf94c508d72c07dbd9659153cee04e6db2ed10a53bf
+  category: main
+  optional: false
 - name: hyperframe
   version: 6.0.1
   manager: conda
@@ -2654,6 +2708,22 @@ package:
     sha256: 74c63fd03f1f1ea2b54e8bc529fd1a600aaafb24027b738d0db87909ee3a33dc
   category: dev
   optional: true
+- name: pyct
+  version: 0.5.0
+  manager: conda
+  platform: win-64
+  dependencies:
+    param: '>=1.7.0'
+    python: '>=3.7'
+    pyyaml: ''
+    requests: ''
+    setuptools: '>=61.0'
+  url: https://conda.anaconda.org/conda-forge/noarch/pyct-0.5.0-pyhd8ed1ab_0.conda
+  hash:
+    md5: 24c245c82396be3297c0aa26b69e18d8
+    sha256: 0e1e17a37d53be84c33b88218f10afb5f8137f19a727fdc56e45ae0b8b439a57
+  category: main
+  optional: false
 - name: pydantic
   version: 2.5.2
   manager: conda
