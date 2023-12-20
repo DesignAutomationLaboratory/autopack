@@ -2807,15 +2807,15 @@ package:
   category: dev
   optional: true
 - name: pyinstaller-hooks-contrib
-  version: '2023.10'
+  version: '2023.11'
   manager: conda
   platform: win-64
   dependencies:
     python: '>=3'
-  url: https://conda.anaconda.org/conda-forge/noarch/pyinstaller-hooks-contrib-2023.10-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/pyinstaller-hooks-contrib-2023.11-pyhd8ed1ab_0.conda
   hash:
-    md5: 8415c7b8584bc3c6ca085421a2d63b19
-    sha256: b6d10f64043bd3123ae5fe850057498440fe0c5ffc5dfb6b3197b927d99eb112
+    md5: d72ba971f0f87b104d1b4716ee6b9e72
+    sha256: 2788c2281e76965e3655f7fe494ba9339e44b6a23805b6ae75a327e2a628071c
   category: dev
   optional: true
 - name: pyinstrument
