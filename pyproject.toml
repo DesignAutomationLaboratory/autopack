@@ -12,7 +12,7 @@ authors = [
 ]
 # Dependencies that are needed to actually run the application
 dependencies = [
-  "botorch",    # Bayesian optimization
+  "botorch",
   "facit",
   "holoviews",
   "hvplot",
