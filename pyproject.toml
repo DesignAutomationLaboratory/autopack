@@ -18,7 +18,6 @@ dependencies = [
   "msgpack",
   "numpy",
   "pydantic",
-  "smt",        # Surrogate modelling toolbox
   "matplotlib",
   "panel",
 ]

@@ -15,7 +15,7 @@
 version: 1
 metadata:
   content_hash:
-    win-64: c97d3648333d33dd0538d695dce39158d98552cca6d02bca2023cae970449aab
+    win-64: b531f9f9d7398c7c486965e8e193f8436e99db54d110933eb9d6b668c75c9aa6
   channels:
   - url: pytorch
     used_env_vars: []
@@ -2670,20 +2670,6 @@ package:
     sha256: 1f7b45d4f2f779c17d857551b57b52a584787abc65b46a210b84cc11b30802aa
   category: main
   optional: false
-- name: pydoe3
-  version: 1.0.1
-  manager: conda
-  platform: win-64
-  dependencies:
-    numpy: ''
-    python: '>=3.8'
-    scipy: ''
-  url: https://conda.anaconda.org/conda-forge/noarch/pydoe3-1.0.1-pyhd8ed1ab_0.conda
-  hash:
-    md5: c672479cbd7ebfc55d3f7115ba532e0f
-    sha256: 6a5d7a6eae36af6e7b2ca62c95f910ef2f6bb8f019e9870aa958f91eefe36760
-  category: main
-  optional: false
 - name: pygments
   version: 2.17.2
   manager: conda
@@ -3230,27 +3216,6 @@ package:
     sha256: 23011cb3e064525bdb8787c75126a2e78d2344a72cd6773922006d1da1f2af16
   category: dev
   optional: true
-- name: smt
-  version: 2.2.1
-  manager: conda
-  platform: win-64
-  dependencies:
-    matplotlib-base: ''
-    numpy: '>=1.23.5,<2.0a0'
-    pydoe3: ''
-    python: '>=3.11,<3.12.0a0'
-    python_abi: 3.11.*
-    scikit-learn: ''
-    scipy: ''
-    ucrt: '>=10.0.20348.0'
-    vc: '>=14.2,<15'
-    vc14_runtime: '>=14.29.30139'
-  url: https://conda.anaconda.org/conda-forge/win-64/smt-2.2.1-py311hf63dbb6_0.conda
-  hash:
-    md5: b69117457cbaa6a39401b2234ebccf8c
-    sha256: 3ac2a6f6e29fe17ed5e8797e34eea039b7d3c7543b7b3ac2a7876a00055a340f
-  category: main
-  optional: false
 - name: sniffio
   version: 1.3.0
   manager: conda
