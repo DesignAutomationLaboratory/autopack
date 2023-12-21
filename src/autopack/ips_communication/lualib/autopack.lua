@@ -408,13 +408,10 @@ local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScr
   local copiedGeoGroup = copyToStaticGeometry(geoNames)
 
   local msc = ManikinSimulationController()
-  local activeObjsRoot = Ips.getActiveObjectsRoot()
   local family = msc:getManikinFamily(manikinFamilyId)
   local familyViz = family:getVisualization()
   local ergoStandards = vectorToTable(family:getErgoStandards())
-  local reprManikinIdx = family:getRepresentative()
   family:enableCollisionAvoidance()
-  local rightHandCtrlPoint = familyViz:findFirstExactMatch("Right Hand"):toControlPointVisualization():getControlPoint()
 
   local gripPoint = msc:createGripPoint()
   local gripPointViz = gripPoint:getVisualization()
