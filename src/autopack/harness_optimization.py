@@ -162,7 +162,7 @@ def design_point_ds(
         cost_field=combined_cost_field,
         bundling_factor=x[-1],
         harness_id=case_id,
-        solutions_to_capture=[0],
+        solutions_to_capture=[],
         smooth_solutions=problem_setup.smooth_solutions,
         build_discrete_solutions=False,
         build_presmooth_solutions=False,
