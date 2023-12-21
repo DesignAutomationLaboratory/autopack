@@ -257,7 +257,7 @@ def minimize(
             candidate_xs,
             meta=OptimizationMeta(
                 category="qnehvi",
-                batch=iteration,
+                batch=iteration + 1,
             ),
         )
 

@@ -253,7 +253,7 @@ local function routeHarnessSolutions(
   end
 
   for _, solIdx in pairs(solutionIdxsToCapture) do
-    local solutionName = namePrefix .. "_" .. solIdx
+    local solutionName = namePrefix .. "." .. solIdx
 
     local segments = {}
     local numSegments = harnessRouter:getNumBundleSegments(solIdx)

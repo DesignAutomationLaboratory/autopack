@@ -149,7 +149,7 @@ def design_point_ds(
     """
     Evaluates a design point and returns a dataset with the results.
     """
-    case_id = f"{meta.category}.{meta.batch}.{iter_in_batch}"
+    case_id = f"{meta.batch}.{iter_in_batch}"
     cost_field_ids = [cf.name for cf in problem_setup.cost_fields]
 
     combined_cost_field = combine_cost_fields(
