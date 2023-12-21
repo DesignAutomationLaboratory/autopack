@@ -229,6 +229,8 @@ local function routeHarnessSolutions(
   buildCableSimulations
 )
   local harnessGroupName = "Autopack harnesses"
+  local harnessGeoGroup = getOrCreateGeometryGroup(harnessGroupName)
+  local harnessActiveGroup = getOrCreateActiveGroup(harnessGroupName)
   local harnessRouter = createHarnessRouter(harnessSetup)
   setHarnessRouterNodeCosts(harnessRouter, costs)
   harnessRouter:setObjectiveWeights(1, bundlingFactor, bundlingFactor)
@@ -275,27 +277,32 @@ local function routeHarnessSolutions(
       local builtDiscreteSegmentsTreeVector = harnessRouter:buildDiscreteSegments(solIdx)
       local builtDiscreteSolution = builtDiscreteSegmentsTreeVector[0]:getParent()
       builtDiscreteSolution:setLabel(solutionName .. " (discrete)")
-      Ips.moveTreeObject(builtDiscreteSolution, getOrCreateGeometryGroup(harnessGroupName))
+      Ips.moveTreeObject(builtDiscreteSolution, harnessGeoGroup)
     end
 
     if buildPresmoothSolutions then
       local builtPresmoothSegmentsTreeVector = harnessRouter:buildPresmoothSegments(solIdx)
       local builtPresmoothSolution = builtPresmoothSegmentsTreeVector[0]:getParent()
       builtPresmoothSolution:setLabel(solutionName .. " (presmooth)")
-      Ips.moveTreeObject(builtPresmoothSolution, getOrCreateGeometryGroup(harnessGroupName))
+      Ips.moveTreeObject(builtPresmoothSolution, harnessGeoGroup)
     end
 
     if buildSmoothSolutions then
       local builtSmoothSegmentsTreeVector = harnessRouter:buildSmoothSegments(solIdx, true)
       local builtSmoothSolution = builtSmoothSegmentsTreeVector[0]:getParent()
       builtSmoothSolution:setLabel(solutionName .. " (smooth)")
-      Ips.moveTreeObject(builtSmoothSolution, getOrCreateGeometryGroup(harnessGroupName))
+      Ips.moveTreeObject(builtSmoothSolution, harnessGeoGroup)
     end
 
     if buildCableSimulations then
       local builtCableSimulation = harnessRouter:buildSimulationObject(solIdx, true)
-      builtCableSimulation:setLabel(solutionName)
-      Ips.moveTreeObject(builtCableSimulation, getOrCreateActiveGroup(harnessGroupName))
+      if builtCableSimulation:hasExpired() then
+        log("Failed to build simulation object for solution " .. solutionName)
+        getOrCreateActiveGroup(solutionName .. " (failed)", harnessActiveGroup)
+      else
+        builtCableSimulation:setLabel(solutionName)
+        Ips.moveTreeObject(builtCableSimulation, harnessActiveGroup)
+      end
     end
 
     -- Gather the solution data
