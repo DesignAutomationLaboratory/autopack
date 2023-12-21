@@ -381,11 +381,12 @@ local function copyToStaticGeometry(activeObjNames)
   -- Copies the rigid bodies with the given names to the static geometry
   -- root
   local activeObjRoot = Ips.getActiveObjectsRoot()
-  local geoRoot = Ips.getGeometryRoot()
+  local destTreeObj = getOrCreateGeometryGroup("Autopack copied geometry")
   for _, activeObjName in pairs(activeObjNames) do
     local rigidBody = activeObjRoot:findFirstExactMatch(activeObjName):toRigidBodyObject()
-    copyRigidBodyGeometry(rigidBody, geoRoot)
+    copyRigidBodyGeometry(rigidBody, destTreeObj)
   end
+  return destTreeObj
 end
 
 local function getAllManikinFamilies()
@@ -404,7 +405,7 @@ local function getAllManikinFamilies()
 end
 
 local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScreen, keepGenObj)
-  copyToStaticGeometry(geoNames)
+  local copiedGeoGroup = copyToStaticGeometry(geoNames)
 
   local msc = ManikinSimulationController()
   local activeObjsRoot = Ips.getActiveObjectsRoot()
@@ -481,6 +482,7 @@ local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScr
   if not keepGenObj then
     Ips.deleteTreeObject(opSequence)
     Ips.deleteTreeObject(gripPointViz)
+    Ips.deleteTreeObject(copiedGeoGroup)
   end
 
   return outputTable
