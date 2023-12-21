@@ -27,6 +27,11 @@ local function _type(obj)
   end
 end
 
+local function log(msg)
+  -- Logs a message to the IPS log
+  print("Autopack: " .. msg)
+end
+
 local function pause(msg)
   -- Pauses the script until the user presses enter.
   local answer = Ips.question((msg or "") .. "\n\nContinue?")
@@ -84,7 +89,7 @@ local function treeObjChildren(treeObj)
 end
 
 local function loadAndFitScene(scenePath)
-  print("Loading scene " .. scenePath)
+  log("Loading scene " .. scenePath)
   local loaded = Ips.loadScene(scenePath)
   -- Fitting the scene helps with two things:
   -- 1. The scene is loaded in the background, and this makes sure it's
@@ -113,7 +118,7 @@ local function clearScene()
       Ips.deleteTreeObject(child)
     end
   end
-  print("Scene cleared")
+  log("Scene cleared")
 end
 
 local function getOrCreateActiveGroup(groupName, parent)
@@ -459,7 +464,7 @@ local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScr
     outputTable.ergoValues[coordIdx] = coordErgoValues
     outputTable.gripDiffs[coordIdx] = dist
     outputTable.errorMsgs[coordIdx] = replay:getReplayErrorMessage(graspAction)
-    print("Autopack ergo evaluation: " .. coordIdx .. "/" .. #coords .. " done")
+    log("Ergo evaluation: " .. coordIdx .. "/" .. #coords .. " done")
   end
   -- Make sure that the replay is rewinded, to set the manikin back to
   -- its start state. Rewinding to 0.0 does not properly reset the start
