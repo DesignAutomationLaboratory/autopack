@@ -238,10 +238,13 @@ local function routeHarnessSolutions(
 
   local numSolutions = harnessRouter:getNumSolutions()
   local solutions = {}
+  local smoothSolutionsAvailable = false
 
-  -- To be able to build the smooth segments, this step needs to be run first
-  if smoothSolutions or buildSmoothSolutions then
+  -- To be able to build the smooth segments or cable simulations, this
+  -- step needs to be run first
+  if smoothSolutions or buildSmoothSolutions or buildCableSimulations then
     harnessRouter:smoothHarness()
+    smoothSolutionsAvailable = true
   end
 
   if #solutionIdxsToCapture == 0 then
@@ -264,7 +267,7 @@ local function routeHarnessSolutions(
         clipPositions = nil,
       }
 
-      if smoothSolutions then
+      if smoothSolutionsAvailable then
         -- These are only available if we have run the smoothing step
         segment.smoothCoords = vectorToTable(harnessRouter:getSmoothSegment(solIdx, segIdx, false))
         segment.clipPositions = vectorToTable(harnessRouter:getClipPositions(solIdx, segIdx))
