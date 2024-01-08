@@ -195,12 +195,12 @@ local function getCostField(harnessSetup)
         -- IPS uses 0-based indexing for grid nodes
         local coord = harnessRouter:getNodePosition(i_x - 1, i_y - 1, i_z - 1)
         local cost = harnessRouter:getNodeCost(i_x - 1, i_y - 1, i_z - 1)
-        coords[i_x][i_y][i_z] = {coord.x, coord.y, coord.z}
+        coords[i_x][i_y][i_z] = { coord.x, coord.y, coord.z }
         costs[i_x][i_y][i_z] = cost
       end
     end
   end
-  return {coords=coords, costs=costs}
+  return { coords = coords, costs = costs }
 end
 
 local function setHarnessRouterNodeCosts(harnessRouter, costsArray)
@@ -398,7 +398,7 @@ local function getAllManikinFamilies()
   local manikinFamilyIds = vectorToTable(msc:getManikinFamilyIDs())
   local manikinFamilyNames = {}
   for _, manikinFamilyId in pairs(manikinFamilyIds) do
-    manikinFamilyNames[#manikinFamilyNames+1] = {
+    manikinFamilyNames[#manikinFamilyNames + 1] = {
       id = manikinFamilyId,
       name = msc:getManikinFamily(manikinFamilyId):getVisualization():getLabel(),
     }
