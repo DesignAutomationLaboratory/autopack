@@ -33,7 +33,7 @@ def load_scene(ips_instance, scene_file_path):
     return ips_instance.call("autopack.loadAndFitScene", scene_file_path)
 
 
-def route_harness_all_solutions(
+def route_harnesses(
     ips: IPSInstance,
     harness_setup: HarnessSetup,
     cost_field: CostField,
@@ -49,7 +49,7 @@ def route_harness_all_solutions(
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
 
     response = ips.call(
-        "autopack.routeHarnessSolutions",
+        "autopack.routeHarnesses",
         harness_setup,
         cost_field.costs,
         bundling_factor,
@@ -98,14 +98,6 @@ def route_harness_all_solutions(
         for solution in response
     ]
     return solutions
-
-
-def route_harness(
-    *args,
-    **kwargs,
-) -> Harness:
-    solutions = route_harness_all_solutions(*args, **kwargs, solutions_to_capture=[0])
-    return solutions[0]
 
 
 def check_distance_of_points(

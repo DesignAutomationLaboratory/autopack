@@ -4,7 +4,7 @@ import xarray as xr
 
 from . import data_model
 from .data_model import CostField, IPSInstance, ProblemSetup
-from .ips_communication.ips_commands import route_harness, route_harness_all_solutions
+from .ips_communication.ips_commands import route_harnesses
 from .optimization import OptimizationMeta, OptimizationProblem, minimize
 from .utils import path_length
 
@@ -122,7 +122,7 @@ def route_harness_from_dataset(
     # This assumes that the harness router is deterministic and
     # will always return the same harness for the same inputs.
     # FIXME: investigate whether this is true.
-    return route_harness_all_solutions(
+    return route_harnesses(
         ips=ips,
         harness_setup=problem_setup.harness_setup,
         cost_field=combined_cf,
@@ -156,7 +156,7 @@ def design_point_ds(
         cost_fields=problem_setup.cost_fields, weights=x[:-1], normalize_fields=True
     )
 
-    harness_solutions = route_harness_all_solutions(
+    harness_solutions = route_harnesses(
         ips=ips,
         harness_setup=problem_setup.harness_setup,
         cost_field=combined_cost_field,

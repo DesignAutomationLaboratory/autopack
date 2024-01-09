@@ -216,7 +216,7 @@ local function setHarnessRouterNodeCosts(harnessRouter, costsArray)
   end
 end
 
-local function routeHarnessSolutions(
+local function routeHarnesses(
   harnessSetup,
   costs,
   bundlingFactor,
@@ -526,7 +526,7 @@ module.loadAndFitScene = loadAndFitScene
 module.clearScene = clearScene
 module.getCostField = getCostField
 module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts
-module.routeHarnessSolutions = routeHarnessSolutions
+module.routeHarnesses = routeHarnesses
 module.coordDistancesToGeo = coordDistancesToGeo
 module.getAllManikinFamilies = getAllManikinFamilies
 module.evalErgo = evalErgo
