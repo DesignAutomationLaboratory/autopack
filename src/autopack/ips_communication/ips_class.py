@@ -87,6 +87,7 @@ class IPSInstance:
         self.process = None
         self.socket = None
         self.version = None
+        self.connected = False
 
     def start(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
@@ -107,6 +108,7 @@ class IPSInstance:
             f'print("Connected to Autopack v{__version__} on port {self.port}"); return Ips.getIPSVersion()'
         )
         logger.info(f"Connected to IPS {self.version} on port {self.port}")
+        self.connected = True
 
     def _eval(self, command: str) -> bytes:
         """
@@ -167,11 +169,13 @@ class IPSInstance:
 
     def kill(self):
         subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
+        self.connected = False
 
     def _wait_socket(self, flags, timeout=1000):
         """Wait for socket or crashed process."""
         while True:
             if self.process.poll() is not None:
+                self.connected = False
                 raise RuntimeError("Process died unexpectedly")
             if self.socket.poll(timeout, flags) != 0:
                 return
