@@ -54,10 +54,6 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
 class ProblemSetup(BaseModel):
     harness_setup: HarnessSetup
     cost_fields: List[CostField]
-    smooth_solutions: bool = Field(
-        default=False,
-        description="Whether to smooth solutions during routing. This will increase the runtime but might improve fidelity of the metrics.",
-    )
 
 
 class HarnessSegment(BaseModel, arbitrary_types_allowed=True):

@@ -163,10 +163,11 @@ def design_point_ds(
         bundling_factor=x[-1],
         harness_id=case_id,
         solutions_to_capture=[],
-        smooth_solutions=problem_setup.smooth_solutions,
+        smooth_solutions=True,
         build_discrete_solutions=False,
         build_presmooth_solutions=False,
         build_smooth_solutions=False,
+        build_cable_simulations=True,
     )
 
     num_ips_solutions = len(harness_solutions)
