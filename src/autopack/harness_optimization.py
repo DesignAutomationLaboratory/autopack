@@ -184,41 +184,63 @@ def design_point_ds(
     bundle_costs = bundle_total_costs[:, :, 0]
     total_costs = bundle_total_costs[:, :, 1]
 
-    num_clips = np.array([h.numb_of_clips for h in harness_solutions])
-    volumes = np.array([harness_volume(h) for h in harness_solutions])
-
     ds = xr.Dataset(
         {
-            "timestamp": pd.Timestamp.utcnow(),
-            "cost_field_weight": xr.DataArray(
-                x[:-1], coords={"cost_field": cost_field_ids}
+            "meta.timestamp": xr.DataArray(
+                np.tile(pd.Timestamp.utcnow(), num_ips_solutions),
+                dims=["solution"],
             ),
-            "bundling_factor": xr.DataArray(x[-1]),
+            "meta.category": xr.DataArray(
+                np.tile(meta.category, num_ips_solutions),
+                dims=["solution"],
+            ),
+            "meta.batch_idx": xr.DataArray(
+                np.tile(meta.batch, num_ips_solutions),
+                dims=["solution"],
+            ),
+            "meta.iter_idx": xr.DataArray(
+                np.tile(iter_in_batch, num_ips_solutions),
+                dims=["solution"],
+            ),
+            "meta.ips_idx": xr.DataArray(
+                range(num_ips_solutions),
+                dims=["solution"],
+            ),
+            "cost_field_weight": xr.DataArray(
+                np.tile(x[:-1], (num_ips_solutions, 1)),
+                dims=["solution", "cost_field"],
+            ),
+            "bundling_factor": xr.DataArray(
+                np.tile(x[-1], num_ips_solutions),
+                dims=["solution"],
+            ),
             "bundling_cost": xr.DataArray(
                 bundle_costs,
-                coords={
-                    "ips_solution": range(num_ips_solutions),
-                    "cost_field": cost_field_ids,
-                },
+                dims=["solution", "cost_field"],
             ),
             "total_cost": xr.DataArray(
                 total_costs,
-                coords={
-                    "ips_solution": range(num_ips_solutions),
-                    "cost_field": cost_field_ids,
-                },
+                dims=["solution", "cost_field"],
             ),
             "num_estimated_clips": xr.DataArray(
-                num_clips,
-                coords={"ips_solution": range(num_ips_solutions)},
+                [h.numb_of_clips for h in harness_solutions],
+                dims=["solution"],
             ),
             "harness_volume": xr.DataArray(
-                volumes,
-                coords={"ips_solution": range(num_ips_solutions)},
+                [harness_volume(h) for h in harness_solutions],
+                dims=["solution"],
+            ),
+            # FIXME: this doesn't work with zarr
+            "harness": xr.DataArray(
+                np.array(harness_solutions, dtype=object),
+                dims=["solution"],
             ),
         }
     )
-    ds = ds.expand_dims({"case": [case_id]}, axis=0)
+    ds = ds.assign_coords(
+        solution=[h.name for h in harness_solutions],
+        cost_field=cost_field_ids,
+    )
     return ds
 
 
@@ -229,22 +251,19 @@ def batch_voi(
     Takes the dataset for a full batch and returns the variables of
     interest (xs, objs, cons)
     """
-    objs = (
-        batch_ds[["bundling_cost", "total_cost", "num_estimated_clips"]]
-        .stack(combined=["case", "ips_solution"])
-        .to_stacked_array(new_dim="obj", sample_dims=["combined"], name="objectives")
-        .dropna("combined")
-    )
+    objs = batch_ds[
+        ["bundling_cost", "total_cost", "num_estimated_clips"]
+    ].to_stacked_array(new_dim="obj", sample_dims=["solution"], name="objectives")
     cons = np.empty((objs.shape[0], 0), dtype=float)
 
-    # Index the xs by the case from obj, so we get the corresponding x
-    # for each combined case and ips_solution
+    # Index the xs by the solution from obj, so we get the corresponding
+    # x for each solution
     xs = (
         batch_ds[["cost_field_weight", "bundling_factor"]]
         .to_stacked_array(
-            new_dim="desvar", sample_dims=["case"], name="design_variables"
+            new_dim="desvar", sample_dims=["solution"], name="design_variables"
         )
-        .sel(case=objs.case)
+        .sel(solution=objs.solution)
     )
 
     return (
@@ -276,7 +295,7 @@ def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
                 )
                 for i, x in enumerate(xs)
             ),
-            dim="case",
+            dim="solution",
         )
         batch_datasets.append(this_batch_dataset)
 
@@ -306,7 +325,7 @@ def global_optimize_harness(
         init_samples=init_samples,
     )
 
-    dataset = xr.concat(problem.state["batch_datasets"], dim="case")
+    dataset = xr.concat(problem.state["batch_datasets"], dim="solution")
     dataset.attrs["problem_setup"] = problem_setup
     dataset.attrs["init_samples"] = init_samples
     dataset.attrs["batches"] = batches
