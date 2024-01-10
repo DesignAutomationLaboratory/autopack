@@ -1,353 +1,203 @@
-import math
-import os
-import re
+import pathlib
 
-import pandas as pd
+import holoviews as hv
 import panel as pn
 import param
 
-import autopack.gui.visualisation_support.design_selection as design_selection
-import autopack.gui.visualisation_support.elements as elements
-import autopack.gui.visualisation_support.plots as plots
-from autopack.data_model import HarnessSetup
-from autopack.default_commands import create_default_prob_setup
-from autopack.gui.select_path import (
-    select_file_path,
-    select_folder_path,
-    select_save_file_path,
-)
-from autopack.harness_optimization import (
-    combine_cost_fields,
-    global_optimize_harness,
-    route_harness_from_dataset,
-)
-from autopack.io import load_dataset, save_dataset
+from autopack import USER_DIR
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.ips_communication.ips_commands import cost_field_vis, load_scene
 
-max_width_left_column = "200px"  # or whatever width you desire
-
-
-class GuiSetup(param.Parameterized):
-    ips_path = param.Parameter("", doc="Path to the IPS.exe")
-    harness_path = param.Parameter(
-        "", doc="Path to the json file describing the harness optimization setup"
-    )
-    run_imma = param.Parameter(
-        False, doc="Boolean describing if an Imma analyse will be run or not"
-    )
-    problem_setup = None
-    result = None
-    pandas_result = pd.DataFrame([])
-    ips_instance = None
+SETTINGS_PATH = USER_DIR / "gui-settings.json"
 
 
-def update_pandas_result(result_xarray):
-    # Convert to pandas DataFrame
-    ds = result_xarray
-    df2 = ds["cost_field_weight"].to_dataframe().unstack(level="cost_field")
-    df2.columns = [f"cost_field_weight_{col[1]}" for col in df2.columns]
+class Settings(param.Parameterized):
+    ips_path = param.Path(check_exists=False)
+    last_problem_path = param.Path(check_exists=False)
+    last_dataset_path = param.Path(check_exists=False)
 
-    df3 = ds["bundling_factor"].to_dataframe().reset_index()
+    @classmethod
+    def load_or_new(cls):
+        if SETTINGS_PATH.exists():
+            return cls(**cls.param.deserialize_parameters(SETTINGS_PATH.read_text()))
+        else:
+            return cls()
 
-    df4 = ds["bundling_cost"].to_dataframe().unstack(level="cost_field")
-    df4.columns = [f"bundling_cost_{col[1]}" for col in df4.columns]
-    df4 = df4.reset_index(level="ips_solution", drop=True)
-
-    df5 = ds["total_cost"].to_dataframe().unstack(level="cost_field")
-    df5.columns = [f"total_cost_{col[1]}" for col in df5.columns]
-    df5 = df5.reset_index(level="ips_solution", drop=True)
-
-    df6 = (
-        ds["num_estimated_clips"]
-        .to_dataframe()
-        .reset_index(level="ips_solution", drop=True)
-    )
-
-    result = df2.merge(df3, on="case", how="left")
-    result = result.merge(df4, on="case", how="left")
-    result = result.merge(df5, on="case", how="left")
-    result = result.merge(df6, on="case", how="left")
-    return result
+    @param.depends("ips_path", "last_problem_path", "last_dataset_path", watch=True)
+    def persist(self):
+        SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        settings_to_persist = set(self.param.params().keys()) - {"name"}
+        SETTINGS_PATH.write_text(
+            self.param.serialize_parameters(subset=settings_to_persist)
+        )
 
 
-gui_setup = GuiSetup()
+def create_settings_view(settings):
+    return pn.Param(settings, widgets={"ips_path": {"type": pn.widgets.TextInput}})
 
 
-def create_ips_instance():
-    folder_path = os.path.dirname(gui_setup.ips_path)
-    ips = IPSInstance(folder_path)
-    ips.start()
-    return ips
+class PostProcessor(param.Parameterized):
+    original_dataset = param.Parameter()
+    processed_dataset = param.Parameter()
+    processed_dataframe = param.Parameter()
+
+    _update = param.Event()
+
+    @param.depends("_update", "original_dataset", watch=True, on_init=True)
+    def update(self):
+        ds = self.original_dataset
+
+        if ds is None:
+            self.processed_dataset = None
+            self.processed_dataframe = None
+            return
+
+        # FIXME: do stuff
+        processed_ds = ds
+        processed_df = (
+            processed_ds.drop_dims("cost_field").drop_vars("harness").to_dataframe()
+        )
+
+        self.processed_dataset = processed_ds
+        self.processed_dataframe = processed_df
+
+    @param.depends("original_dataset")
+    def view(self):
+        return pn.widgets.StaticText(value="Hello World")
 
 
-def reconnect_ips(event):
-    gui_setup.ips_instance = create_ips_instance()
-    scene_file_path = gui_setup.problem_setup.harness_setup.scene_path
-    load_scene(gui_setup.ips_instance, scene_file_path)
+class DataTable(param.Parameterized):
+    dataframe = param.Parameter()
 
-
-def save_to_file(event):
-    """
-    Saves the GuiSetup instance to a file.
-    """
-    filename = select_folder_path()
-    save_dataset(gui_setup.result, filename)
-
-
-def load_from_file(event):
-    """
-    Loads the GuiSetup instance from a file.
-    """
-    file_path = select_folder_path()
-    gui_setup.result = load_dataset(file_path)
-    gui_setup.pandas_result = update_pandas_result(gui_setup.result)
-    problem_setup = gui_setup.result.attrs.get("problem_setup", "")
-    gui_setup.problem_setup = problem_setup
-    new_scatter_row, new_table_row, new_radar_row = update_plots()
-    scatter_row.objects = new_scatter_row.objects
-    table_row.objects = new_table_row.objects
-    radar_row.objects = new_radar_row.objects
-    new_cost_field_vis_row = vis_cost_field_row(gui_setup.result)
-    cost_field_vis_row.objects = new_cost_field_vis_row.objects
-
-
-def click_load(event):
-    file_path = select_file_path()
-    gui_setup.ips_path = file_path
-
-
-def click_select_IPS(event):
-    file_path = select_file_path()
-    gui_setup.ips_path = file_path
-
-
-def click_select_optimization_setup(event):
-    file_path = select_file_path()
-    gui_setup.harness_path = file_path
-
-
-def click_run_optimization(event):
-    computational_budget = numb_of_designs_to_run.value
-    optimization_status.value = "Creating cost fields..."
-    with open(gui_setup.harness_path, "r") as f:
-        user_json_str = f.read()
-    harness_setup = HarnessSetup.model_validate_json(user_json_str)
-    ips_instance = create_ips_instance()
-    prob_setup = create_default_prob_setup(
-        ips_instance, harness_setup, create_imma=imma_checkbox.value
-    )
-    gui_setup.problem_setup = prob_setup
-    optimization_status.value = "Performing global optimization..."
-    init_samples = max(2, int(computational_budget * 0.2))
-    batches = max(1, int(math.sqrt(computational_budget * 0.8)))
-    batch_size = max(2, int(math.sqrt(computational_budget * 0.8)))
-    results = global_optimize_harness(
-        ips_instance,
-        prob_setup,
-        init_samples=init_samples,
-        batches=batches,
-        batch_size=batch_size,
-    )
-    gui_setup.ips_instance = ips_instance
-    gui_setup.result = results
-    optimization_status.value = "Global optimization finished"
-    gui_setup.pandas_result = update_pandas_result(results)
-    new_scatter_row, new_table_row, new_radar_row = update_plots()
-    scatter_row.objects = new_scatter_row.objects
-    table_row.objects = new_table_row.objects
-    radar_row.objects = new_radar_row.objects
-    new_cost_field_vis_row = vis_cost_field_row(gui_setup.result)
-    cost_field_vis_row.objects = new_cost_field_vis_row.objects
-    # data = ["Item 1", "Item 2", "Item 3", "Item 4"]
-    # gui_setup.cost_fields = "\n".join(f"- {item}" for item in data)
-
-
-button_save = pn.widgets.Button(name="Save")
-button_save.on_click(save_to_file)
-button_load = pn.widgets.Button(name="Load")
-button_load.on_click(load_from_file)
-button_reconnect_IPS = pn.widgets.Button(name="Reconnect IPS")
-button_reconnect_IPS.on_click(reconnect_ips)
-
-save_column = pn.Column(
-    button_save, button_load, button_reconnect_IPS, styles=dict(background="#FF0000")
-)
-# top_text = pn.widgets.StaticText(value="Autopack")
-top_text = pn.pane.HTML(
-    '<div style="font-size: 60px; color: white;">Autopack</div>', height=110
-)
-gspec_top = pn.GridSpec(sizing_mode="stretch_both")
-gspec_top[0, :6] = pn.Row(top_text, styles=dict(background="#FF0000"))
-gspec_top[0, 6:] = save_column
-
-button_select_ips_path = pn.widgets.Button(name="Select IPS run path")
-button_select_ips_path.on_click(click_select_IPS)
-ips_path = pn.widgets.StaticText(
-    name="IPS run path",
-    value=gui_setup.param.ips_path,
-    styles={"max-width": max_width_left_column},
-)
-
-button_select_optimization_setup = pn.widgets.Button(name="Select harness setup")
-button_select_optimization_setup.on_click(click_select_optimization_setup)
-harness_path = pn.widgets.StaticText(
-    name="Harness setup",
-    value=gui_setup.param.harness_path,
-    styles={"max-width": max_width_left_column},
-)
-imma_checkbox = pn.widgets.Checkbox(
-    name="Perform IMMA analyse", value=gui_setup.param.run_imma
-)
-
-
-button_run_optimization = pn.widgets.Button(name="Run optimization")
-button_run_optimization.on_click(click_run_optimization)
-numb_of_designs_to_run = pn.widgets.IntInput(
-    name="Number of designs wanted", value=5, step=1, start=0, end=1000
-)
-
-optimization_status = pn.widgets.StaticText(value="")
-
-setup_column = pn.Column(
-    button_select_ips_path,
-    ips_path,
-    button_select_optimization_setup,
-    harness_path,
-    imma_checkbox,
-    numb_of_designs_to_run,
-    button_run_optimization,
-    optimization_status,
-    styles=dict(background="#ff9999"),
-)
-
-
-def generate_scatter(df):
-    scatter = plots.create_interactive_scatter(df, select_on_top=True)
-    scatter_row = pn.Row(scatter)
-    return scatter_row
-
-
-def generate_radar(df):
-    filtered_columns = df[
-        [
-            col
-            for col in df.columns
-            if col.startswith("bundling_cost")
-            or col.startswith("total_")
-            or col.startswith("num_estim")
-        ]
-    ]
-    df = filtered_columns
-    ####        Radar chart         ####
-    radar_plot, fig = plots.create_radar_chart(df)
-    row_select = elements.create_row_select(df)
-    column_select = elements.create_column_select(df)
-
-    def filter_dataframe(df, rows, cols):
-        return df.loc[rows, cols]
-
-    radar_button = pn.widgets.Button(name="Update radar", button_type="primary")
-
-    def b(event):
-        new_df = filter_dataframe(df, row_select.value, column_select.value)
-        new_plot, fig = plots.create_radar_chart(new_df)
-        radar_plot.object = fig
-
-    radar_button.on_click(b)
-
-    kmean_int_input = pn.widgets.IntInput(
-        name="Nmb of designs", value=1, step=1, start=1, end=len(df.index)
-    )
-    kmean_button = pn.widgets.Button(name="Automatic select", button_type="primary")
-
-    def kmean_filter(event):
-        selected = design_selection.select_KMeans(df, kmean_int_input.value)
-        row_select.value = selected
-
-    kmean_button.on_click(kmean_filter)
-
-    k_mean_row = pn.Row(kmean_int_input, kmean_button)
-    radar_row = pn.Row(
-        radar_plot, pn.Column(k_mean_row, row_select, column_select, radar_button)
-    )
-    return radar_row
-
-
-def vis_cost_field(event):
-    weights = []
-    for widget in cost_field_vis_row:
-        weights.append(widget.value)
-    cost_fields = gui_setup.problem_setup.cost_fields
-    cost_field = combine_cost_fields(cost_fields, weights, normalize_fields=True)
-    cost_field_vis(gui_setup.ips_instance, cost_field)
-
-
-button_vis_cost_field = pn.widgets.Button(name="Visulise cost field")
-button_vis_cost_field.on_click(vis_cost_field)
-
-
-def vis_cost_field_row(xarray):
-    cost_field_vis_row = pn.Row()
-    if xarray is not None:
-        cost_field_array = xarray["cost_field"].values
-        cost_field_list = cost_field_array.flatten().tolist()
-        for field in cost_field_list:
-            cost_field_vis_row.append(
-                pn.widgets.FloatInput(name=field, value=0.5, step=1e-2, start=0, end=1)
+    @param.depends("dataframe")
+    def view(self):
+        if self.dataframe is None:
+            return pn.widgets.StaticText(value="No dataset loaded")
+        # FIXME: stack/pivot the dataframe properly, so that the cost
+        # fields show up as hierarchical columns instead
+        return pn.WidgetBox(
+            pn.widgets.Tabulator(
+                self.dataframe,
             )
-    return cost_field_vis_row
-    # numb_of_designs_to_run = pn.widgets.IntInput(name='Number of designs wanted', value=5, step=1, start=0, end=1000)
+        )
 
 
-def update_plots():
-    df2 = gui_setup.pandas_result
-    d = {"col1": [0], "col2": [0]}
-    df1 = pd.DataFrame(data=d)
-    # df2 = variables_used.my_setup.optimization_results
+class InteractiveScatterPlot(param.Parameterized):
+    dataset = param.Parameter()
+    x = param.Selector()
+    y = param.Selector()
+    color = param.Selector(default=None)
+    by = param.Selector(default=None)
 
-    if len(df2.columns) < 1:
-        df = df1
-    else:
-        df = df2
-    scatter_row = generate_scatter(df)
-    result_table = pn.widgets.DataFrame(df)
+    @param.depends("dataset", watch=True, on_init=True)
+    def update_choices(self):
+        if self.dataset is None:
+            return
+        else:
+            selectable_dims = list(self.dataset.dims.keys())
+            selectable_vars = list(self.dataset.data_vars.keys())
 
-    def create_selected_harness(event):
-        selection = result_table.selection
-        if selection:
-            selected_df = df.iloc[selection, :]
-            for index, row in selected_df.iterrows():
-                route_harness_from_dataset(
-                    gui_setup.ips_instance,
-                    gui_setup.result,
-                    row["case"],
-                    build_cable_simulation=True,
-                )
+        self.param.x.objects = selectable_vars
+        self.x = selectable_vars[0]
+        self.param.y.objects = selectable_vars
+        self.y = selectable_vars[1]
+        self.param.color.objects = [None, *selectable_vars]
+        self.color = None
+        self.param.by.objects = [None, *selectable_dims]
+        self.by = None
 
-    button_create_harness = pn.widgets.Button(name="Create selected harnesses")
-    button_create_harness.on_click(create_selected_harness)
-    table_row = pn.Row(result_table, button_create_harness)
-    radar_row = generate_radar(df)
-    return scatter_row, table_row, radar_row
+    def _plot_view(self):
+        return self.dataset.hvplot.scatter(
+            x=self.x,
+            y=self.y,
+            c=self.color,
+            by=self.by,
+            groupby=[],
+            colormap="viridis",
+            colorbar=True,
+        ).opts(title="")
+
+    def _select_view(self):
+        return pn.Row(
+            self.param.x,
+            self.param.y,
+            self.param.color,
+            self.param.by,
+        )
+
+    @param.depends("dataset", "x", "y", "color", "by")
+    def view(self):
+        if self.dataset is None:
+            return pn.widgets.StaticText(value="No dataset loaded")
+        return pn.WidgetBox(
+            self._select_view(),
+            self._plot_view(),
+        )
 
 
-scatter_row, table_row, radar_row = update_plots()
-cost_field_vis_row = vis_cost_field_row(gui_setup.result)
-plot_area = pn.Column(
-    scatter_row, table_row, radar_row, cost_field_vis_row, button_vis_cost_field
-)
+class VisualizationManager(param.Parameterized):
+    dataset = param.Parameter()
+    post_processor = param.Parameter(default=PostProcessor())
+    scatter_plot = param.Parameter(default=InteractiveScatterPlot())
+    data_table = param.Parameter(default=DataTable())
+
+    @param.depends("dataset", watch=True, on_init=True)
+    def _update_dataset(self):
+        self.post_processor.original_dataset = self.dataset
+
+    @param.depends("post_processor.processed_dataset", watch=True, on_init=True)
+    def _update_processed_dataset(self):
+        self.scatter_plot.dataset = self.post_processor.processed_dataset
+        self.data_table.dataframe = self.post_processor.processed_dataframe
+
+    @param.depends("dataset")
+    def view(self):
+        if self.dataset is None:
+            return pn.widgets.StaticText(value="No dataset loaded")
+        return pn.Column(
+            self.post_processor.view,
+            self.scatter_plot.view,
+            self.data_table.view,
+        )
 
 
-gspec = pn.GridSpec(sizing_mode="stretch_both")
-gspec[0, :6] = gspec_top
-gspec[1:12, 0] = setup_column
-gspec[1:12, 1:] = plot_area
-app = gspec
+class MainState(param.Parameterized):
+    settings = param.ClassSelector(class_=Settings)
+    viz_manager = param.ClassSelector(class_=VisualizationManager)
 
-app.servable()
+    _ips = param.Parameter()
+    dataset = param.Parameter()
 
-# To run use python -m panel serve  --autoreload --show gui/main_gui.py
+    @property
+    def ips(self):
+        _ips = self._ips
+        if _ips is None:
+            _ips = IPSInstance(self.settings.ips_path)
+            self._ips = _ips
+        if not self._ips.connected:
+            _ips.start()
 
-# conda run -n autopack python -m bokeh serve --show app.py
-#  python -m panel serve  --autoreload --show app.py #
+        return _ips
+
+    @param.depends("dataset", watch=True, on_init=True)
+    def _update_dataset(self):
+        self.viz_manager.dataset = self.dataset
+
+
+def make_gui(**main_state_kwargs):
+    pn.extension("tabulator")
+    hv.extension("bokeh")
+
+    settings = Settings.load_or_new()
+    viz_manager = VisualizationManager()
+    main_state = MainState(
+        settings=settings, viz_manager=viz_manager, **main_state_kwargs
+    )
+
+    return pn.template.BootstrapTemplate(
+        title="Autopack",
+        header_background="#b31f2f",  # IPS red
+        sidebar=[
+            create_settings_view(settings),
+        ],
+        main=[viz_manager.view],
+    )

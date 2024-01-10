@@ -27,7 +27,9 @@ if __name__ == "__main__":
         logger.notice(f"Starting Autopack v{__version__}")
         logger.notice(f"Writing debug log to {DEBUG_LOG_PATH}")
         # Import here so we get the logging up and running before
-        from autopack.gui.main_gui import app
+        from autopack.gui.main_gui import make_gui
+
+        app = make_gui()
 
         panel.serve(app, show=True)
     sys.exit(0)
