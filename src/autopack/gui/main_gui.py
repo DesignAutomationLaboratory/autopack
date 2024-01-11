@@ -8,17 +8,24 @@ import holoviews as hv
 import hvplot.xarray  # noqa: F401
 import panel as pn
 import param
+from panel import theme
 
-from autopack import USER_DIR, __version__
+from autopack import USER_DIR, __version__, logger
 from autopack.data_model import HarnessSetup
 from autopack.default_commands import create_default_prob_setup
 from autopack.harness_optimization import global_optimize_harness
-from autopack.io import load_dataset, save_dataset
+from autopack.io import load_session, save_session
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.ips_communication.ips_commands import load_scene, save_scene
 
 SETTINGS_PATH = USER_DIR / "gui-settings.json"
 SESSIONS_DIR = USER_DIR / "sessions"
+
+# For some reason, the sidebar is borked in MaterialTemplate.
+SIDEBAR_CSS_HACK = """
+#sidebar .mdc-list {
+    width: 100%;
+}
+"""
 
 
 def make_session_name(problem_path: pathlib.Path):
@@ -26,6 +33,10 @@ def make_session_name(problem_path: pathlib.Path):
     timestamp = datetime.datetime.utcnow()
     timestamp_str = timestamp.strftime("%Y-%m-%dT%H%M%S")
     return f"{problem_name}.{timestamp_str}.v{__version__}"
+
+
+def section_header(text):
+    return pn.pane.HTML(f"<b>{text}</b>")
 
 
 def open_problem_path_dialog(
@@ -82,14 +93,6 @@ class Settings(param.Parameterized):
         )
 
 
-def create_settings_view(settings):
-    return pn.Param(
-        settings,
-        parameters=["ips_path"],
-        widgets={"ips_path": {"type": pn.widgets.TextInput}},
-    )
-
-
 class PostProcessor(param.Parameterized):
     original_dataset = param.Parameter()
     processed_dataset = param.Parameter()
@@ -130,9 +133,7 @@ class DataTable(param.Parameterized):
         # FIXME: stack/pivot the dataframe properly, so that the cost
         # fields show up as hierarchical columns instead
         return pn.WidgetBox(
-            pn.widgets.Tabulator(
-                self.dataframe,
-            )
+            pn.widgets.Tabulator(self.dataframe, layout="fit_data_fill")
         )
 
 
@@ -212,11 +213,26 @@ class VisualizationManager(param.Parameterized):
     @param.depends("dataset")
     def view(self):
         if self.dataset is None:
-            return pn.widgets.StaticText(value="No dataset loaded")
+            return pn.Column(
+                pn.VSpacer(),
+                pn.pane.Markdown(
+                    """
+                    # No session loaded
+                    Get started by running a problem or loading an existing session.
+                    """,
+                    style={"text-align": "center"},
+                    # To disable nifty features
+                    renderer="markdown",
+                ),
+                pn.VSpacer(),
+                sizing_mode="stretch_both",
+                align="center",
+            )
         return pn.Column(
             self.post_processor.view,
             self.scatter_plot.view,
             self.data_table.view,
+            sizing_mode="stretch_both",
         )
 
 
@@ -227,8 +243,10 @@ class MainState(param.Parameterized):
     problem_path = param.Path()
     session_path = param.Foldername()
 
-    run_problem_evt = param.Event(label="Run problem")
-    load_session_evt = param.Event(label="Load session")
+    run_problem = param.Event(label="Run problem")
+    load_session = param.Event(label="Load session")
+
+    working = param.Boolean(default=False)
 
     _ips = param.Parameter()
     dataset = param.Parameter()
@@ -248,77 +266,131 @@ class MainState(param.Parameterized):
     def _update_dataset(self):
         self.viz_manager.dataset = self.dataset
 
-    def session_manager_view(self):
+    def sidebar_view(self):
         problem_path_input = pn.widgets.TextInput.from_param(self.param.problem_path)
-        run_btn = pn.widgets.Button.from_param(self.param.run_problem_evt)
-
+        run_btn = pn.widgets.Button.from_param(
+            self.param.run_problem,
+            button_type="primary",
+        )
         session_path_input = pn.widgets.TextInput.from_param(self.param.session_path)
-        load_btn = pn.widgets.Button.from_param(self.param.load_session_evt)
+        load_btn = pn.widgets.Button.from_param(
+            self.param.load_session,
+            button_type="primary",
+        )
+        ips_path_input = pn.widgets.TextInput.from_param(self.settings.param.ips_path)
 
-        layout = pn.Column(
+        def disable_when_working(working):
+            problem_path_input.disabled = working
+            session_path_input.disabled = working
+            ips_path_input.disabled = working
+            run_btn.disabled = working
+            load_btn.disabled = working
+
+        self.param.watch_values(disable_when_working, "working")
+
+        run_problem_panes = (
+            section_header("Run problem"),
             problem_path_input,
             run_btn,
+        )
+
+        load_session_panes = (
+            section_header("Load session"),
             session_path_input,
             load_btn,
         )
 
+        settings_panes = pn.WidgetBox(
+            section_header("Settings"),
+            ips_path_input,
+        )
+
+        layout = pn.Column(
+            *run_problem_panes,
+            "",
+            *load_session_panes,
+            "",
+            *settings_panes,
+        )
         return layout
 
-    @param.depends("run_problem_evt", watch=True)
-    def run_problem(self):
-        problem_path = pathlib.Path(self.problem_path)
-        session_name = make_session_name(problem_path)
-        session_path = SESSIONS_DIR / session_name
-        session_path.mkdir(parents=True, exist_ok=False)
+    def data_view(self):
+        panel = pn.panel(self.viz_manager.view)
 
-        self.settings.last_problem_path = problem_path
+        def disable_when_working(working):
+            panel.loading = working
 
-        shutil.copy(problem_path, session_path / "setup.json")
+        self.param.watch_values(disable_when_working, "working")
 
-        harness_setup = HarnessSetup.from_json_file(problem_path)
-        problem_setup = create_default_prob_setup(
-            ips_instance=self.ips,
-            harness_setup=harness_setup,
-            create_imma=True,
-        )
+        return panel
 
-        dataset = global_optimize_harness(
-            ips_instance=self.ips,
-            problem_setup=problem_setup,
-            init_samples=2,
-            batches=2,
-            batch_size=2,
-        )
+    @param.depends("run_problem", "load_session", watch=True)
+    def _update_working(self):
+        self.working = True
 
-        # Save the scene so we can inspect solutions later
-        save_scene(self.ips, session_path / "scene.ips")
-        save_dataset(dataset, session_path / "dataset.pkl")
-        session_marker = session_path / ".autopack-session"
-        session_marker.touch()
+    @param.depends("run_problem", watch=True)
+    def _run_problem(self):
+        try:
+            self.working = True
 
-        self.session_path = session_path
-        self.settings.last_session_path = session_path
+            problem_path = pathlib.Path(self.problem_path)
+            session_name = make_session_name(problem_path)
+            session_path = SESSIONS_DIR / session_name
+            session_path.mkdir(parents=True, exist_ok=False)
 
-        self.dataset = dataset
+            self.settings.last_problem_path = problem_path
 
-    @param.depends("load_session_evt", watch=True)
-    def load_session(self):
-        session_path = pathlib.Path(self.session_path)
-        session_marker = session_path / ".autopack-session"
-        if not session_marker.exists():
-            raise ValueError(
-                f"{self.session_path} is not a complete Autopack session directory"
+            shutil.copy(problem_path, session_path / "setup.json")
+
+            harness_setup = HarnessSetup.from_json_file(problem_path)
+            problem_setup = create_default_prob_setup(
+                ips_instance=self.ips,
+                harness_setup=harness_setup,
+                create_imma=True,
             )
 
-        self.dataset = load_dataset(session_path / "dataset.pkl")
-        load_scene(self.ips, session_path / "scene.ips", clear=True)
+            dataset = global_optimize_harness(
+                ips_instance=self.ips,
+                problem_setup=problem_setup,
+                init_samples=2,
+                batches=2,
+                batch_size=2,
+            )
 
-        self.settings.last_session_path = session_path
+            save_session(dataset=dataset, ips=self.ips, session_dir=session_path)
+            logger.notice(f"Saved session to {session_path}")
+            self.session_path = str(session_path)
+            self.settings.last_session_path = str(session_path)
+
+            self.dataset = dataset
+        except Exception as exc:
+            logger.exception(exc)
+        finally:
+            self.working = False
+
+    @param.depends("load_session", watch=True)
+    def _load_session(self):
+        try:
+            self.working = True
+            session_path = pathlib.Path(self.session_path)
+            dataset = load_session(ips=self.ips, session_dir=session_path)
+
+            self.dataset = dataset
+
+            self.settings.last_session_path = str(session_path)
+        except Exception as exc:
+            logger.exception(exc)
+            self.status = "Something went wrong. See the console for details."
+        finally:
+            self.working = False
 
 
 def make_gui(**main_state_kwargs):
     pn.extension("tabulator")
     hv.extension("bokeh")
+    pn.config.sizing_mode = "stretch_width"
+    pn.config.design = theme.Material
+    pn.config.raw_css.append(SIDEBAR_CSS_HACK)
 
     settings = Settings.load_or_new()
     viz_manager = VisualizationManager()
@@ -330,12 +402,11 @@ def make_gui(**main_state_kwargs):
         **main_state_kwargs,
     )
 
-    return pn.template.BootstrapTemplate(
+    template = pn.template.MaterialTemplate(
         title="Autopack",
         header_background="#b31f2f",  # IPS red
-        sidebar=[
-            main_state.session_manager_view(),
-            create_settings_view(settings),
-        ],
-        main=[viz_manager.view],
+        sidebar_width=400,
+        sidebar=[main_state.sidebar_view()],
+        main=[main_state.data_view()],
     )
+    return template
