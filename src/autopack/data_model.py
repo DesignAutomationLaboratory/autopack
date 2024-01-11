@@ -1,4 +1,4 @@
-import json
+import pathlib
 from typing import Any, List, Literal, Optional
 
 import numpy as np
@@ -33,6 +33,10 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
         0.01875,
         0.075,
     )  # min/max distance between branch and clip
+
+    @classmethod
+    def from_json_file(cls, json_path: pathlib.Path):
+        return cls.model_validate_json(json_path.read_text())
 
 
 class CostField(BaseModel, arbitrary_types_allowed=True):
