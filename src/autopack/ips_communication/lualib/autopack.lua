@@ -99,6 +99,11 @@ local function loadAndFitScene(scenePath)
   return loaded
 end
 
+local function saveScene(scenePath)
+  log("Saving scene " .. scenePath)
+  return Ips.saveScene(scenePath)
+end
+
 local function clearScene()
   -- Clears the scene of all active objects, static geometry, measures,
   -- and mechanisms
@@ -523,6 +528,7 @@ module.vectorToTable = vectorToTable
 module.range = range
 
 module.loadAndFitScene = loadAndFitScene
+module.saveScene = saveScene
 module.clearScene = clearScene
 module.getCostField = getCostField
 module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts

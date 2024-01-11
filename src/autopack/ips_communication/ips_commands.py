@@ -29,8 +29,14 @@ def create_costfield(ips_instance, harness_setup):
     return ips_field, length_field
 
 
-def load_scene(ips_instance, scene_file_path):
-    return ips_instance.call("autopack.loadAndFitScene", scene_file_path)
+def load_scene(ips_instance, scene_file_path: PathLike, clear=False):
+    if clear:
+        ips_instance.call("autopack.clearScene")
+    return ips_instance.call("autopack.loadAndFitScene", str(scene_file_path))
+
+
+def save_scene(ips, scene_file_path: PathLike):
+    return ips.call("autopack.saveScene", str(scene_file_path))
 
 
 def route_harnesses(
