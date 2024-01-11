@@ -88,4 +88,6 @@ def tests(c: Context, env_name=DEFAULT_ENV_NAME):
 
 @task
 def app(c: Context, env_name=DEFAULT_ENV_NAME):
-    conda_run(c, "python src/autopack/gui_entrypoint.py", env_name=env_name)
+    conda_run(
+        c, "panel serve --autoreload src/autopack/gui_entrypoint.py", env_name=env_name
+    )

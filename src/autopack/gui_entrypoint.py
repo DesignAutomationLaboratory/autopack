@@ -22,14 +22,29 @@ log_handler = logbook.NestedSetup(
     ]
 )
 
+
+def init_app():
+    USER_DIR.mkdir(parents=True, exist_ok=True)
+
+    log_handler.push_application()
+    logger.notice(f"Starting Autopack v{__version__}")
+    logger.notice(f"Writing debug log to {DEBUG_LOG_PATH}")
+
+    # Import here so we get the logging up and running before
+    from autopack.gui.main_gui import make_gui  # noqa: E402
+
+    app = make_gui()
+
+    return app
+
+
 if __name__ == "__main__":
-    with log_handler.applicationbound():
-        logger.notice(f"Starting Autopack v{__version__}")
-        logger.notice(f"Writing debug log to {DEBUG_LOG_PATH}")
-        # Import here so we get the logging up and running before
-        from autopack.gui.main_gui import make_gui
+    # Running as a script
 
-        app = make_gui()
-
-        panel.serve(app, show=True)
+    panel.serve(init_app(), show=True)
     sys.exit(0)
+
+if __name__.startswith("bokeh_app"):
+    # Running under `panel serve ...` or `bokeh serve ...`
+
+    init_app().servable()
