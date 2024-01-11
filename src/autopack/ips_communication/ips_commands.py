@@ -1,3 +1,4 @@
+from os import PathLike
 from typing import Optional
 
 import numpy as np
