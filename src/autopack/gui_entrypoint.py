@@ -4,9 +4,9 @@ import sys
 import logbook
 import panel
 
-from autopack import __version__, logger
+from autopack import USER_DIR, __version__, logger
 
-DEBUG_LOG_PATH = pathlib.Path.home() / ".autopack-debug.log"
+DEBUG_LOG_PATH = USER_DIR / "debug.log"
 
 log_handler = logbook.NestedSetup(
     [
