@@ -4,7 +4,7 @@ from autopack.ips_communication.ips_commands import create_costfield, load_scene
 
 
 def create_default_prob_setup(ips_instance, harness_setup, create_imma=False):
-    load_scene(ips_instance, harness_setup.scene_path)
+    load_scene(ips_instance, harness_setup.scene_path, clear=True)
     cost_field_ips, cost_field_length = create_costfield(ips_instance, harness_setup)
     opt_setup = ProblemSetup(
         harness_setup=harness_setup, cost_fields=[cost_field_ips, cost_field_length]
