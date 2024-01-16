@@ -28,6 +28,13 @@ SIDEBAR_CSS_HACK = """
 """
 
 
+def exception_handler(exc):
+    logger.exception(exc)
+    pn.state.notifications.error(
+        "Something went wrong. See the console for details.",
+    )
+
+
 def make_session_name(problem_path: pathlib.Path):
     problem_name = problem_path.stem
     timestamp = datetime.datetime.utcnow()
@@ -258,7 +265,11 @@ class MainState(param.Parameterized):
             _ips = IPSInstance(self.settings.ips_path)
             self._ips = _ips
         if not self._ips.connected:
+            starting_toaster = pn.state.notifications.info(
+                "Starting IPS...", duration=0
+            )
             _ips.start()
+            starting_toaster.destroy()
 
         return _ips
 
@@ -311,6 +322,8 @@ class MainState(param.Parameterized):
             *load_session_panes,
             "",
             *settings_panes,
+            pn.VSpacer(),
+            f"Autopack v{__version__}",
         )
         return layout
 
@@ -334,6 +347,9 @@ class MainState(param.Parameterized):
             self.working = True
 
             problem_path = pathlib.Path(self.problem_path)
+            pn.state.notifications.info(
+                f"Running problem from {problem_path}... See the console for progress details."
+            )
             session_name = make_session_name(problem_path)
             session_path = SESSIONS_DIR / session_name
             session_path.mkdir(parents=True, exist_ok=False)
@@ -358,13 +374,11 @@ class MainState(param.Parameterized):
             )
 
             save_session(dataset=dataset, ips=self.ips, session_dir=session_path)
-            logger.notice(f"Saved session to {session_path}")
+            logger.notice(f"Saved session to {session_path}.")
             self.session_path = str(session_path)
             self.settings.last_session_path = str(session_path)
 
             self.dataset = dataset
-        except Exception as exc:
-            logger.exception(exc)
         finally:
             self.working = False
 
@@ -373,24 +387,27 @@ class MainState(param.Parameterized):
         try:
             self.working = True
             session_path = pathlib.Path(self.session_path)
+            pn.state.notifications.info(f"Loading session from {session_path}...")
             dataset = load_session(ips=self.ips, session_dir=session_path)
 
             self.dataset = dataset
 
             self.settings.last_session_path = str(session_path)
-        except Exception as exc:
-            logger.exception(exc)
-            self.status = "Something went wrong. See the console for details."
         finally:
             self.working = False
 
 
 def make_gui(**main_state_kwargs):
-    pn.extension("tabulator")
+    pn.extension(
+        "tabulator",
+        sizing_mode="stretch_width",
+        design=theme.Material,
+        raw_css=[SIDEBAR_CSS_HACK],
+        loading_indicator=True,
+        exception_handler=exception_handler,
+        notifications=True,
+    )
     hv.extension("bokeh")
-    pn.config.sizing_mode = "stretch_width"
-    pn.config.design = theme.Material
-    pn.config.raw_css.append(SIDEBAR_CSS_HACK)
 
     settings = Settings.load_or_new()
     viz_manager = VisualizationManager()
