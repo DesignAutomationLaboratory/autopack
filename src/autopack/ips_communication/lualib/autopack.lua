@@ -178,7 +178,7 @@ local function createHarnessRouter(harnessSetup)
   harnessRouter:setMinMaxClipClipDist(harnessSetup.clip_clip_dist[1], harnessSetup.clip_clip_dist[2])
   harnessRouter:setMinMaxBranchClipDist(harnessSetup.branch_clip_dist[1], harnessSetup.branch_clip_dist[2])
   harnessRouter:setMinBoundingBox(false)
-  harnessRouter:computeGridSize(0.02)
+  harnessRouter:computeGridSize(harnessSetup.grid_resolution)
   harnessRouter:buildCostField()
 
   return harnessRouter

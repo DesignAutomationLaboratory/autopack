@@ -33,6 +33,10 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
         0.01875,
         0.075,
     )  # min/max distance between branch and clip
+    grid_resolution: float = Field(
+        default=0.02,
+        description="Grid resolution in meters.",
+    )
 
     @classmethod
     def from_json_file(cls, json_path: pathlib.Path):
