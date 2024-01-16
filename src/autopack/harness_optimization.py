@@ -82,7 +82,7 @@ def route_harness_from_dataset(
 
     selected_ds = ds.sel(case=case_id, ips_solution=ips_solution_idx)
     cost_field_weights = selected_ds["cost_field_weight"].values
-    bundling_factor = selected_ds["bundling_factor"].values
+    bundling_weight = selected_ds["bundling_weight"].values
 
     combined_cf = combine_cost_fields(problem_setup.cost_fields, cost_field_weights)
 
@@ -93,7 +93,7 @@ def route_harness_from_dataset(
         ips=ips,
         harness_setup=problem_setup.harness_setup,
         cost_field=combined_cf,
-        bundling_factor=bundling_factor,
+        bundling_weight=bundling_weight,
         harness_id=case_id,
         solutions_to_capture=[ips_solution_idx],
         smooth_solutions=smooth_solution,
@@ -127,7 +127,7 @@ def design_point_ds(
         ips=ips,
         harness_setup=problem_setup.harness_setup,
         cost_field=combined_cost_field,
-        bundling_factor=x[-1],
+        bundling_weight=x[-1],
         harness_id=case_id,
         solutions_to_capture=[],
         smooth_solutions=True,
@@ -177,7 +177,7 @@ def design_point_ds(
                 np.tile(x[:-1], (num_ips_solutions, 1)),
                 dims=["solution", "cost_field"],
             ),
-            "bundling_factor": xr.DataArray(
+            "bundling_weight": xr.DataArray(
                 np.tile(x[-1], num_ips_solutions),
                 dims=["solution"],
             ),
@@ -226,7 +226,7 @@ def batch_voi(
     # Index the xs by the solution from obj, so we get the corresponding
     # x for each solution
     xs = (
-        batch_ds[["cost_field_weight", "bundling_factor"]]
+        batch_ds[["cost_field_weight", "bundling_weight"]]
         .to_stacked_array(
             new_dim="desvar", sample_dims=["solution"], name="design_variables"
         )
@@ -245,8 +245,8 @@ def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
     num_dims = num_cost_fields + 1
     num_objectives = 2 * num_cost_fields + 1
     weights_bounds = np.array([[0.001, 1.0]] * num_cost_fields)
-    bundling_factor_bounds = np.array([[0.05, 0.9]])
-    bounds = np.array([*weights_bounds, *bundling_factor_bounds])
+    bundling_weight_bounds = np.array([[0.05, 0.9]])
+    bounds = np.array([*weights_bounds, *bundling_weight_bounds])
 
     batch_datasets = []
 

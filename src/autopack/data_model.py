@@ -98,7 +98,7 @@ class Harness(BaseModel):
     harness_segments: list[HarnessSegment]
     numb_of_clips: int = Field(description="Estimated number of clips")
     num_branch_points: int = Field(description="Number of branch points")
-    bundling_factor: float = Field(description="The bundling factor as returned by IPS")
+    bundling_weight: float = Field(description="The bundling weight as returned by IPS")
     bundling_objective: float = Field(
         description="The bundling objective as returned by IPS"
     )
