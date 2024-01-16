@@ -1,3 +1,4 @@
+import ctypes
 import pathlib
 import pickle
 
@@ -25,6 +26,11 @@ def save_session(dataset: xr.Dataset, ips: IPSInstance, session_dir: pathlib.Pat
     save_dataset(dataset, session_dir / "dataset.pkl")
     session_marker = session_dir / ".autopack-session"
     session_marker.touch()
+
+    # Hide the session marker file
+    ctypes.windll.kernel32.SetFileAttributesW(
+        str(pathlib.PureWindowsPath(session_marker)), 0x02
+    )
 
 
 def load_session(ips: IPSInstance, session_dir: pathlib.Path):
