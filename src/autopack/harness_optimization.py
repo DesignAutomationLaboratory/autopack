@@ -9,39 +9,6 @@ from .optimization import OptimizationMeta, OptimizationProblem, minimize
 from .utils import path_length
 
 
-def route_evaluate_harness(
-    ips_instance,
-    problem_setup,
-    cost_field_weights,
-    bundling_factor,
-    harness_id=None,
-):
-    new_field = combine_cost_fields(
-        problem_setup.cost_fields, cost_field_weights, normalize_fields=True
-    )
-    new_harness = route_harness(
-        ips=ips_instance,
-        harness_setup=problem_setup.harness_setup,
-        cost_field=new_field,
-        bundling_factor=bundling_factor,
-        harness_id=harness_id,
-    )
-    bundle_costs = []
-    total_costs = []
-
-    for cost_field in problem_setup.cost_fields:
-        bundle_cost, total_cost = evaluate_harness(new_harness, cost_field)
-        bundle_costs.append(bundle_cost)
-        total_costs.append(total_cost)
-
-    # bundle_cost, total_cost = harness.evaluate_harness(new_harness, problem_setup.cost_fields[0])
-    return (
-        np.array([bundle_costs]),
-        np.array([total_costs]),
-        np.array([new_harness.numb_of_clips], dtype=int),
-    )
-
-
 def combine_cost_fields(cost_fields, weights, normalize_fields=True):
     coords = cost_fields[0].coordinates
     costs = np.zeros(np.shape(cost_fields[0].costs), dtype=float)
