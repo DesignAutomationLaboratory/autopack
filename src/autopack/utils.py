@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 from scipy.spatial.distance import cdist
 
 
@@ -64,3 +65,14 @@ def farthest_point_sampling(points, num_points, min_farthest_distance=None, seed
             break
 
     return points[selected_idxs]
+
+
+def normalize(data: xr.DataArray | xr.Dataset, dim=None):
+    """
+    Normalizes a DataArray or Dataset along the specified dimension(s)
+    to the range [0, 1].
+    """
+    data_min = data.min(dim=dim)
+    data_max = data.max(dim=dim)
+
+    return (data - data_min) / (data_max - data_min)

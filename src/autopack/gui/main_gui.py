@@ -8,7 +8,9 @@ import holoviews as hv
 import hvplot.xarray  # noqa: F401
 import panel as pn
 import param
+import xarray as xr
 from panel import theme
+from plotly import express as px
 
 from autopack import USER_DIR, __version__, logger
 from autopack.data_model import HarnessSetup
@@ -16,6 +18,7 @@ from autopack.default_commands import create_default_prob_setup
 from autopack.harness_optimization import global_optimize_harness
 from autopack.io import load_session, save_session
 from autopack.ips_communication.ips_class import IPSInstance
+from autopack.utils import normalize
 
 SETTINGS_PATH = USER_DIR / "gui-settings.json"
 SESSIONS_DIR = USER_DIR / "sessions"
@@ -33,6 +36,20 @@ def exception_handler(exc):
     pn.state.notifications.error(
         "Something went wrong. See the console for details.",
     )
+
+
+def init_panel():
+    pn.extension(
+        "tabulator",
+        "plotly",
+        sizing_mode="stretch_width",
+        design=theme.Material,
+        raw_css=[SIDEBAR_CSS_HACK],
+        loading_indicator=True,
+        exception_handler=exception_handler,
+        notifications=True,
+    )
+    hv.extension("bokeh")
 
 
 def make_session_name(problem_path: pathlib.Path):
@@ -79,6 +96,20 @@ def open_directory_dialog(
     return pathlib.Path(path)
 
 
+def prune_dataset_for_viz(ds: xr.Dataset, drop_meta=False):
+    dims_to_drop = ["cost_field"]
+    vars_to_drop = ["harness"]
+    if drop_meta:
+        vars_to_drop.extend(
+            var.name for var in ds.data_vars.values() if "meta." in var.name
+        )
+    return ds.drop_dims(dims_to_drop).drop_vars(vars_to_drop)
+
+
+def to_viz_dataframe(ds: xr.Dataset, drop_meta=False):
+    return prune_dataset_for_viz(ds=ds, drop_meta=drop_meta).to_dataframe()
+
+
 class Settings(param.Parameterized):
     ips_path = param.Path(check_exists=False, label="IPS path")
     last_problem_path = param.Path(check_exists=False)
@@ -105,11 +136,12 @@ class PostProcessor(param.Parameterized):
     processed_dataset = param.Parameter()
     processed_dataframe = param.Parameter()
 
-    _update = param.Event()
+    # `update` is a reserved name in Panel
+    update_postproc = param.Event(label="Update post-processing")
 
-    @param.depends("_update", "original_dataset", watch=True, on_init=True)
-    def update(self):
-        ds = self.original_dataset
+    @param.depends("update_postproc", "original_dataset", watch=True, on_init=True)
+    def _update_postproc(self):
+        ds: xr.Dataset = self.original_dataset
 
         if ds is None:
             self.processed_dataset = None
@@ -127,20 +159,62 @@ class PostProcessor(param.Parameterized):
 
     @param.depends("original_dataset")
     def view(self):
-        return pn.widgets.StaticText(value="Hello World")
+        section_attrs = {"sizing_mode": "stretch_both"}
+        return pn.Row(
+            pn.WidgetBox(
+                section_header("Filtering"),
+                pn.widgets.Checkbox(name="Foo", value=False),
+                **section_attrs,
+            ),
+            pn.WidgetBox(
+                section_header("Clustering"),
+                pn.widgets.Checkbox(name="Bar", value=False),
+                **section_attrs,
+            ),
+            pn.WidgetBox(
+                section_header("Summary"),
+                f"Number of solutions: {len(self.processed_dataframe)}",
+                **section_attrs,
+            ),
+            pn.WidgetBox(
+                section_header("Actions"),
+                pn.widgets.Button.from_param(
+                    self.param.update_postproc,
+                    button_type="primary",
+                ),
+                "With selected solutions:",
+                pn.widgets.Button(
+                    name="Baz",
+                    button_type="default",
+                ),
+                **section_attrs,
+            ),
+        )
 
 
 class DataTable(param.Parameterized):
-    dataframe = param.Parameter()
+    dataset = param.Parameter()
+    _dataframe = param.Parameter()
 
-    @param.depends("dataframe")
+    @param.depends("dataset", watch=True, on_init=True)
+    def update_dataframe(self):
+        if self.dataset is None:
+            self._dataframe = None
+        else:
+            self._dataframe = to_viz_dataframe(self.dataset)
+
+    @param.depends("_dataframe")
     def view(self):
-        if self.dataframe is None:
+        if self.dataset is None:
             return pn.widgets.StaticText(value="No dataset loaded")
-        # FIXME: stack/pivot the dataframe properly, so that the cost
-        # fields show up as hierarchical columns instead
         return pn.WidgetBox(
-            pn.widgets.Tabulator(self.dataframe, layout="fit_data_fill")
+            pn.widgets.Tabulator(
+                self._dataframe,
+                layout="fit_data_fill",
+                # Disables editing
+                disabled=True,
+                height=500,
+            )
         )
 
 
@@ -169,15 +243,17 @@ class InteractiveScatterPlot(param.Parameterized):
         self.by = None
 
     def _plot_view(self):
-        return self.dataset.hvplot.scatter(
-            x=self.x,
-            y=self.y,
-            c=self.color,
-            by=self.by,
-            groupby=[],
-            colormap="viridis",
-            colorbar=True,
-        ).opts(title="")
+        return pn.pane.HoloViews(
+            self.dataset.hvplot.scatter(
+                x=self.x,
+                y=self.y,
+                c=self.color,
+                by=self.by,
+                groupby=[],
+                colormap="viridis",
+                colorbar=True,
+            ).opts(title=""),
+        )
 
     def _select_view(self):
         return pn.Row(
@@ -197,10 +273,46 @@ class InteractiveScatterPlot(param.Parameterized):
         )
 
 
+class ParallelCoordinatesPlot(param.Parameterized):
+    dataset = param.Parameter()
+    _dataframe = param.DataFrame()
+
+    @param.depends("dataset", watch=True, on_init=True)
+    def update_dataframe(self):
+        if self.dataset is None:
+            self._dataframe = None
+        else:
+            ds = prune_dataset_for_viz(self.dataset, drop_meta=True)
+            score_multiplier = -1
+            score_da = normalize(ds * score_multiplier).to_dataarray(name="score")
+            norm_da = normalize(ds).to_dataarray(name="norm")
+            value_da = ds.to_dataarray(name="value")
+
+            self._dataframe = xr.merge([value_da, norm_da, score_da]).to_dataframe()
+
+    @param.depends("_dataframe")
+    def view(self):
+        fig = px.line_polar(
+            self._dataframe.reset_index(),
+            color="solution",
+            theta="variable",
+            r="score",
+            hover_data=["score", "value"],
+            line_close=True,
+        )
+        fig.update_polars(
+            radialaxis_showticklabels=True,
+            radialaxis_title_text="score",
+        )
+
+        return pn.pane.Plotly(fig)
+
+
 class VisualizationManager(param.Parameterized):
     dataset = param.Parameter()
     post_processor = param.Parameter(default=PostProcessor())
     scatter_plot = param.Parameter(default=InteractiveScatterPlot())
+    parallel_coordinates_plot = param.Parameter(default=ParallelCoordinatesPlot())
     data_table = param.Parameter(default=DataTable())
 
     @param.depends("dataset", watch=True, on_init=True)
@@ -215,7 +327,8 @@ class VisualizationManager(param.Parameterized):
     )
     def _update_processed_data(self):
         self.scatter_plot.dataset = self.post_processor.processed_dataset
-        self.data_table.dataframe = self.post_processor.processed_dataframe
+        self.parallel_coordinates_plot.dataset = self.post_processor.processed_dataset
+        self.data_table.dataset = self.post_processor.processed_dataset
 
     @param.depends("dataset")
     def view(self):
@@ -227,7 +340,7 @@ class VisualizationManager(param.Parameterized):
                     # No session loaded
                     Get started by running a problem or loading an existing session.
                     """,
-                    style={"text-align": "center"},
+                    styles={"text-align": "center"},
                     # To disable nifty features
                     renderer="markdown",
                 ),
@@ -235,10 +348,17 @@ class VisualizationManager(param.Parameterized):
                 sizing_mode="stretch_both",
                 align="center",
             )
+
         return pn.Column(
             self.post_processor.view,
-            self.scatter_plot.view,
+            "",
             self.data_table.view,
+            "",
+            pn.Row(
+                self.scatter_plot.view,
+                self.parallel_coordinates_plot.view,
+                height=500,
+            ),
             sizing_mode="stretch_both",
         )
 
@@ -247,8 +367,8 @@ class MainState(param.Parameterized):
     settings = param.ClassSelector(class_=Settings)
     viz_manager = param.ClassSelector(class_=VisualizationManager)
 
-    problem_path = param.Path()
-    session_path = param.Foldername()
+    problem_path = param.String()
+    session_path = param.String()
 
     run_problem = param.Event(label="Run problem")
     load_session = param.Event(label="Load session")
@@ -398,16 +518,7 @@ class MainState(param.Parameterized):
 
 
 def make_gui(**main_state_kwargs):
-    pn.extension(
-        "tabulator",
-        sizing_mode="stretch_width",
-        design=theme.Material,
-        raw_css=[SIDEBAR_CSS_HACK],
-        loading_indicator=True,
-        exception_handler=exception_handler,
-        notifications=True,
-    )
-    hv.extension("bokeh")
+    init_panel()
 
     settings = Settings.load_or_new()
     viz_manager = VisualizationManager()
@@ -423,7 +534,12 @@ def make_gui(**main_state_kwargs):
         title="Autopack",
         header_background="#b31f2f",  # IPS red
         sidebar_width=400,
-        sidebar=[main_state.sidebar_view()],
-        main=[main_state.data_view()],
+        sidebar=[
+            main_state.sidebar_view(),
+        ],
+        main=[
+            main_state.data_view(),
+        ],
     )
+
     return template
