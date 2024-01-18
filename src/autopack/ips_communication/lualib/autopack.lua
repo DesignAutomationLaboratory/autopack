@@ -236,19 +236,19 @@ local function routeHarnesses(
   local harnessGroupName = "Autopack harnesses"
   local harnessGeoGroup = getOrCreateGeometryGroup(harnessGroupName)
   local harnessActiveGroup = getOrCreateActiveGroup(harnessGroupName)
-  local harnessRouter = createHarnessRouter(harnessSetup)
-  setHarnessRouterNodeCosts(harnessRouter, costs)
-  harnessRouter:setObjectiveWeights(1, bundlingWeight, bundlingWeight)
-  harnessRouter:routeHarness()
+  local router = createHarnessRouter(harnessSetup)
+  setHarnessRouterNodeCosts(router, costs)
+  router:setObjectiveWeights(1, bundlingWeight, bundlingWeight)
+  router:routeHarness()
 
-  local numSolutions = harnessRouter:getNumSolutions()
+  local numSolutions = router:getNumSolutions()
   local solutions = {}
   local smoothSolutionsAvailable = false
 
   -- To be able to build the smooth segments or cable simulations, this
   -- step needs to be run first
   if smoothSolutions or buildSmoothSolutions or buildCableSimulations then
-    harnessRouter:smoothHarness()
+    router:smoothHarness()
     smoothSolutionsAvailable = true
   end
 
@@ -262,49 +262,49 @@ local function routeHarnesses(
     log("Capturing solution " .. solutionName)
 
     local segments = {}
-    local numSegments = harnessRouter:getNumBundleSegments(solIdx)
+    local numSegments = router:getNumBundleSegments(solIdx)
     for segIdx = 0, numSegments - 1 do
       local segment = {
-        radius = harnessRouter:getSegmentRadius(solIdx, segIdx),
-        cables = vectorToTable(harnessRouter:getCablesInSegment(solIdx, segIdx)),
-        discreteNodes = vectorToTable(harnessRouter:getDiscreteSegment(solIdx, segIdx, false)),
-        presmoothCoords = vectorToTable(harnessRouter:getPresmoothSegment(solIdx, segIdx, false)),
+        radius = router:getSegmentRadius(solIdx, segIdx),
+        cables = vectorToTable(router:getCablesInSegment(solIdx, segIdx)),
+        discreteNodes = vectorToTable(router:getDiscreteSegment(solIdx, segIdx, false)),
+        presmoothCoords = vectorToTable(router:getPresmoothSegment(solIdx, segIdx, false)),
         smoothCoords = nil,
         clipPositions = nil,
       }
 
       if smoothSolutionsAvailable then
         -- These are only available if we have run the smoothing step
-        segment.smoothCoords = vectorToTable(harnessRouter:getSmoothSegment(solIdx, segIdx, false))
-        segment.clipPositions = vectorToTable(harnessRouter:getClipPositions(solIdx, segIdx))
+        segment.smoothCoords = vectorToTable(router:getSmoothSegment(solIdx, segIdx, false))
+        segment.clipPositions = vectorToTable(router:getClipPositions(solIdx, segIdx))
       end
 
       segments[segIdx + 1] = segment
     end
 
     if buildDiscreteSolutions then
-      local builtDiscreteSegmentsTreeVector = harnessRouter:buildDiscreteSegments(solIdx)
+      local builtDiscreteSegmentsTreeVector = router:buildDiscreteSegments(solIdx)
       local builtDiscreteSolution = builtDiscreteSegmentsTreeVector[0]:getParent()
       builtDiscreteSolution:setLabel(solutionName .. " (discrete)")
       Ips.moveTreeObject(builtDiscreteSolution, harnessGeoGroup)
     end
 
     if buildPresmoothSolutions then
-      local builtPresmoothSegmentsTreeVector = harnessRouter:buildPresmoothSegments(solIdx)
+      local builtPresmoothSegmentsTreeVector = router:buildPresmoothSegments(solIdx)
       local builtPresmoothSolution = builtPresmoothSegmentsTreeVector[0]:getParent()
       builtPresmoothSolution:setLabel(solutionName .. " (presmooth)")
       Ips.moveTreeObject(builtPresmoothSolution, harnessGeoGroup)
     end
 
     if buildSmoothSolutions then
-      local builtSmoothSegmentsTreeVector = harnessRouter:buildSmoothSegments(solIdx, true)
+      local builtSmoothSegmentsTreeVector = router:buildSmoothSegments(solIdx, true)
       local builtSmoothSolution = builtSmoothSegmentsTreeVector[0]:getParent()
       builtSmoothSolution:setLabel(solutionName .. " (smooth)")
       Ips.moveTreeObject(builtSmoothSolution, harnessGeoGroup)
     end
 
     if buildCableSimulations then
-      local builtCableSimulation = harnessRouter:buildSimulationObject(solIdx, true)
+      local builtCableSimulation = router:buildSimulationObject(solIdx, true)
       if builtCableSimulation:hasExpired() then
         log("Failed to build simulation object for solution " .. solutionName)
         getOrCreateActiveGroup(solutionName .. " (failed)", harnessActiveGroup)
@@ -319,11 +319,11 @@ local function routeHarnesses(
     solutions[solIdx + 1] = {
       name = solutionName,
       segments = segments,
-      estimatedNumClips = harnessRouter:estimateNumClips(solIdx),
-      numBranchPoints = harnessRouter:getNumBranchPoints(solIdx),
-      objectiveWeightBundling = harnessRouter:getObjectiveWeightBundling(solIdx),
-      solutionObjectiveBundling = harnessRouter:getSolutionObjectiveBundling(solIdx),
-      solutionObjectiveLength = harnessRouter:getSolutionObjectiveLength(solIdx),
+      estimatedNumClips = router:estimateNumClips(solIdx),
+      numBranchPoints = router:getNumBranchPoints(solIdx),
+      objectiveWeightBundling = router:getObjectiveWeightBundling(solIdx),
+      solutionObjectiveBundling = router:getSolutionObjectiveBundling(solIdx),
+      solutionObjectiveLength = router:getSolutionObjectiveLength(solIdx),
     }
   end
 
