@@ -350,10 +350,9 @@ class VisualizationManager(param.Parameterized):
             )
 
         return pn.Column(
-            self.post_processor.view,
-            "",
+            # FIXME: make the post-processor do something useful
+            # self.post_processor.view,
             self.data_table.view,
-            "",
             pn.Row(
                 self.scatter_plot.view,
                 self.parallel_coordinates_plot.view,
