@@ -224,7 +224,7 @@ end
 local function routeHarnesses(
   harnessSetup,
   costs,
-  bundlingFactor,
+  bundlingWeight,
   namePrefix,
   solutionIdxsToCapture,
   smoothSolutions,
@@ -238,7 +238,7 @@ local function routeHarnesses(
   local harnessActiveGroup = getOrCreateActiveGroup(harnessGroupName)
   local harnessRouter = createHarnessRouter(harnessSetup)
   setHarnessRouterNodeCosts(harnessRouter, costs)
-  harnessRouter:setObjectiveWeights(1, bundlingFactor, bundlingFactor)
+  harnessRouter:setObjectiveWeights(1, bundlingWeight, bundlingWeight)
   harnessRouter:routeHarness()
 
   local numSolutions = harnessRouter:getNumSolutions()
