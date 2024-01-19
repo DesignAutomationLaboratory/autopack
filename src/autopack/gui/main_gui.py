@@ -252,6 +252,7 @@ class InteractiveScatterPlot(param.Parameterized):
                 groupby=[],
                 colormap="viridis",
                 colorbar=True,
+                responsive=True,
             ).opts(title=""),
         )
 
