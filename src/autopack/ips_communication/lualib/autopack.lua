@@ -6,6 +6,8 @@ local msgpack = require("MessagePack")
 -- IPS seems to use SLB (https://code.google.com/archive/p/slb/)
 local slb = require("SLB")
 
+local NaN = 0 / 0
+
 local function _pack(data)
   return base64.encode(msgpack.pack(data))
 end
@@ -153,9 +155,11 @@ local function createHarnessRouter(harnessSetup)
 
   for _, cable in pairs(harnessSetup.cables) do
     local startNode = treeObject:findFirstMatch(cable.start_node)
+    assert(startNode, "Could not find start node " .. cable.start_node)
     local startFrame = startNode:getFirstChild()
     local startVis = startFrame:toCableMountFrameVisualization()
     local endNode = treeObject:findFirstMatch(cable.end_node)
+    assert(endNode, "Could not find end node " .. cable.end_node)
     local endFrame = endNode:getFirstChild()
     local endVis = endFrame:toCableMountFrameVisualization()
     local myCableType = cableSim:getComponentTemplate(cable.cable_type)
@@ -163,7 +167,13 @@ local function createHarnessRouter(harnessSetup)
   end
 
   for _, geometry in pairs(harnessSetup.geometries) do
-    local envGeom = treeObject:findFirstMatch(geometry.name)
+    local envGeom
+    if geometry.name == "Static Geometry" then
+      envGeom = Ips.getGeometryRoot()
+    else
+      envGeom = treeObject:findFirstMatch(geometry.name)
+      assert(envGeom, "Could not find geometry " .. geometry.name)
+    end
     local pref
     if geometry.preference == "Near" then
       pref = 0
@@ -177,8 +187,11 @@ local function createHarnessRouter(harnessSetup)
 
   harnessRouter:setMinMaxClipClipDist(harnessSetup.clip_clip_dist[1], harnessSetup.clip_clip_dist[2])
   harnessRouter:setMinMaxBranchClipDist(harnessSetup.branch_clip_dist[1], harnessSetup.branch_clip_dist[2])
+  harnessRouter:setEnableClipSettings(true)
   harnessRouter:setMinBoundingBox(false)
   harnessRouter:computeGridSize(harnessSetup.grid_resolution)
+  -- Must be set before building the cost field
+  harnessRouter:setAllowInfeasibleTopologySolutions(harnessSetup.allow_infeasible_topology)
   harnessRouter:buildCostField()
 
   return harnessRouter
@@ -225,85 +238,81 @@ local function routeHarnesses(
   harnessSetup,
   costs,
   bundlingWeight,
-  namePrefix,
-  solutionIdxsToCapture,
-  smoothSolutions,
-  buildDiscreteSolutions,
-  buildPresmoothSolutions,
-  buildSmoothSolutions,
-  buildCableSimulations
+  namePrefix
 )
-  local harnessGroupName = "Autopack harnesses"
-  local harnessGeoGroup = getOrCreateGeometryGroup(harnessGroupName)
-  local harnessActiveGroup = getOrCreateActiveGroup(harnessGroupName)
+  local harnessActiveGroup = getOrCreateActiveGroup("Autopack harnesses")
+  local harnessGeoGroup = getOrCreateGeometryGroup("Autopack harnesses")
+  local infeasibleTopologyGroup = getOrCreateGeometryGroup("Infeasible topology", harnessGeoGroup)
+  local collisionVizGroup = getOrCreateGeometryGroup("Collision visualization", harnessGeoGroup)
+  -- This will effectively hide the previous harnesses and let the
+  -- current ones appear. We must do some bit of hiding, because IPS
+  -- tends to crash otherwise when the number of created harnesses
+  -- increase. Some amount of feedback is nice, though.
+  harnessActiveGroup:setGroupEnabled(false)
+  harnessGeoGroup:setGroupEnabled(false)
+
+  local numCables = #harnessSetup.cables
   local router = createHarnessRouter(harnessSetup)
+  -- Use the default costs if none are given
   setHarnessRouterNodeCosts(router, costs)
   router:setObjectiveWeights(1, bundlingWeight, bundlingWeight)
   router:routeHarness()
 
   local numSolutions = router:getNumSolutions()
-  local solutions = {}
-  local smoothSolutionsAvailable = false
+  local topologyFeasible = router:getSolutionsAreTopologyFeasible()
 
-  -- To be able to build the smooth segments or cable simulations, this
-  -- step needs to be run first
-  if smoothSolutions or buildSmoothSolutions or buildCableSimulations then
+  if topologyFeasible then
     router:smoothHarness()
-    smoothSolutionsAvailable = true
   end
 
-  if #solutionIdxsToCapture == 0 then
-    -- If no solutions are specified, capture all of them
-    solutionIdxsToCapture = range(0, numSolutions - 1)
-  end
-
-  for _, solIdx in pairs(solutionIdxsToCapture) do
+  local solutions = {}
+  for solIdx = 0, numSolutions - 1 do
     local solutionName = namePrefix .. "." .. solIdx
     log("Capturing solution " .. solutionName)
 
     local segments = {}
     local numSegments = router:getNumBundleSegments(solIdx)
     for segIdx = 0, numSegments - 1 do
-      local segment = {
+      local presmoothCoords
+      local smoothCoords
+      local clipPositions
+
+      if topologyFeasible then
+        presmoothCoords = vectorToTable(router:getPresmoothSegment(solIdx, segIdx, false))
+        smoothCoords = vectorToTable(router:getSmoothSegment(solIdx, segIdx, false))
+        clipPositions = vectorToTable(router:getClipPositions(solIdx, segIdx))
+      end
+
+      segments[segIdx + 1] = {
         radius = router:getSegmentRadius(solIdx, segIdx),
         cables = vectorToTable(router:getCablesInSegment(solIdx, segIdx)),
         discreteNodes = vectorToTable(router:getDiscreteSegment(solIdx, segIdx, false)),
-        presmoothCoords = vectorToTable(router:getPresmoothSegment(solIdx, segIdx, false)),
-        smoothCoords = nil,
-        clipPositions = nil,
+        presmoothCoords = presmoothCoords or {},
+        smoothCoords = smoothCoords or {},
+        clipPositions = clipPositions or {},
       }
+    end
 
-      if smoothSolutionsAvailable then
-        -- These are only available if we have run the smoothing step
-        segment.smoothCoords = vectorToTable(router:getSmoothSegment(solIdx, segIdx, false))
-        segment.clipPositions = vectorToTable(router:getClipPositions(solIdx, segIdx))
+    local cableSegmentOrder = {}
+    for cableIdx = 0, numCables - 1 do
+      cableSegmentOrder[cableIdx + 1] = vectorToTable(router:getCableSegmentOrder(solIdx, cableIdx))
+    end
+
+    local lengthTotal
+    local lengthInCollision
+
+    if topologyFeasible then
+      lengthTotal = router:getSmoothHarnessLengthTotal(solIdx)
+      lengthInCollision = router:getSmoothHarnessLengthCollision(solIdx)
+
+      if lengthInCollision > 0 then
+        -- Shows colliding parts in red
+        local collisionVizTreeVector = router:buildSmoothSegments(solIdx, true)
+        local collisionViz = collisionVizTreeVector[0]:getParent()
+        collisionViz:setLabel(solutionName)
+        Ips.moveTreeObject(collisionViz, collisionVizGroup)
       end
 
-      segments[segIdx + 1] = segment
-    end
-
-    if buildDiscreteSolutions then
-      local builtDiscreteSegmentsTreeVector = router:buildDiscreteSegments(solIdx)
-      local builtDiscreteSolution = builtDiscreteSegmentsTreeVector[0]:getParent()
-      builtDiscreteSolution:setLabel(solutionName .. " (discrete)")
-      Ips.moveTreeObject(builtDiscreteSolution, harnessGeoGroup)
-    end
-
-    if buildPresmoothSolutions then
-      local builtPresmoothSegmentsTreeVector = router:buildPresmoothSegments(solIdx)
-      local builtPresmoothSolution = builtPresmoothSegmentsTreeVector[0]:getParent()
-      builtPresmoothSolution:setLabel(solutionName .. " (presmooth)")
-      Ips.moveTreeObject(builtPresmoothSolution, harnessGeoGroup)
-    end
-
-    if buildSmoothSolutions then
-      local builtSmoothSegmentsTreeVector = router:buildSmoothSegments(solIdx, true)
-      local builtSmoothSolution = builtSmoothSegmentsTreeVector[0]:getParent()
-      builtSmoothSolution:setLabel(solutionName .. " (smooth)")
-      Ips.moveTreeObject(builtSmoothSolution, harnessGeoGroup)
-    end
-
-    if buildCableSimulations then
       local builtCableSimulation = router:buildSimulationObject(solIdx, true)
       if builtCableSimulation:hasExpired() then
         log("Failed to build simulation object for solution " .. solutionName)
@@ -312,18 +321,28 @@ local function routeHarnesses(
         builtCableSimulation:setLabel(solutionName)
         Ips.moveTreeObject(builtCableSimulation, harnessActiveGroup)
       end
+    else
+      -- Shows infeasible topology: yellow (too far away from clipable
+      -- surface), red (collision or clearance-infeasible)
+      local infeasibleTopologyVizTreeVector = router:buildDiscreteSegments(solIdx)
+      local infeasibleTopologyViz = infeasibleTopologyVizTreeVector[0]:getParent()
+      infeasibleTopologyViz:setLabel(solutionName)
+      Ips.moveTreeObject(infeasibleTopologyViz, infeasibleTopologyGroup)
     end
 
     -- Gather the solution data
     -- Note that we index by 1 here for packing reasons
     solutions[solIdx + 1] = {
       name = solutionName,
+      topologyFeasible = topologyFeasible,
       segments = segments,
-      estimatedNumClips = router:estimateNumClips(solIdx),
       numBranchPoints = router:getNumBranchPoints(solIdx),
+      cableSegmentOrder = cableSegmentOrder,
       objectiveWeightBundling = router:getObjectiveWeightBundling(solIdx),
       solutionObjectiveBundling = router:getSolutionObjectiveBundling(solIdx),
       solutionObjectiveLength = router:getSolutionObjectiveLength(solIdx),
+      lengthTotal = lengthTotal or NaN,
+      lengthInCollision = lengthInCollision or NaN,
     }
   end
 

@@ -46,12 +46,6 @@ def route_harnesses(
     cost_field: CostField,
     bundling_weight: float,
     harness_id: str,
-    solutions_to_capture: Optional[list[int]] = None,
-    smooth_solutions: bool = False,
-    build_discrete_solutions: bool = False,
-    build_presmooth_solutions: bool = False,
-    build_smooth_solutions: bool = False,
-    build_cable_simulations: bool = False,
 ) -> list[Harness]:
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
 
@@ -61,12 +55,6 @@ def route_harnesses(
         cost_field.costs,
         bundling_weight,
         harness_id,
-        solutions_to_capture or [],
-        smooth_solutions,
-        build_discrete_solutions,
-        build_presmooth_solutions,
-        build_smooth_solutions,
-        build_cable_simulations,
     )
 
     def gen_harness_segments(segment_dict):
@@ -75,12 +63,6 @@ def route_harnesses(
             discrete_coords = grid_idxs_to_coords(
                 grid_coords=cost_field.coordinates, grid_idxs=discrete_nodes
             )
-            _smooth_coords = segment.get("smoothCoords", None)
-            smooth_coords = (
-                np.array(_smooth_coords) if _smooth_coords is not None else None
-            )
-            _clip_coords = segment.get("clipPositions", None)
-            clip_coords = np.array(_clip_coords) if _clip_coords is not None else None
 
             yield HarnessSegment(
                 radius=segment["radius"],
@@ -88,19 +70,22 @@ def route_harnesses(
                 discrete_nodes=discrete_nodes,
                 discrete_coords=discrete_coords,
                 presmooth_coords=np.array(segment["presmoothCoords"]),
-                smooth_coords=smooth_coords,
-                clip_coords=clip_coords,
+                smooth_coords=np.array(segment["smoothCoords"]),
+                clip_coords=np.array(segment["clipPositions"]),
             )
 
     solutions = [
         Harness(
             name=solution["name"],
+            topology_feasible=solution["topologyFeasible"],
             harness_segments=list(gen_harness_segments(solution["segments"])),
-            numb_of_clips=solution["estimatedNumClips"],
+            cable_segment_order=solution["cableSegmentOrder"],
             num_branch_points=solution["numBranchPoints"],
             bundling_weight=solution["objectiveWeightBundling"],
             bundling_objective=solution["solutionObjectiveBundling"],
             length_objective=solution["solutionObjectiveLength"],
+            length_total=solution["lengthTotal"],
+            length_in_collision=solution["lengthInCollision"],
         )
         for solution in response
     ]

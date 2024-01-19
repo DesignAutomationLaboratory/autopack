@@ -14,8 +14,10 @@ class Cable(BaseModel):
 
 
 class Geometry(BaseModel):
-    name: str
-    clearance: float
+    name: str | Literal["Static Geometry"] = Field(
+        description="Name of a rigid body or 'Static Geometry' for the static geometry root"
+    )
+    clearance: float = Field(description="Required clearance in millimeters")
     preference: Literal["Near", "Avoid", "Neutral"]
     clipable: bool
     assembly: bool
@@ -36,6 +38,10 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
     grid_resolution: float = Field(
         default=0.02,
         description="Grid resolution in meters.",
+    )
+    allow_infeasible_topology: bool = Field(
+        default=False,
+        description="Whether to allow infeasible harness topologies.",
     )
 
     @classmethod
@@ -78,11 +84,11 @@ class HarnessSegment(BaseModel, arbitrary_types_allowed=True):
     presmooth_coords: np.ndarray = Field(
         description="Coordinates that the presmoothed solution visits", repr=False
     )
-    smooth_coords: Optional[np.ndarray] = Field(
+    smooth_coords: np.ndarray = Field(
         description="Coordinates that the smoothed solution visits, if available",
         repr=False,
     )
-    clip_coords: Optional[np.ndarray] = Field(
+    clip_coords: np.ndarray = Field(
         description="Positions of clips from smoothed solution, if available",
         repr=False,
     )
@@ -95,15 +101,24 @@ class HarnessSegment(BaseModel, arbitrary_types_allowed=True):
 
 class Harness(BaseModel):
     name: str
+    topology_feasible: bool = Field(
+        description="Whether the harness topology is feasible"
+    )
     harness_segments: list[HarnessSegment]
-    numb_of_clips: int = Field(description="Estimated number of clips")
     num_branch_points: int = Field(description="Number of branch points")
+    cable_segment_order: list[list[int]] = Field(
+        description="Order in which segments are visited, per cable"
+    )
     bundling_weight: float = Field(description="The bundling weight as returned by IPS")
     bundling_objective: float = Field(
         description="The bundling objective as returned by IPS"
     )
     length_objective: float = Field(
         description="The length objective as returned by IPS"
+    )
+    length_total: float = Field(description="The total length of the harness in meters")
+    length_in_collision: float = Field(
+        description="The length of the harness in collision in meters"
     )
 
 

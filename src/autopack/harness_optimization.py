@@ -49,7 +49,7 @@ def harness_volume(harness: data_model.Harness) -> float:
     # Use the first segments to see what kind of coordinates we have
     first_segment = harness.harness_segments[0]
 
-    if first_segment.smooth_coords is not None:
+    if len(first_segment.smooth_coords) > 0:
         segment_lengths = np.array(
             [path_length(seg.smooth_coords) for seg in harness.harness_segments]
         )
@@ -129,12 +129,6 @@ def design_point_ds(
         cost_field=combined_cost_field,
         bundling_weight=x[-1],
         harness_id=case_id,
-        solutions_to_capture=[],
-        smooth_solutions=True,
-        build_discrete_solutions=False,
-        build_presmooth_solutions=False,
-        build_smooth_solutions=False,
-        build_cable_simulations=True,
     )
 
     num_ips_solutions = len(harness_solutions)
@@ -284,6 +278,11 @@ def global_optimize_harness(
     batches: int = 4,
     batch_size: int = 4,
 ) -> xr.Dataset:
+    if problem_setup.harness_setup.allow_infeasible_topology and batches > 1:
+        raise ValueError(
+            "Cannot optimize harnesses with infeasible topology. Set allow_infeasible_topology to False in the harness setup or run with batches=0 to disable optimization."
+        )
+
     problem = problem_from_setup(problem_setup, ips_instance)
     minimize(
         problem=problem,
