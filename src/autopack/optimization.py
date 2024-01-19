@@ -1,5 +1,6 @@
 import os
 import time
+import warnings
 from typing import Any, Callable, Optional
 
 import numpy as np
@@ -23,17 +24,45 @@ from pydantic import BaseModel
 
 from . import logger
 
-CUDA_AVAILABLE = torch.cuda.is_available()
 
-_USE_CUDA = os.environ.get("AUTOPACK_USE_CUDA", "false").lower() == "true"
-USE_CUDA = CUDA_AVAILABLE and _USE_CUDA
+def cuda_selftest():
+    # Make a simple self-test to ensure that CUDA is working
 
-logger.notice(f"GPU-accelerated optimization: {USE_CUDA}")
+    x = torch.tensor([[1.0, 2.0, 3.0]]).T
+    y = torch.tensor([[1.0, 4.0, 9.0]]).T
 
-tkwargs = {
-    "dtype": torch.double,
-    "device": torch.device("cuda" if USE_CUDA else "cpu"),
-}
+    # Do we get tensors on the GPU?
+    assert x.device.type == "cuda"
+    assert y.device.type == "cuda"
+
+    # Can PyTorch actually work?
+    with warnings.catch_warnings(action="ignore"):
+        model = ModelListGP(SingleTaskGP(x, y))
+        mll = SumMarginalLogLikelihood(model.likelihood, model)
+        fit_gpytorch_mll(mll)
+
+
+def update_torch_settings(cuda_requested=None):
+    # FIXME: stop changing global state
+
+    torch.set_default_dtype(torch.double)
+
+    if cuda_requested is None:
+        cuda_requested = os.environ.get("AUTOPACK_USE_CUDA", "true").lower() == "true"
+    cuda_available = torch.cuda.is_available()
+    if cuda_requested and cuda_available:
+        torch.set_default_device(torch.device("cuda"))
+        try:
+            cuda_selftest()
+        except Exception as exc:
+            logger.exception("CUDA requested, but not usable", exc_info=exc)
+        else:
+            logger.info(f"Using GPU for optimization: {torch.cuda.get_device_name()}")
+            return
+    elif cuda_requested and not cuda_available:
+        logger.warning("CUDA requested, but not available")
+    torch.set_default_device(torch.device("cpu"))
+    logger.info("Using CPU for optimization")
 
 
 class OptimizationResult(BaseModel, arbitrary_types_allowed=True):
@@ -55,6 +84,7 @@ class OptimizationProblem(BaseModel, arbitrary_types_allowed=True):
     num_objectives: int
     num_constraints: int = 0
     ref_point: Optional[np.ndarray | torch.Tensor] = None
+    seed: Optional[int] = None
     state: Optional[Any] = None
 
 
@@ -81,12 +111,19 @@ def evaluate_batch(problem, xs, meta):
         meta,
     )
 
+    assert xs.shape[-1] == problem.bounds.shape[0], "Design space mismatch"
+    assert np.isfinite(xs).all(), "Non-finite values in design space"
+    assert objs.shape[-1] == problem.num_objectives, "Objective space mismatch"
+    assert np.isfinite(objs).all(), "Non-finite values in objective space"
+    assert cons.shape[-1] == problem.num_constraints, "Constraint space mismatch"
+    assert np.isfinite(cons).all(), "Non-finite values in constraint space"
+
     return (
-        torch.tensor(xs, **tkwargs),
+        torch.tensor(xs),
         # BoTorch assumes maximization
-        torch.tensor(-objs, **tkwargs),
+        torch.tensor(-objs),
         # BoTorch constraints are of the form g(x) <= 0
-        torch.tensor(cons, **tkwargs),
+        torch.tensor(cons),
     )
 
 
@@ -97,7 +134,7 @@ def feasible_pareto_front(objs, cons):
         pareto_mask = is_non_dominated(feas_objs)
         return feas_objs[pareto_mask]
     else:
-        return torch.empty(0, objs.shape[-1], **tkwargs)
+        return torch.empty(0, objs.shape[-1])
 
 
 def auto_ref_point(objs, cons):
@@ -127,6 +164,7 @@ def optimize_qnehvi_and_get_candidates(
     batch_size,
     restarts,
     raw_samples,
+    seed,
 ):
     """Optimizes the qNEHVI acquisition function, and returns a new candidate and observation."""
     train_x = normalize(train_x, bounds=problem.bounds.T)
@@ -172,7 +210,7 @@ def optimize_qnehvi_and_get_candidates(
         q=batch_size,
         num_restarts=restarts,
         raw_samples=raw_samples,  # used for intialization heuristic
-        options={"batch_limit": 5, "maxiter": 200},
+        options={"batch_limit": 5, "maxiter": 200, "seed": seed},
         sequential=True,
     )
 
@@ -186,30 +224,30 @@ def minimize(
     batches=8,
     batch_size=8,
     init_samples=8,
-    init_seed=None,
     mc_samples=128,
     restarts=10,
     raw_samples=512,
+    seed=None,
+    use_cuda=None,
 ):
     logger.notice(
         f"Optimizing in {batches} batches of {batch_size} samples each, with {init_samples} initial samples"
     )
-    problem.bounds = torch.tensor(problem.bounds, **tkwargs)
+    update_torch_settings(cuda_requested=use_cuda)
+    problem.bounds = torch.tensor(problem.bounds)
     problem.ref_point = (
-        torch.tensor(problem.ref_point, **tkwargs)
-        if problem.ref_point is not None
-        else None
+        torch.tensor(problem.ref_point) if problem.ref_point is not None else None
     )
 
     num_dims = problem.bounds.shape[0]
-    standard_bounds = torch.zeros(2, num_dims, **tkwargs)
+    standard_bounds = torch.zeros(2, num_dims)
     standard_bounds[1] = 1
 
     sampler_xs = draw_sobol_samples(
         bounds=problem.bounds.T,
         n=init_samples,
         q=1,
-        seed=init_seed,
+        seed=seed,
     ).squeeze(1)
 
     train_xs, train_objs, train_cons = evaluate_batch(
@@ -250,6 +288,7 @@ def minimize(
             batch_size=batch_size,
             restarts=restarts,
             raw_samples=raw_samples,
+            seed=seed,
         )
 
         new_x, new_obj, new_con = evaluate_batch(
