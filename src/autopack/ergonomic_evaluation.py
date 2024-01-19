@@ -14,7 +14,7 @@ def create_ergonomic_cost_field(
     problem_setup: ProblemSetup,
     min_geometry_dist=0.001,
     max_geometry_dist=0.25,
-    max_grip_diff=0.2,  # m
+    max_grip_diff=0.01,  # m
     min_point_dist=0.1,  # m
     max_samples=2000,
     use_rbpp=True,
@@ -72,6 +72,7 @@ def create_ergonomic_cost_field(
             geometries_to_consider,
             family_id,
             eval_coords,
+            max_grip_diff,
             use_rbpp,
             update_screen,
             keep_generated_objects,
@@ -79,8 +80,9 @@ def create_ergonomic_cost_field(
         ergo_standards = ergo_eval["ergoStandards"]
         ergo_values = np.array(ergo_eval["ergoValues"], dtype=float).max(axis=2)
         assert ergo_values.shape == (len(eval_coords), len(ergo_standards))
-        grip_distances = np.array(ergo_eval["gripDiffs"])
-        bad_grip_mask = grip_distances > max_grip_diff
+        bad_grip_mask = np.array(
+            [("Grip was not satisfied" in msg) for msg in ergo_eval["errorMsgs"]]
+        )
         logger.notice(
             f"{bad_grip_mask.sum()} out of {eval_coords.shape[0]} points are unreachable for {family_name}"
         )

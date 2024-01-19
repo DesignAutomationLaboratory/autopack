@@ -432,7 +432,7 @@ local function getAllManikinFamilies()
   return manikinFamilyNames
 end
 
-local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScreen, keepGenObj)
+local function evalErgo(geoNames, manikinFamilyId, coords, gripTol, enableRbpp, updateScreen, keepGenObj)
   local copiedGeoGroup = copyToStaticGeometry(geoNames)
 
   local msc = ManikinSimulationController()
@@ -446,7 +446,7 @@ local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScr
   -- genObjsRoot:insert(0, gripPoint)
   gripPoint:setGripConfiguration("Tip Pinch")
   gripPoint:setSymmetricRotationTolerances(math.huge, math.huge, math.huge)
-  gripPoint:setSymmetricTranslationTolerances(0.005, 0.005, 0.005)
+  gripPoint:setSymmetricTranslationTolerances(gripTol, gripTol, gripTol)
 
   local opSequence = OperationSequence()
   opSequence:setLabel("Autopack ergo evaluation")
@@ -469,7 +469,6 @@ local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScr
   local outputTable = {
     ergoStandards = ergoStandards,
     ergoValues = {},
-    gripDiffs = {},
     errorMsgs = {},
   }
   local replay -- Declared here to enable resetting after the loop
@@ -484,18 +483,12 @@ local function evalErgo(geoNames, manikinFamilyId, coords, enableRbpp, updateScr
       Ips.updateScreen()
     end
 
-    -- The control point gets deleted (???) after manipulating the manikin, so we must get it when we need it
-    local handRightTransl = getManikinCtrlPoint(familyViz, "Right Hand"):getTarget().t
-    local gripPointTransl = gripPoint:getTarget().t
-    local dist = handRightTransl:distance(gripPointTransl)
-
     local coordErgoValues = {}
     for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
       local ergoValues = vectorToTable(replay:computeErgonomicScore(ergoStandard, graspActionEndTime, graspActionEndTime))
       coordErgoValues[ergoStandardIdx] = ergoValues
     end
     outputTable.ergoValues[coordIdx] = coordErgoValues
-    outputTable.gripDiffs[coordIdx] = dist
     outputTable.errorMsgs[coordIdx] = replay:getReplayErrorMessage(graspAction)
     log("Ergo evaluation: " .. coordIdx .. "/" .. #coords .. " done")
   end
