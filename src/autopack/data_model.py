@@ -57,12 +57,6 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
         description="Cost for each grid node. Positive infinity implies an infeasible node.",
     )
 
-    interpolator: Optional[Any] = Field(
-        default=None,
-        exclude=True,
-        description="An interpolator object that interpolates the cost field",
-    )
-
     def normalized_costs(self):
         feasible_mask = np.invert(np.isposinf(self.costs))
         max_value = np.amax(self.costs[feasible_mask])
