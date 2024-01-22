@@ -120,10 +120,9 @@ class IPSInstance:
             # void functions result in a `nil` that will not be packed
             return response.get("result", None)
         else:
-            message = response["result"]["error"]
             traceback = response["result"]["traceback"]
 
-            raise IPSError(f"IPS call failed: {message}\n{traceback}")
+            raise IPSError(f"IPS call failed:\n{traceback}")
 
     def call(self, func_name: str, *args: Any, return_result: bool = True) -> Any:
         """

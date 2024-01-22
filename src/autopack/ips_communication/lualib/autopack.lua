@@ -27,11 +27,16 @@ local function runAndPack(runFunc)
   local function errHandler(err)
     return {
       error = err,
-      traceback = debug.traceback(),
+      traceback = debug.traceback(err, 2),
     }
   end
 
   local runSuccess, runResult = xpcall(runFunc, errHandler)
+  if not runSuccess and type(runResult) ~= "table" then
+    -- For some errors, like C++ exceptions, the error handler is not
+    -- called
+    runResult = errHandler(runResult)
+  end
   local packSuccess, packResult = xpcall(packFunc, errHandler, runSuccess, runResult)
 
   if packSuccess then
