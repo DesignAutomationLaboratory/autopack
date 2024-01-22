@@ -20,18 +20,22 @@ MAX_ERGO_STANDARD_VALUES = xr.DataArray(
 
 def create_ergonomic_cost_field(
     ips: IPSInstance,
-    problem_setup: ProblemSetup,
+    harness_setup: HarnessSetup,
+    ref_cost_field: CostField,
     min_geometry_dist=0.001,
     max_geometry_dist=0.25,
-    max_grip_diff=0.01,  # m
-    min_point_dist=0.1,  # m
-    max_samples=2000,
+    # Max allowed gripping tolerance [m]
+    max_grip_diff=0.01,
+    # Multiplies the grid resolution to get the max distance between samples [-]
+    relative_sample_resolution=6,
     use_rbpp=True,
     update_screen=False,
     keep_generated_objects=False,
 ):
-    logger.info("Creating ergonomy cost fields")
-    ref_cost_field = problem_setup.ref_cost_field
+    # Only evaluate the standards we can handle
+    ergo_standards = MAX_ERGO_STANDARD_VALUES.ergo_standard.values
+
+    logger.info(f"Creating ergonomy cost fields: {', '.join(ergo_standards)}")
     ref_costs = ref_cost_field.costs
     ref_coords = ref_cost_field.coordinates
     ref_coords_flat = ref_coords.reshape(-1, 3)
@@ -47,27 +51,20 @@ def create_ergonomic_cost_field(
         return []
 
     geometries_to_consider = [
-        geo.name for geo in problem_setup.harness_setup.geometries if geo.assembly
+        geo.name for geo in harness_setup.geometries if geo.assembly
     ]
-    coords_to_distance_check = ref_coords_flat[feasible_mask]
+
+    # Max ratio of grid points to evaluate
+    max_sampling_ratio = 1 / relative_sample_resolution**3
+    max_samples = round(ref_coords_flat.shape[0] * max_sampling_ratio)
+    max_farthest_distance = harness_setup.grid_resolution * relative_sample_resolution
     logger.info(
-        f"Checking {coords_to_distance_check.shape[0]} points for distance to geometry"
-    )
-    distance_ok_mask = check_distance_of_points(
-        ips,
-        problem_setup.harness_setup,
-        coords_to_distance_check,
-        min_geometry_dist,
-        max_geometry_dist,
-    )
-    coords_with_ok_distance = coords_to_distance_check[distance_ok_mask]
-    logger.info(
-        f"Picking at most {max_samples} points spaced {min_point_dist} meters apart, out of {coords_with_ok_distance.shape[0]}, using farthest point sampling"
+        f"Picking at most {max_samples} points spaced {max_farthest_distance} meters apart, out of {ref_coords_flat.shape[0]}, using farthest point sampling"
     )
     eval_coords = farthest_point_sampling(
-        points=coords_with_ok_distance,
+        points=ref_coords_flat,
         num_points=max_samples,
-        min_farthest_distance=min_point_dist,
+        max_farthest_distance=max_farthest_distance,
         seed=0,  # For deterministic behavior
     )
     num_coords = eval_coords.shape[0]
@@ -79,9 +76,6 @@ def create_ergonomic_cost_field(
         replace_existing=True,
         visible=False,
     )
-
-    # Only evaluate the standards we can handle
-    ergo_standards = MAX_ERGO_STANDARD_VALUES.ergo_standard.values
 
     family_datasets = []
     for family in families:

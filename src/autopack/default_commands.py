@@ -16,10 +16,10 @@ def create_default_prob_setup(ips_instance, harness_setup, create_imma=False):
     if create_imma:
         rula_cost_field, reba_cost_field = create_ergonomic_cost_field(
             ips=ips_instance,
-            problem_setup=opt_setup,
-            max_geometry_dist=0.2,
-            min_point_dist=0.1,
+            harness_setup=harness_setup,
+            ref_cost_field=cost_field_ips,
             use_rbpp=False,
+            update_screen=False,
         )
         opt_setup.cost_fields.append(rula_cost_field)
         opt_setup.cost_fields.append(reba_cost_field)

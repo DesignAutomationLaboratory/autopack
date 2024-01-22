@@ -23,12 +23,12 @@ def path_length(coords: np.ndarray) -> float:
     return dist[np.diag_indices_from(dist)].sum()
 
 
-def farthest_point_sampling(points, num_points, min_farthest_distance=None, seed=None):
+def farthest_point_sampling(points, num_points, max_farthest_distance=None, seed=None):
     """
     Selects a subset of points using farthest point sampling. Terminates
     when the number of points is `num_points` or (optionally) when the
     distance to the farthest point is equal to or less than
-    `min_farthest_distance`.
+    `max_farthest_distance`.
     """
 
     # Ensure the number of points to select is not greater than the total number of points
@@ -61,7 +61,7 @@ def farthest_point_sampling(points, num_points, min_farthest_distance=None, seed
         # Add the farthest point to the selected points
         selected_idxs.append(farthest_point_idx)
 
-        if min_farthest_distance and farthest_distance <= min_farthest_distance:
+        if max_farthest_distance and farthest_distance <= max_farthest_distance:
             break
 
     return points[selected_idxs]
