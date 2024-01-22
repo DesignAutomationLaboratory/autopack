@@ -8,7 +8,6 @@ from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, Proble
 from autopack.ips_communication.ips_class import IPSInstance
 from autopack.ips_communication.ips_commands import (
     add_point_cloud,
-    check_distance_of_points,
 )
 from autopack.utils import farthest_point_sampling
 
@@ -22,8 +21,6 @@ def create_ergonomic_cost_field(
     ips: IPSInstance,
     harness_setup: HarnessSetup,
     ref_cost_field: CostField,
-    min_geometry_dist=0.001,
-    max_geometry_dist=0.25,
     # Max allowed gripping tolerance [m]
     max_grip_diff=0.01,
     # Multiplies the grid resolution to get the max distance between samples [-]

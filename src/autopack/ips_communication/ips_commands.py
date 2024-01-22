@@ -94,20 +94,6 @@ def route_harnesses(
     return solutions
 
 
-def check_distance_of_points(
-    ips_instance, harness_setup, coords, min_geometry_dist, max_geometry_dist
-):
-    geo_names = [geo.name for geo in harness_setup.geometries if geo.assembly]
-    coord_distances_to_geo = np.array(
-        ips_instance.call("autopack.coordDistancesToGeo", coords, geo_names, True)
-    )
-
-    return np.logical_and(
-        coord_distances_to_geo >= min_geometry_dist,
-        coord_distances_to_geo <= max_geometry_dist,
-    )
-
-
 def add_point_cloud(
     ips,
     coords,

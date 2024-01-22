@@ -379,35 +379,6 @@ local function routeHarnesses(
   return solutions
 end
 
-local function coordDistancesToGeo(coords, geoNames, includeStaticGeo)
-  local activeObjsRoot = Ips.getActiveObjectsRoot()
-  local staticGeoRoot = Ips.getGeometryRoot()
-  local dot = Ips.createRigidBodyObject(PrimitiveShape.createSphere(0.0001, 6, 6))
-
-  local dotVector = TreeObjectVector()
-  dotVector:push_back(dot)
-
-  local partVector = TreeObjectVector()
-  for _, part in pairs(geoNames) do
-    partVector:push_back(activeObjsRoot:findFirstExactMatch(part))
-  end
-  if includeStaticGeo then
-    partVector:push_back(staticGeoRoot)
-  end
-
-  local measure = DistanceMeasure(DistanceMeasure.MODE_1_VS_2, partVector, dotVector)
-
-  local distances = {}
-  for coordIdx, coord in pairs(coords) do
-    dot:transform(coord[1], coord[2], coord[3], 0, 0, 0)
-    distances[coordIdx] = measure:getDistance()
-  end
-
-  Ips.deleteTreeObject(measure)
-  Ips.deleteTreeObject(dot)
-
-  return distances
-end
 
 local function copyRigidBodyGeometry(rigidBody, destTreeObj)
   rigidBody:setLocked(false)
@@ -603,7 +574,6 @@ module.clearScene = clearScene
 module.getCostField = getCostField
 module.setHarnessRouterNodeCosts = setHarnessRouterNodeCosts
 module.routeHarnesses = routeHarnesses
-module.coordDistancesToGeo = coordDistancesToGeo
 module.getAllManikinFamilies = getAllManikinFamilies
 module.evalErgo = evalErgo
 module.createColoredPointCloud = createColoredPointCloud
