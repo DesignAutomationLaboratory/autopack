@@ -1,6 +1,10 @@
 from autopack.data_model import ProblemSetup
 from autopack.ergonomic_evaluation import create_ergonomic_cost_field
-from autopack.ips_communication.ips_commands import create_costfield, load_scene
+from autopack.ips_communication.ips_commands import (
+    cost_field_vis,
+    create_costfield,
+    load_scene,
+)
 
 
 def create_default_prob_setup(ips_instance, harness_setup, create_imma=False):
@@ -19,4 +23,8 @@ def create_default_prob_setup(ips_instance, harness_setup, create_imma=False):
         )
         opt_setup.cost_fields.append(rula_cost_field)
         opt_setup.cost_fields.append(reba_cost_field)
+
+    for cost_field in opt_setup.cost_fields:
+        cost_field_vis(ips=ips_instance, cost_field=cost_field, visible=False)
+
     return opt_setup

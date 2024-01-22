@@ -557,14 +557,16 @@ local function evalErgo(
   return outputTable
 end
 
-local function createColoredPointCloud(points, treeParent, treeObjName, removeExisting)
+local function createColoredPointCloud(points, treeParent, treeObjName, replaceExisting, enabled)
   -- `points` is an array of arrays, where each sub-array is a point, described by 6 numbers:
   -- x, y, z, r, g, b
   local staticGeoRoot = Ips.getGeometryRoot()
   if not treeParent then
     treeParent = staticGeoRoot
+  elseif type(treeParent) == "string" then
+    treeParent = getOrCreateGeometryGroup(treeParent, staticGeoRoot)
   end
-  if removeExisting then
+  if replaceExisting then
     local existingTreeObj = treeParent:findFirstExactMatch(treeObjName)
     if existingTreeObj then
       Ips.deleteTreeObject(existingTreeObj)
@@ -580,6 +582,7 @@ local function createColoredPointCloud(points, treeParent, treeObjName, removeEx
   local treeObj = staticGeoRoot:getLastChild()
   Ips.moveTreeObject(treeObj, treeParent)
   treeObj:setLabel(treeObjName)
+  treeObj:setEnabled(enabled)
 
   return treeObj
 end

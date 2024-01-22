@@ -6,7 +6,10 @@ from scipy.spatial.distance import cdist
 from autopack import logger
 from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.ips_communication.ips_commands import check_distance_of_points
+from autopack.ips_communication.ips_commands import (
+    add_point_cloud,
+    check_distance_of_points,
+)
 from autopack.utils import farthest_point_sampling
 
 MAX_ERGO_STANDARD_VALUES = xr.DataArray(
@@ -68,6 +71,14 @@ def create_ergonomic_cost_field(
         seed=0,  # For deterministic behavior
     )
     num_coords = eval_coords.shape[0]
+
+    add_point_cloud(
+        ips=ips,
+        coords=eval_coords,
+        name="Autopack ergo evaluation points",
+        replace_existing=True,
+        visible=False,
+    )
 
     # Only evaluate the standards we can handle
     ergo_standards = MAX_ERGO_STANDARD_VALUES.ergo_standard.values
