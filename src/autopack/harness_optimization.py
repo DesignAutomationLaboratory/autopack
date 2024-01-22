@@ -1,6 +1,9 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import xarray as xr
+from linear_operator.utils.warnings import NumericalWarning
 
 from . import data_model
 from .data_model import CostField, IPSInstance, ProblemSetup
@@ -283,12 +286,14 @@ def global_optimize_harness(
         )
 
     problem = problem_from_setup(problem_setup, ips_instance)
-    minimize(
-        problem=problem,
-        batches=batches,
-        batch_size=batch_size,
-        init_samples=init_samples,
-    )
+
+    with warnings.catch_warnings(category=NumericalWarning, action="ignore"):
+        minimize(
+            problem=problem,
+            batches=batches,
+            batch_size=batch_size,
+            init_samples=init_samples,
+        )
 
     dataset = xr.concat(problem.state["batch_datasets"], dim="solution")
     dataset.attrs["problem_setup"] = problem_setup
