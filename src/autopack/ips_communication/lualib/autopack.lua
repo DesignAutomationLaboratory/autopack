@@ -423,22 +423,33 @@ local function getAllManikinFamilies()
   local manikinFamilyIds = vectorToTable(msc:getManikinFamilyIDs())
   local manikinFamilyNames = {}
   for _, manikinFamilyId in pairs(manikinFamilyIds) do
+    local family = msc:getManikinFamily(manikinFamilyId)
+    local familyViz = family:getVisualization()
     manikinFamilyNames[#manikinFamilyNames + 1] = {
       id = manikinFamilyId,
-      name = msc:getManikinFamily(manikinFamilyId):getVisualization():getLabel(),
+      name = familyViz:getLabel(),
+      manikinNames = vectorToTable(family:getManikinNames()),
     }
   end
 
   return manikinFamilyNames
 end
 
-local function evalErgo(geoNames, manikinFamilyId, coords, gripTol, enableRbpp, updateScreen, keepGenObj)
+local function evalErgo(
+  geoNames,
+  manikinFamilyId,
+  coords,
+  gripTol,
+  ergoStandards,
+  enableRbpp,
+  updateScreen,
+  keepGenObj
+)
   local copiedGeoGroup = copyToStaticGeometry(geoNames)
 
   local msc = ManikinSimulationController()
   local family = msc:getManikinFamily(manikinFamilyId)
   local familyViz = family:getVisualization()
-  local ergoStandards = vectorToTable(family:getErgoStandards())
   family:enableCollisionAvoidance()
 
   local gripPoint = msc:createGripPoint()
@@ -474,27 +485,37 @@ local function evalErgo(geoNames, manikinFamilyId, coords, gripTol, enableRbpp, 
   local replay -- Declared here to enable resetting after the loop
   local pauseActionEndTime
   for coordIdx, coord in pairs(coords) do
+    outputTable.ergoValues[coordIdx] = {}
+    outputTable.errorMsgs[coordIdx] = {}
+
     moveGripPoint(gripPointViz, Vector3d(coord[1], coord[2], coord[3]))
-    replay = opSequence:executeSequence()
-    pauseActionEndTime = replay:getActionEndTime(pauseAction)
-    local graspActionEndTime = replay:getActionEndTime(graspAction)
 
-    if updateScreen then
-      Ips.updateScreen()
-    end
+    for handIdx, handName in pairs({ "left", "right" }) do
+      log("Ergo evaluation: coord " .. coordIdx .. "/" .. #coords .. ", " .. handName .. " hand")
+      gripPoint:setHand(handIdx - 1)
+      -- This shows up for the user in the UI
+      gripPointViz:setLabel("Coord " .. coordIdx .. ", " .. handName .. " hand")
 
-    local coordErgoValues = {}
-    for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
-      local ergoValues = vectorToTable(replay:computeErgonomicScore(ergoStandard, graspActionEndTime, graspActionEndTime))
-      coordErgoValues[ergoStandardIdx] = ergoValues
+      replay = opSequence:executeSequence()
+      outputTable.errorMsgs[coordIdx][handIdx] = replay:getReplayErrorMessage(graspAction)
+      pauseActionEndTime = replay:getActionEndTime(pauseAction)
+      local graspActionEndTime = replay:getActionEndTime(graspAction)
+
+      if updateScreen then
+        Ips.updateScreen()
+      end
+
+      outputTable.ergoValues[coordIdx][handIdx] = {}
+      for ergoStandardIdx, ergoStandard in pairs(ergoStandards) do
+        local ergoValues = vectorToTable(replay:computeErgonomicScore(ergoStandard, graspActionEndTime,
+          graspActionEndTime))
+        outputTable.ergoValues[coordIdx][handIdx][ergoStandardIdx] = ergoValues
+      end
     end
-    outputTable.ergoValues[coordIdx] = coordErgoValues
-    outputTable.errorMsgs[coordIdx] = replay:getReplayErrorMessage(graspAction)
-    log("Ergo evaluation: " .. coordIdx .. "/" .. #coords .. " done")
   end
-  -- Make sure that the replay is rewinded, to set the manikin back to
-  -- its start state. Rewinding to 0.0 does not properly reset the start
-  -- state.
+  -- Make sure that the last replay is rewinded, to set the manikin back
+  -- to its start state. Rewinding to 0.0 does not properly reset the
+  -- start state.
   replay:setTime(pauseActionEndTime)
 
   if not keepGenObj then

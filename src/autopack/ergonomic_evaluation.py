@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 from scipy.interpolate import RBFInterpolator
 from scipy.spatial.distance import cdist
 
@@ -7,6 +8,11 @@ from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, Proble
 from autopack.ips_communication.ips_class import IPSInstance
 from autopack.ips_communication.ips_commands import check_distance_of_points
 from autopack.utils import farthest_point_sampling
+
+MAX_ERGO_STANDARD_VALUES = xr.DataArray(
+    [15, 7],
+    coords={"ergo_standard": ["REBA", "RULA"]},
+)
 
 
 def create_ergonomic_cost_field(
@@ -22,7 +28,7 @@ def create_ergonomic_cost_field(
     keep_generated_objects=False,
 ):
     logger.info("Creating ergonomy cost fields")
-    ref_cost_field = problem_setup.cost_fields[0]
+    ref_cost_field = problem_setup.ref_cost_field
     ref_costs = ref_cost_field.costs
     ref_coords = ref_cost_field.coordinates
     ref_coords_flat = ref_coords.reshape(-1, 3)
@@ -61,79 +67,87 @@ def create_ergonomic_cost_field(
         min_farthest_distance=min_point_dist,
         seed=0,  # For deterministic behavior
     )
+    num_coords = eval_coords.shape[0]
 
-    _all_ergo_values = []
+    # Only evaluate the standards we can handle
+    ergo_standards = MAX_ERGO_STANDARD_VALUES.ergo_standard.values
+
+    family_datasets = []
     for family in families:
         family_id = family["id"]
         family_name = family["name"]
-        logger.info(f"Evaluating {eval_coords.shape[0]} points with {family_name}")
+        family_manikin_names = family["manikinNames"]
+        logger.info(f"Evaluating {num_coords} points with {family_name}")
         ergo_eval = ips.call(
             "autopack.evalErgo",
             geometries_to_consider,
             family_id,
             eval_coords,
             max_grip_diff,
+            ergo_standards,
             use_rbpp,
             update_screen,
             keep_generated_objects,
         )
         ergo_standards = ergo_eval["ergoStandards"]
-        ergo_values = np.array(ergo_eval["ergoValues"], dtype=float).max(axis=2)
-        assert ergo_values.shape == (len(eval_coords), len(ergo_standards))
-        bad_grip_mask = np.array(
-            [("Grip was not satisfied" in msg) for msg in ergo_eval["errorMsgs"]]
-        )
-        logger.notice(
-            f"{bad_grip_mask.sum()} out of {eval_coords.shape[0]} points are unreachable for {family_name}"
-        )
-        ergo_values[bad_grip_mask] = np.inf
-        _all_ergo_values.append(ergo_values)
 
-    all_ergo_values = np.stack(_all_ergo_values)
-    assert all_ergo_values.shape == (
-        len(families),
-        len(eval_coords),
-        len(ergo_standards),
+        _bad_grip_mask = np.vectorize(lambda msg: "Grip was not satisfied" in msg)(
+            np.array(ergo_eval["errorMsgs"], dtype=object)
+        )
+
+        family_ds = xr.Dataset(
+            data_vars={
+                "ergo_values": xr.DataArray(
+                    ergo_eval["ergoValues"],
+                    dims=["coord", "hand", "ergo_standard", "manikin"],
+                ),
+                "reachable": xr.DataArray(
+                    np.invert(_bad_grip_mask),
+                    dims=["coord", "hand"],
+                ),
+            },
+            coords={
+                # "coord": range(num_coords),
+                "hand": ["left", "right"],
+                "ergo_standard": ergo_standards,
+                "manikin": family_manikin_names,
+            },
+        ).assign_coords(family=family_name)
+        family_datasets.append(family_ds)
+
+    ds = xr.concat(family_datasets, dim="family")
+    aggregated_ergo_values = (
+        ds.ergo_values
+        # The worst of all manikins within each family
+        .max("manikin")
+        # Where we can't reach, assign the worst possible value for each
+        # ergo standard
+        .where(ds.reachable, other=MAX_ERGO_STANDARD_VALUES)
+        # Use the best family and hand available
+        .min(["family", "hand"])
+    )
+    num_unreachable_coords = (
+        np.invert(ds.reachable.any(["family", "hand"])).sum().item()
+    )
+    logger.notice(
+        f"{num_unreachable_coords} points are unreachable for all manikin families"
     )
 
-    combined_ergo_values = all_ergo_values.min(axis=0)
-    combined_feasible_mask = np.isfinite(combined_ergo_values)
-    # Set the cost of infeasible points to a relatively high value
-    combined_ergo_values[np.invert(combined_feasible_mask)] = 10
-
     cost_fields = []
-    for ergo_std_idx, ergo_std in enumerate(ergo_standards):
-        true_costs = combined_ergo_values[:, ergo_std_idx]
-
+    for ergo_std in ergo_standards:
         logger.info(f"Interpolating {ergo_std} cost field")
-        predicted_costs = interpolation(eval_coords, true_costs, ref_coords_flat)
-        # predicted_costs[infeasible_mask] = np.inf
+        interpolator = RBFInterpolator(
+            eval_coords, aggregated_ergo_values.sel(ergo_standard=ergo_std).values
+        )
+        predicted_costs = interpolator(ref_coords_flat)
 
         cost_fields.append(
             CostField(
                 name=ergo_std,
                 coordinates=ref_coords,
                 costs=predicted_costs.reshape(ref_costs.shape),
+                _interpolator=interpolator,
             )
         )
 
     return cost_fields
-
-
-def sparse_cost_field(cost_field, min_point_dist):
-    p1 = cost_field.coordinates[0, 0, 0]
-    p2 = cost_field.coordinates[0, 0, 1]
-    current_dist = (
-        (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2 + (p2[2] - p1[2]) ** 2
-    ) ** 0.5
-    sample_dist = max(round(min_point_dist / current_dist), 1)
-    new_arr = cost_field.coordinates[::sample_dist, ::sample_dist, ::sample_dist]
-    reshaped_array = new_arr.reshape(-1, 3)
-    return reshaped_array
-
-
-def interpolation(known_x, known_y, predict_x):
-    rbf = RBFInterpolator(known_x, known_y)
-    predict_y = rbf(predict_x)
-
-    return predict_y
