@@ -93,7 +93,6 @@ def create_ergonomic_cost_field(
             update_screen,
             keep_generated_objects,
         )
-        ergo_standards = ergo_eval["ergoStandards"]
 
         _bad_grip_mask = np.vectorize(lambda msg: "Grip was not satisfied" in msg)(
             np.array(ergo_eval["errorMsgs"], dtype=object)
