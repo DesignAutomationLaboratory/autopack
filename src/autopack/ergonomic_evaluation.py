@@ -11,9 +11,12 @@ from autopack.ips_communication.ips_commands import (
 )
 from autopack.utils import farthest_point_sampling
 
-MAX_ERGO_STANDARD_VALUES = xr.DataArray(
-    [15, 7],
-    coords={"ergo_standard": ["REBA", "RULA"]},
+ERGO_STANDARD_BOUNDS = xr.DataArray(
+    [[1, 15], [1, 7]],
+    coords={
+        "ergo_standard": ["REBA", "RULA"],
+        "bound": ["min", "max"],
+    },
 )
 
 
@@ -30,7 +33,7 @@ def create_ergonomic_cost_field(
     keep_generated_objects=False,
 ):
     # Only evaluate the standards we can handle
-    ergo_standards = MAX_ERGO_STANDARD_VALUES.ergo_standard.values
+    ergo_standards = ERGO_STANDARD_BOUNDS.ergo_standard.values
 
     logger.info(f"Creating ergonomy cost fields: {', '.join(ergo_standards)}")
     ref_costs = ref_cost_field.costs
@@ -125,7 +128,11 @@ def create_ergonomic_cost_field(
         .max("manikin")
         # Where we can't reach, assign the worst possible value for each
         # ergo standard
-        .where(ds.reachable, other=MAX_ERGO_STANDARD_VALUES)
+        .where(
+            cond=ds.reachable,
+            # Assigns where the condition is False
+            other=ERGO_STANDARD_BOUNDS.sel(bound="max", drop=True),
+        )
         # Use the best family and hand available
         .min(["family", "hand"])
     )
@@ -143,6 +150,11 @@ def create_ergonomic_cost_field(
             eval_coords, aggregated_ergo_values.sel(ergo_standard=ergo_std).values
         )
         predicted_costs = interpolator(ref_coords_flat)
+
+        ergo_std_bounds = ERGO_STANDARD_BOUNDS.sel(ergo_standard=ergo_std).values
+        predicted_costs = np.clip(
+            predicted_costs, ergo_std_bounds[0], ergo_std_bounds[1]
+        )
 
         # Infeasible points have not been evaluated, so we know nothing
         # about them
