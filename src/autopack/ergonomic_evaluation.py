@@ -152,6 +152,10 @@ def create_ergonomic_cost_field(
         )
         predicted_costs = interpolator(ref_coords_flat)
 
+        # Infeasible points have not been evaluated, so we know nothing
+        # about them
+        predicted_costs[~feasible_mask] = np.inf
+
         cost_fields.append(
             CostField(
                 name=ergo_std,
