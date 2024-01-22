@@ -419,20 +419,23 @@ local function copyRigidBodyGeometry(rigidBody, destTreeObj)
   rigidBody:setLocked(true)
 end
 
-local function moveGripPoint(gripPointViz, translationVector)
+local function moveGripPoint(gripPoint, worldVector)
   -- local r = Rot3(Vector3d(0, 0, 0), Vector3d(0, 0, 0), Vector3d(0, 0, 0))
-  -- local transf = Transf3(r, translationVector)
+  -- local transf = Transf3(r, worldVector)
   -- Does not work
   -- gripPoint:setTarget(transf)
   -- gripPoint:getVisualization():setTWorld(transf)
   -- Almost works
   -- gripPoint:getVisualization():setTControl(transf)
   -- Works
-  return gripPointViz:transform(translationVector.x, translationVector.y, translationVector.z, 0, 0, 0)
-end
 
-local function getManikinCtrlPoint(familyViz, ctrlPointName)
-  return familyViz:findFirstExactMatch(ctrlPointName):toControlPointVisualization():getControlPoint()
+  -- The object frame points to the wrist, so to get to the actual grip
+  -- point, we must account for the offset
+  local placementVector = worldVector - gripPoint:getOffset()
+  local gripPointViz = gripPoint:getVisualization()
+  gripPointViz:transform(placementVector.x, placementVector.y, placementVector.z, 0, 0, 0)
+
+  assert(gripPointViz:getTControl().t:distance(worldVector) < 1e-6, "Grip point not moved correctly")
 end
 
 local function copyToStaticGeometry(activeObjNames)
@@ -518,7 +521,7 @@ local function evalErgo(
     outputTable.ergoValues[coordIdx] = {}
     outputTable.errorMsgs[coordIdx] = {}
 
-    moveGripPoint(gripPointViz, Vector3d(coord[1], coord[2], coord[3]))
+    moveGripPoint(gripPoint, Vector3d(coord[1], coord[2], coord[3]))
 
     for handIdx, handName in pairs({ "left", "right" }) do
       log("Ergo evaluation: coord " .. coordIdx .. "/" .. #coords .. ", " .. handName .. " hand")
