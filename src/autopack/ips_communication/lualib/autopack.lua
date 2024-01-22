@@ -16,6 +16,31 @@ local function _unpack(string)
   return msgpack.unpack(base64.decode(string))
 end
 
+local function runAndPack(runFunc)
+  local function packFunc(success, result)
+    return _pack({
+      success = success,
+      result = result,
+    })
+  end
+
+  local function errHandler(err)
+    return {
+      error = err,
+      traceback = debug.traceback(),
+    }
+  end
+
+  local runSuccess, runResult = xpcall(runFunc, errHandler)
+  local packSuccess, packResult = xpcall(packFunc, errHandler, runSuccess, runResult)
+
+  if packSuccess then
+    return packResult
+  else
+    return packFunc(packSuccess, packResult)
+  end
+end
+
 local function _type(obj)
   -- Returns the type of `obj` as a string.
   -- Unlike `type`, this function also works for IPS userdata.
@@ -557,6 +582,7 @@ end
 module.type = _type
 module.pack = _pack
 module.unpack = _unpack
+module.runAndPack = runAndPack
 module.vectorToTable = vectorToTable
 module.range = range
 

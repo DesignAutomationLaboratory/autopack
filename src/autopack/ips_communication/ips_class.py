@@ -16,32 +16,11 @@ CALL_TEMPLATE = f"""
     package.path = package.path .. ';{LUALIB_PATH.absolute().as_posix()}'
     local autopack = require("autopack")
 
-    local function runFunc()
+    local function func()
         %s
     end
 
-    local function packFunc(success, result)
-        return autopack.pack({{
-            success = success,
-            result = result,
-        }})
-    end
-
-    local function errHandler(err)
-        return {{
-            error = err,
-            traceback = debug.traceback(),
-        }}
-    end
-
-    local runSuccess, runResult = xpcall(runFunc, errHandler)
-    local packSuccess, packResult = xpcall(packFunc, errHandler, runSuccess, runResult)
-
-    if packSuccess then
-        return packResult
-    else
-        return packFunc(packSuccess, packResult)
-    end
+    return autopack.runAndPack(func)
 """
 
 
