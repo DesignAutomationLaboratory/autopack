@@ -44,6 +44,9 @@ def route_harnesses(
     harness_id: str,
 ) -> list[Harness]:
     assert not np.isnan(cost_field.costs).any(), "Cost field contains NaNs"
+    # IPS seems to go haywire when given negative costs (as in suddenly
+    # chewing up all memory)
+    assert not np.any(cost_field.costs < 0), "Cost field contains negative values"
 
     response = ips.call(
         "autopack.routeHarnesses",
