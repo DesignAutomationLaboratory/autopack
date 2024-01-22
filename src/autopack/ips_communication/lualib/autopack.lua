@@ -289,6 +289,10 @@ local function routeHarnesses(
   router:routeHarness()
 
   local numSolutions = router:getNumSolutions()
+  if numSolutions == 0 then
+    log("No solutions found for case " .. namePrefix)
+    return {}
+  end
   local topologyFeasible = router:getSolutionsAreTopologyFeasible()
 
   if topologyFeasible then
