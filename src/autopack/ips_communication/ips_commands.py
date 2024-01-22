@@ -17,19 +17,13 @@ from ..utils import grid_idxs_to_coords
 from . import lua_commands
 
 
-def create_costfield(ips_instance, harness_setup):
-    response = ips_instance.call("autopack.getCostField", harness_setup)
+def create_costfield(ips, harness_setup):
+    response = ips.call("autopack.getCostField", harness_setup)
 
     coords = np.array(response["coords"])
     costs = np.array(response["costs"])
 
-    ips_field = CostField(name="ips", coordinates=coords, costs=costs)
-    length_field = CostField(
-        name="length",
-        coordinates=coords,
-        costs=np.ones_like(costs),
-    )
-    return ips_field, length_field
+    return CostField(name="IPS", coordinates=coords, costs=costs)
 
 
 def load_scene(ips_instance, scene_file_path: PathLike, clear=False):

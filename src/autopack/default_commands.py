@@ -9,10 +9,8 @@ from autopack.ips_communication.ips_commands import (
 
 def create_default_prob_setup(ips_instance, harness_setup, create_imma=False):
     load_scene(ips_instance, harness_setup.scene_path, clear=True)
-    cost_field_ips, cost_field_length = create_costfield(ips_instance, harness_setup)
-    opt_setup = ProblemSetup(
-        harness_setup=harness_setup, cost_fields=[cost_field_ips, cost_field_length]
-    )
+    cost_field_ips = create_costfield(ips_instance, harness_setup)
+    opt_setup = ProblemSetup(harness_setup=harness_setup, cost_fields=[cost_field_ips])
     if create_imma:
         rula_cost_field, reba_cost_field = create_ergonomic_cost_field(
             ips=ips_instance,

@@ -117,7 +117,7 @@ def test_create_problem_setup_without_imma(ips_instance, simple_plate_harness_se
     )
 
     assert isinstance(problem_setup, ProblemSetup)
-    assert len(problem_setup.cost_fields) == 2
+    assert len(problem_setup.cost_fields) == 1
 
 
 def test_create_problem_setup_with_imma(ips_instance, simple_plate_harness_setup):
@@ -128,4 +128,4 @@ def test_create_problem_setup_with_imma(ips_instance, simple_plate_harness_setup
     )
 
     assert isinstance(problem_setup, ProblemSetup)
-    assert len(problem_setup.cost_fields) == 4
+    assert len(problem_setup.cost_fields) == 3
