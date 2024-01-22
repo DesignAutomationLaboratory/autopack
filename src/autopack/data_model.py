@@ -2,7 +2,7 @@ import pathlib
 from typing import Any, List, Literal, Optional
 
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from .ips_communication.ips_class import IPSInstance  # noqa
 
@@ -57,12 +57,13 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
         description="Cost for each grid node. Positive infinity implies an infeasible node.",
     )
 
-    def normalized_costs(self):
-        feasible_mask = np.invert(np.isposinf(self.costs))
-        max_value = np.amax(self.costs[feasible_mask])
-        assert max_value != 0, "Max cost is 0, can't normalize"
-        normalized_arr = self.costs / max_value
-        return normalized_arr
+    @field_validator("costs")
+    @classmethod
+    def check_costs(cls, v: np.ndarray):
+        assert not np.isnan(v).any(), "Cost field contains NaNs"
+        assert not np.isneginf(v).any(), "Cost field contains negative infinity values"
+
+        return v
 
 
 class ProblemSetup(BaseModel):

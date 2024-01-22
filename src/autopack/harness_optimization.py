@@ -9,40 +9,37 @@ from .optimization import OptimizationMeta, OptimizationProblem, minimize
 from .utils import path_length
 
 
-def combine_cost_fields(cost_fields, weights, normalize_fields=True):
+def normalize_costs(costs: np.ndarray, scale=(0, 1)) -> np.ndarray:
+    """
+    Min-max normalize costs to `scale` (default [0, 1]). If min ==
+    max, all costs are set to 0. Infeasible nodes are always kept as
+    is.
+    """
+
+    finite_mask = np.isfinite(costs)
+    min_value = np.amin(costs[finite_mask])
+    max_value = np.amax(costs[finite_mask])
+    if min_value == max_value:
+        unit_costs = np.zeros_like(costs)
+    else:
+        unit_costs = (costs - min_value) / (max_value - min_value)
+    scaled_costs = unit_costs * (scale[1] - scale[0]) + scale[0]
+    # inf * 0 = nan, so we must set inf again where it was before
+    scaled_costs[~finite_mask] = np.inf
+    return scaled_costs
+
+
+def combine_cost_fields(cost_fields, weights, output_scale=(1, 10)):
+    assert len(cost_fields) == len(weights), "Must give one weight per cost field"
     coords = cost_fields[0].coordinates
-    costs = np.zeros(np.shape(cost_fields[0].costs), dtype=float)
-    name = "weighted"
-    for i in range(len(cost_fields)):
-        if normalize_fields:
-            costs = costs + weights[i] * cost_fields[i].normalized_costs()
-        else:
-            costs = costs + weights[i] * cost_fields[i].costs
-    return CostField(name=name, coordinates=coords, costs=costs)
 
+    all_costs = np.stack(
+        [normalize_costs(cf.costs, scale=(0, 1)) for cf in cost_fields]
+    )
+    combined_costs = np.sum(all_costs * weights[:, None, None, None], axis=0)
+    combined_scaled_costs = normalize_costs(combined_costs, output_scale)
 
-def evaluate_harness(harness, cost_field):
-    bundle_cost = 0
-    total_cost = 0
-    for segment in harness.harness_segments:
-        for i in range(len(segment.points) - 1):
-            start_node = segment.points[i]
-            end_node = segment.points[i + 1]
-            start_coord = cost_field.coordinates[
-                start_node[0], start_node[1], start_node[2]
-            ]
-            end_coord = cost_field.coordinates[end_node[0], end_node[1], end_node[2]]
-            distance = (
-                (end_coord[0] - start_coord[0]) ** 2
-                + (end_coord[1] - start_coord[1]) ** 2
-                + (end_coord[2] - start_coord[2]) ** 2
-            ) ** 0.5
-            start_cost = cost_field.costs[start_node[0], start_node[1], start_node[2]]
-            end_cost = cost_field.costs[end_node[0], end_node[1], end_node[2]]
-            cost = (start_cost + end_cost) / 2 * distance
-            bundle_cost = bundle_cost + cost
-            total_cost = total_cost + cost * len(segment.cables)
-    return bundle_cost, total_cost
+    return CostField(name="Combined", coordinates=coords, costs=combined_scaled_costs)
 
 
 def harness_volume(harness: data_model.Harness) -> float:
@@ -120,7 +117,9 @@ def design_point_ds(
     cost_field_ids = [cf.name for cf in problem_setup.cost_fields]
 
     combined_cost_field = combine_cost_fields(
-        cost_fields=problem_setup.cost_fields, weights=x[:-1], normalize_fields=True
+        cost_fields=problem_setup.cost_fields,
+        weights=x[:-1],
+        output_scale=(1, 10),
     )
 
     harness_solutions = route_harnesses(
