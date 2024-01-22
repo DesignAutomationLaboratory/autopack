@@ -16,3 +16,54 @@ def ips_instance():
     ips.start()
     yield ips
     ips.kill()
+
+
+@pytest.fixture
+def simple_plate_harness_setup(test_scenes_path):
+    from autopack import data_model
+
+    return data_model.HarnessSetup(
+        scene_path=str((test_scenes_path / "simple_plate.ips").resolve()),
+        geometries=[
+            data_model.Geometry(
+                name="part1",
+                clearance=5.0,
+                preference="Near",
+                clipable=True,
+                assembly=True,
+            ),
+            data_model.Geometry(
+                name="part2",
+                clearance=5.0,
+                preference="Near",
+                clipable=True,
+                assembly=True,
+            ),
+            data_model.Geometry(
+                name="part3",
+                clearance=5.0,
+                preference="Near",
+                clipable=True,
+                assembly=True,
+            ),
+        ],
+        cables=[
+            data_model.Cable(
+                start_node="Cable1_start",
+                end_node="Cable1_end",
+                cable_type="ABS_sensor_cable",
+            ),
+            data_model.Cable(
+                start_node="Cable2_start",
+                end_node="Cable2_end",
+                cable_type="ABS_sensor_cable",
+            ),
+            data_model.Cable(
+                start_node="Cable3_start",
+                end_node="Cable3_end",
+                cable_type="ABS_sensor_cable",
+            ),
+        ],
+        # Coarse grid resolution to speed up tests
+        grid_resolution=0.1,
+    )

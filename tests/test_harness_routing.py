@@ -3,16 +3,18 @@ import pytest
 
 from autopack.data_model import Cable, Geometry, HarnessSetup
 from autopack.default_commands import create_default_prob_setup
-from autopack.ips_communication.ips_commands import create_costfield, route_harnesses
+from autopack.ips_communication.ips_commands import route_harnesses
 
 
-@pytest.mark.parametrize("feasible", [True, False])
+@pytest.mark.parametrize("feasible_scene", [True, False])
+@pytest.mark.parametrize("allow_infeasible_topology", [True, False])
 def test_topology_feasibility(
-    feasible,
+    feasible_scene,
+    allow_infeasible_topology,
     test_scenes_path,
     ips_instance,
 ):
-    if feasible:
+    if feasible_scene:
         scene_path = test_scenes_path / "topology_feasible.ips"
     else:
         scene_path = test_scenes_path / "topology_infeasible.ips"
@@ -36,7 +38,9 @@ def test_topology_feasibility(
             )
             for n in range(1, 4)
         ],
-        grid_resolution=0.02 if feasible else 0.1,
+        # The feasible scene needs a fine enough grid to find a solution
+        grid_resolution=0.02 if feasible_scene else 0.1,
+        allow_infeasible_topology=allow_infeasible_topology,
     )
 
     prob_setup = create_default_prob_setup(
@@ -53,10 +57,21 @@ def test_topology_feasibility(
         harness_id="test",
     )
 
+    if allow_infeasible_topology:
+        expected_feasibility = feasible_scene
+        assert len(harnesses) >= 1
+    else:
+        # If we don't allow infeasible topologies, we should get no solutions
+        expected_feasibility = True
+        if feasible_scene:
+            assert len(harnesses) >= 1
+        else:
+            assert len(harnesses) == 0
+
     for harness in harnesses:
-        assert harness.topology_feasible is feasible
+        assert harness.topology_feasible is expected_feasibility
         assert len(harness.cable_segment_order) == len(harness_setup.cables)
-        if feasible:
+        if feasible_scene:
             assert harness.length_in_collision > 0
             assert harness.length_in_collision < harness.length_total
         else:
@@ -66,7 +81,7 @@ def test_topology_feasibility(
         for segment in harness.harness_segments:
             assert len(segment.discrete_nodes) > 0
             assert len(segment.discrete_coords) > 0
-            if feasible:
+            if feasible_scene:
                 assert len(segment.smooth_coords) > 0
                 assert len(segment.presmooth_coords) > 0
             else:
