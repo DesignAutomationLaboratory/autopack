@@ -84,7 +84,6 @@ class OptimizationProblem(BaseModel, arbitrary_types_allowed=True):
     num_objectives: int
     num_constraints: int = 0
     ref_point: Optional[np.ndarray | torch.Tensor] = None
-    seed: Optional[int] = None
     state: Optional[Any] = None
 
 

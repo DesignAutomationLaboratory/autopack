@@ -293,6 +293,7 @@ def global_optimize_harness(
             batches=batches,
             batch_size=batch_size,
             init_samples=init_samples,
+            seed=0,
         )
 
     dataset = xr.concat(problem.state["batch_datasets"], dim="solution")
