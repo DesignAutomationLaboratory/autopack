@@ -61,6 +61,8 @@ def create_ergonomic_cost_field(
     eval_coords = farthest_point_sampling(
         points=ref_coords_flat,
         num_points=max_samples,
+        # The RBF interpolator requires at least 4 points
+        min_points=4,
         max_farthest_distance=max_farthest_distance,
         seed=0,  # For deterministic behavior
     )
