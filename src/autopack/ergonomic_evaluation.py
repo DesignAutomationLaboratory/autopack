@@ -161,7 +161,7 @@ def create_ergonomic_cost_field(
                 name=ergo_std,
                 coordinates=ref_coords,
                 costs=predicted_costs.reshape(ref_costs.shape),
-                _interpolator=interpolator,
+                interpolator=interpolator,
             )
         )
 

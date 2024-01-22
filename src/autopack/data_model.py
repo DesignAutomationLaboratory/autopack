@@ -57,16 +57,11 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
         description="Cost for each grid node. Positive infinity implies an infeasible node.",
     )
 
-    _interpolator: Optional[Any] = Field(
+    interpolator: Optional[Any] = Field(
+        default=None,
         exclude=True,
         description="An interpolator object that interpolates the cost field",
     )
-
-    @property
-    def interpolator(self):
-        if self._interpolator is None:
-            raise ValueError("Cost field has no interpolator")
-        return self._interpolator
 
     def normalized_costs(self):
         feasible_mask = np.invert(np.isposinf(self.costs))
