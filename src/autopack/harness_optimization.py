@@ -67,45 +67,6 @@ def harness_volume(harness: data_model.Harness) -> float:
     return np.sum(segment_lengths * segment_radii**2 * np.pi)
 
 
-def route_harness_from_dataset(
-    ips: IPSInstance,
-    ds: xr.Dataset,
-    case_id: str,
-    ips_solution_idx: int = 0,
-    smooth_solution=False,
-    build_discrete_solution=False,
-    build_presmooth_solution=False,
-    build_smooth_solution=False,
-    build_cable_simulation=False,
-) -> data_model.Harness:
-    problem_setup: ProblemSetup = ds.attrs["problem_setup"]
-
-    selected_ds = ds.sel(case=case_id, ips_solution=ips_solution_idx)
-    cost_field_weights = selected_ds["cost_field_weight"].values
-    bundling_weight = selected_ds["bundling_weight"].values
-
-    combined_cf = combine_cost_fields(problem_setup.cost_fields, cost_field_weights)
-
-    # This assumes that the harness router is deterministic and
-    # will always return the same harness for the same inputs.
-    # FIXME: investigate whether this is true.
-    return route_harnesses(
-        ips=ips,
-        harness_setup=problem_setup.harness_setup,
-        cost_field=combined_cf,
-        bundling_weight=bundling_weight,
-        harness_id=case_id,
-        solutions_to_capture=[ips_solution_idx],
-        smooth_solutions=smooth_solution,
-        build_discrete_solutions=build_discrete_solution,
-        build_presmooth_solutions=build_presmooth_solution,
-        build_smooth_solutions=build_smooth_solution,
-        build_cable_simulations=build_cable_simulation,
-    )[
-        0
-    ]  # We only capture one solution
-
-
 def design_point_ds(
     ips: IPSInstance,
     problem_setup: ProblemSetup,
