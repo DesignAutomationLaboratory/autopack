@@ -163,7 +163,6 @@ def optimize_qnehvi_and_get_candidates(
     batch_size,
     restarts,
     raw_samples,
-    seed,
 ):
     """Optimizes the qNEHVI acquisition function, and returns a new candidate and observation."""
     train_x = normalize(train_x, bounds=problem.bounds.T)
@@ -209,7 +208,7 @@ def optimize_qnehvi_and_get_candidates(
         q=batch_size,
         num_restarts=restarts,
         raw_samples=raw_samples,  # used for intialization heuristic
-        options={"batch_limit": 5, "maxiter": 200, "seed": seed},
+        options={"batch_limit": 5, "maxiter": 200},
         sequential=True,
     )
 
@@ -255,6 +254,7 @@ def minimize(
         meta=OptimizationMeta(category="sobol", batch=0),
     )
 
+    torch.manual_seed(seed)
     # run N_BATCH rounds of BayesOpt after the initial random batch
     for iteration in range(batches):
         t0 = time.monotonic()
@@ -287,7 +287,6 @@ def minimize(
             batch_size=batch_size,
             restarts=restarts,
             raw_samples=raw_samples,
-            seed=seed,
         )
 
         new_x, new_obj, new_con = evaluate_batch(
