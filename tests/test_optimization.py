@@ -55,26 +55,44 @@ def test_minimize_binh_korn_smoke(constrained):
     assert result.con.shape[1] == (2 if constrained else 0)
 
 
-@pytest.mark.parametrize("num_weights", [2, 3, 4])
-@pytest.mark.parametrize("cost_multiplier", [10])
-@pytest.mark.parametrize("clip_multiplier", [1])
-def test_faux_autopack_smoke(num_weights, cost_multiplier, clip_multiplier):
-    datasets = []
+@pytest.mark.parametrize("use_cuda", [True, False])
+def test_minimize_binh_korn_deterministic(use_cuda):
+    problem = create_binh_korn_problem(constrained=True)
 
-    problem = create_faux_autopack_analysis_problem(
-        num_weights=num_weights,
-        cost_multiplier=cost_multiplier,
-        clip_multiplier=clip_multiplier,
-        datasets=datasets,
-    )
+    init_samples = 8
+    batches = 4
+    batch_size = 2
 
-    result = minimize(
-        problem=problem,
-        batches=2,
-        batch_size=2,
-    )
+    runs = []
+    for run in range(2):
+        result = minimize(
+            problem=problem,
+            init_samples=init_samples,
+            batches=batches,
+            batch_size=batch_size,
+            seed=0,
+            use_cuda=use_cuda,
+        )
+        runs.append(result)
 
-    full_dataset = xr.concat(datasets, dim="case")
+    all_xs = np.stack([run.x for run in runs])
 
-    # Check that the hypervolume is increasing, if ever so slightly
-    assert False
+    sampled_xs = all_xs[:, :init_samples]
+    opt_xs = all_xs[:, init_samples:]
+
+    # Are we sampling the same points?
+    assert np.diff(sampled_xs, axis=0).sum() == 0
+
+    # Does the optimizer come up with the same points?
+    assert np.diff(opt_xs, axis=0).sum() == 0
+
+    # Do we actually evaluate unique points?
+    _, counts = np.unique(all_xs[0], axis=0, return_counts=True)
+    assert np.all(counts == 1)
+
+    all_objs = np.stack([run.obj for run in runs])
+    all_cons = np.stack([run.con for run in runs])
+
+    # Sanity check, is our function actually deterministic?
+    assert np.diff(all_objs, axis=0).sum() == 0
+    assert np.diff(all_cons, axis=0).sum() == 0
