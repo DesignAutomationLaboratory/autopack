@@ -56,6 +56,10 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
         repr=False,
         description="Cost for each grid node. Positive infinity implies an infeasible node.",
     )
+    ergo: bool = Field(
+        default=False,
+        description="Whether this is an ergonomy cost field. If so, the name should be the name of the ergo standard.",
+    )
 
     @field_validator("costs")
     @classmethod
