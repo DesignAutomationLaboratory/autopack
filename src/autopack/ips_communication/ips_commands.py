@@ -68,9 +68,10 @@ def route_harnesses(
                 cables=segment["cables"],
                 discrete_nodes=discrete_nodes,
                 discrete_coords=discrete_coords,
-                presmooth_coords=np.array(segment["presmoothCoords"]),
-                smooth_coords=np.array(segment["smoothCoords"]),
-                clip_coords=np.array(segment["clipPositions"]),
+                # Make sure that these are always arrays with the last dim=3, even if empty
+                presmooth_coords=np.array(segment["presmoothCoords"]).reshape(-1, 3),
+                smooth_coords=np.array(segment["smoothCoords"]).reshape(-1, 3),
+                clip_coords=np.array(segment["clipPositions"]).reshape(-1, 3),
             )
 
     solutions = [
