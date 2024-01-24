@@ -111,16 +111,22 @@ def to_viz_dataframe(ds: xr.Dataset, drop_meta=False):
 
 
 class Settings(param.Parameterized):
-    ips_path = param.Path(check_exists=False, label="IPS path")
-    last_problem_path = param.Path(check_exists=False)
-    last_session_path = param.Path(check_exists=False)
+    ips_path = param.Foldername(label="IPS path", check_exists=False)
+    # String parameters here to not do any unexpected smartness
+    last_problem_path = param.String()
+    last_session_path = param.String()
 
     @classmethod
     def load_or_new(cls):
         if SETTINGS_PATH.exists():
-            return cls(**cls.param.deserialize_parameters(SETTINGS_PATH.read_text()))
-        else:
-            return cls()
+            try:
+                return cls(
+                    **cls.param.deserialize_parameters(SETTINGS_PATH.read_text())
+                )
+            except Exception as exc:
+                logger.error(f"Failed to load GUI settings: {exc}")
+
+        return cls()
 
     @param.depends("ips_path", "last_problem_path", "last_session_path", watch=True)
     def persist(self):
@@ -368,8 +374,10 @@ class MainState(param.Parameterized):
     settings = param.ClassSelector(class_=Settings)
     viz_manager = param.ClassSelector(class_=VisualizationManager)
 
-    problem_path = param.String()
-    session_path = param.String()
+    problem_path = param.Filename(check_exists=False)
+    session_path = param.Foldername(
+        check_exists=False, search_paths=[SESSIONS_DIR], label="Session name/path"
+    )
 
     run_problem = param.Event(label="Run problem")
     load_session = param.Event(label="Load session")
@@ -462,6 +470,11 @@ class MainState(param.Parameterized):
     def _update_working(self):
         self.working = True
 
+    @param.depends("problem_path", "session_path", watch=True)
+    def _persist_paths(self):
+        self.settings.last_problem_path = self.problem_path
+        self.settings.last_session_path = self.session_path
+
     @param.depends("run_problem", watch=True)
     def _run_problem(self):
         try:
@@ -474,8 +487,6 @@ class MainState(param.Parameterized):
             session_name = make_session_name(problem_path)
             session_path = SESSIONS_DIR / session_name
             session_path.mkdir(parents=True, exist_ok=False)
-
-            self.settings.last_problem_path = problem_path
 
             shutil.copy(problem_path, session_path / "setup.json")
 
@@ -497,8 +508,7 @@ class MainState(param.Parameterized):
 
             save_session(dataset=dataset, ips=self.ips, session_dir=session_path)
             logger.notice(f"Saved session to {session_path}.")
-            self.session_path = str(session_path)
-            self.settings.last_session_path = str(session_path)
+            self.session_path = session_name
 
             self.dataset = dataset
         finally:
@@ -513,8 +523,6 @@ class MainState(param.Parameterized):
             dataset = load_session(ips=self.ips, session_dir=session_path)
 
             self.dataset = dataset
-
-            self.settings.last_session_path = str(session_path)
         finally:
             self.working = False
 
