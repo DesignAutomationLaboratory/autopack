@@ -154,6 +154,6 @@ class IPSInstance:
         while True:
             if self.process.poll() is not None:
                 self.connected = False
-                raise RuntimeError("Process died unexpectedly")
+                raise IPSError("Process died unexpectedly")
             if self.socket.poll(timeout, flags) != 0:
                 return

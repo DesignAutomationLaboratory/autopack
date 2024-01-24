@@ -491,6 +491,7 @@ class MainState(param.Parameterized):
                 init_samples=2,
                 batches=2,
                 batch_size=2,
+                silence_warnings=True,
             )
 
             save_session(dataset=dataset, ips=self.ips, session_dir=session_path)

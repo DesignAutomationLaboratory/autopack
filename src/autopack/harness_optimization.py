@@ -3,10 +3,9 @@ import warnings
 import numpy as np
 import pandas as pd
 import xarray as xr
-from linear_operator.utils.warnings import NumericalWarning
 
-from . import data_model
-from .data_model import CostField, IPSInstance, ProblemSetup
+from . import data_model, logger
+from .data_model import CostField, IPSError, IPSInstance, ProblemSetup
 from .ips_communication.ips_commands import route_harnesses
 from .optimization import OptimizationMeta, OptimizationProblem, minimize
 from .utils import path_length
@@ -240,6 +239,7 @@ def global_optimize_harness(
     init_samples: int = 8,
     batches: int = 4,
     batch_size: int = 4,
+    silence_warnings: bool = False,
 ) -> xr.Dataset:
     if problem_setup.harness_setup.allow_infeasible_topology and batches > 1:
         raise ValueError(
@@ -248,13 +248,28 @@ def global_optimize_harness(
 
     problem = problem_from_setup(problem_setup, ips_instance)
 
-    with warnings.catch_warnings(category=NumericalWarning, action="ignore"):
-        minimize(
-            problem=problem,
-            batches=batches,
-            batch_size=batch_size,
-            init_samples=init_samples,
-            seed=0,
+    try:
+        with warnings.catch_warnings():
+            if silence_warnings:
+                # Silence warnings from within botorch and linear_operator
+                warnings.filterwarnings(
+                    category=RuntimeWarning, module="botorch", action="ignore"
+                )
+                warnings.filterwarnings(
+                    category=RuntimeWarning, module="linear_operator", action="ignore"
+                )
+
+            minimize(
+                problem=problem,
+                batches=batches,
+                batch_size=batch_size,
+                init_samples=init_samples,
+                seed=0,
+            )
+    except IPSError as exc:
+        logger.exception(
+            "Optimization failed due to IPS error. Trying to continue with the data gathered until this happened.",
+            exc_info=exc,
         )
 
     dataset = xr.concat(problem.state["batch_datasets"], dim="solution")
