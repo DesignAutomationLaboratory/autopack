@@ -17,9 +17,10 @@ local function _unpack(string)
 end
 
 local function runAndPack(runFunc)
-  local function packFunc(success, result)
+  local function packFunc(runSuccess, packSuccess, result)
     return _pack({
-      success = success,
+      runSuccess = runSuccess,
+      packSuccess = packSuccess,
       result = result,
     })
   end
@@ -37,12 +38,17 @@ local function runAndPack(runFunc)
     -- called
     runResult = errHandler(runResult)
   end
-  local packSuccess, packResult = xpcall(packFunc, errHandler, runSuccess, runResult)
+  local packSuccess, packResult = xpcall(packFunc, errHandler, runSuccess, true, runResult)
+  if not packSuccess and type(packResult) ~= "table" then
+    -- For some errors, like C++ exceptions, the error handler is not
+    -- called
+    packResult = errHandler(packResult)
+  end
 
   if packSuccess then
     return packResult
   else
-    return packFunc(packSuccess, packResult)
+    return packFunc(runSuccess, packSuccess, packResult)
   end
 end
 

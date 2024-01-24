@@ -115,14 +115,20 @@ class IPSInstance:
 
         raw_response = self._eval(cmd)
         response = unpack(raw_response)
+        run_success = response["runSuccess"]
+        pack_success = response["packSuccess"]
 
-        if response["success"]:
+        if run_success and pack_success:
             # void functions result in a `nil` that will not be packed
             return response.get("result", None)
         else:
             traceback = response["result"]["traceback"]
+            if not run_success:
+                message = "IPS call failed"
+            else:
+                message = "IPS call succeeded, but packing the results failed"
 
-            raise IPSError(f"IPS call failed:\n{traceback}")
+            raise IPSError(f"{message}:\n{traceback}")
 
     def call(self, func_name: str, *args: Any, return_result: bool = True) -> Any:
         """
