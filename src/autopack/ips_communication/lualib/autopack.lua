@@ -218,7 +218,14 @@ local function createHarnessRouter(harnessSetup)
   harnessRouter:setMinMaxClipClipDist(harnessSetup.clip_clip_dist[1], harnessSetup.clip_clip_dist[2])
   harnessRouter:setMinMaxBranchClipDist(harnessSetup.branch_clip_dist[1], harnessSetup.branch_clip_dist[2])
   harnessRouter:setEnableClipSettings(true)
-  harnessRouter:setMinBoundingBox(false)
+  harnessRouter:setMinBoundingBox(harnessSetup.min_bounding_box)
+  if harnessSetup.custom_bounding_box then
+    local bBox = harnessSetup.custom_bounding_box
+    harnessRouter:setBoundingBox(
+      Vector3d(unpack(bBox[1])),
+      Vector3d(unpack(bBox[2]))
+    )
+  end
   harnessRouter:computeGridSize(harnessSetup.grid_resolution)
   -- Must be set before building the cost field
   harnessRouter:setAllowInfeasibleTopologySolutions(harnessSetup.allow_infeasible_topology)

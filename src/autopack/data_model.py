@@ -2,7 +2,7 @@ import pathlib
 from typing import Any, List, Literal, Optional
 
 import numpy as np
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .ips_communication.ips_class import IPSInstance  # noqa
 
@@ -35,6 +35,16 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
         0.01875,
         0.075,
     )  # min/max distance between branch and clip
+    min_bounding_box: bool = Field(
+        default=False,
+        description="Whether to use the minimum bounding box for the cost field grid, as calculated by IPS. If False, the default bounding box will be used.",
+    )
+    custom_bounding_box: Optional[
+        tuple[tuple[float, float, float], tuple[float, float, float]]
+    ] = Field(
+        default=None,
+        description="Custom bounding box for the cost field grid. If supplied, must be a pair of points in world coordinates.",
+    )
     grid_resolution: float = Field(
         default=0.02,
         description="Grid resolution in meters.",
@@ -47,6 +57,14 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
     @classmethod
     def from_json_file(cls, json_path: pathlib.Path):
         return cls.model_validate_json(json_path.read_text())
+
+    @model_validator(mode="after")
+    def check_bounding_box_settings(self):
+        if self.min_bounding_box and self.custom_bounding_box:
+            raise ValueError(
+                "Cannot use both minimum bounding box and custom bounding box"
+            )
+        return self
 
 
 class CostField(BaseModel, arbitrary_types_allowed=True):
