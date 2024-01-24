@@ -253,6 +253,7 @@ class InteractiveScatterPlot(param.Parameterized):
                 colormap="viridis",
                 colorbar=True,
                 responsive=True,
+                hover_cols=["solution"],
             ).opts(title=""),
         )
 
