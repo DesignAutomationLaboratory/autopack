@@ -272,8 +272,12 @@ local function routeHarnesses(
 )
   local harnessActiveGroup = getOrCreateActiveGroup("Autopack harnesses")
   local harnessGeoGroup = getOrCreateGeometryGroup("Autopack harnesses")
-  local infeasibleTopologyGroup = getOrCreateGeometryGroup("Infeasible topology", harnessGeoGroup)
+  local centerlinesGroup = getOrCreateGeometryGroup("Centerlines", harnessGeoGroup)
+  centerlinesGroup:setExpanded(false)
   local collisionVizGroup = getOrCreateGeometryGroup("Collision visualization", harnessGeoGroup)
+  local failedCableSimGroup = getOrCreateActiveGroup("Failed cable objects", harnessGeoGroup)
+  failedCableSimGroup:setExpanded(false)
+  local infeasibleTopologyGroup = getOrCreateGeometryGroup("Infeasible topology", harnessGeoGroup)
   -- This will effectively hide the previous harnesses and let the
   -- current ones appear. We must do some bit of hiding, because IPS
   -- tends to crash otherwise when the number of created harnesses
@@ -347,10 +351,22 @@ local function routeHarnesses(
         Ips.moveTreeObject(collisionViz, collisionVizGroup)
       end
 
+      local centerlinesTreeVector = router:buildSmoothSegments(solIdx, false)
+      local centerlines = centerlinesTreeVector[0]:getParent()
+      centerlines:setLabel(solutionName)
+      -- Always hide the centerlines
+      centerlines:setEnabled(false)
+      Ips.moveTreeObject(centerlines, centerlinesGroup)
+
       local builtCableSimulation = router:buildSimulationObject(solIdx, true)
       if builtCableSimulation:hasExpired() then
         log("Failed to build simulation object for solution " .. solutionName)
         getOrCreateActiveGroup(solutionName .. " (failed)", harnessActiveGroup)
+        -- Create a substitute for the cable simulation
+        local cableSimSubstituteTreeVector = router:buildSmoothSegments(solIdx, true)
+        local cableSimSubstitute = cableSimSubstituteTreeVector[0]:getParent()
+        cableSimSubstitute:setLabel(solutionName)
+        Ips.moveTreeObject(cableSimSubstitute, failedCableSimGroup)
       else
         builtCableSimulation:setLabel(solutionName)
         Ips.moveTreeObject(builtCableSimulation, harnessActiveGroup)
