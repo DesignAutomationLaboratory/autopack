@@ -24,17 +24,20 @@ def test_harness_optimization_setup(simple_plate_harness_setup):
     )
 
 
-def test_global_optimization_smoke(simple_plate_harness_setup, ips_instance, tmpdir):
+@pytest.mark.parametrize("run_ergo", [False, True])
+def test_global_optimization_smoke(
+    simple_plate_harness_setup, ips_instance, tmpdir, run_ergo
+):
     problem_setup = create_default_prob_setup(
         ips_instance=ips_instance,
         harness_setup=simple_plate_harness_setup,
-        create_imma=True,
+        create_imma=run_ergo,
     )
 
     dataset = global_optimize_harness(
         ips_instance=ips_instance,
         problem_setup=problem_setup,
-        init_samples=2,
+        init_samples=4,
         batches=2,
         batch_size=2,
     )
