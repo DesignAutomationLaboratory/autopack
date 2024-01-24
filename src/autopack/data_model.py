@@ -45,9 +45,11 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
         default=None,
         description="Custom bounding box for the cost field grid. If supplied, must be a pair of points in world coordinates.",
     )
-    grid_resolution: float = Field(
-        default=0.02,
-        description="Grid resolution in meters.",
+    grid_size: int = Field(
+        default=50,
+        # Minimum required by IPS
+        ge=5,
+        description="Number of grid nodes in the longest side of the minimum bounding box.",
     )
     allow_infeasible_topology: bool = Field(
         default=False,
@@ -86,6 +88,28 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
         assert not np.isneginf(v).any(), "Cost field contains negative infinity values"
 
         return v
+
+    @property
+    def dimensions(self):
+        """
+        Cost field dimensions (x, y, z) in meters.
+        """
+        coords = self.coordinates.reshape(-1, 3)
+        return np.ptp(coords, axis=0)
+
+    @property
+    def size(self):
+        """
+        Cost field grid size (x, y, z) in number of nodes.
+        """
+        return np.array(self.costs.shape)
+
+    @property
+    def resolution(self):
+        """
+        Cost field grid resolution in meters per grid cell.
+        """
+        return np.mean(self.dimensions / self.size)
 
 
 class ProblemSetup(BaseModel):

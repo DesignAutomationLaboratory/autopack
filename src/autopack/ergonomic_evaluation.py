@@ -26,8 +26,7 @@ def create_ergonomic_cost_field(
     ref_cost_field: CostField,
     # Max allowed gripping tolerance [m]
     max_grip_diff=0.01,
-    # Multiplies the grid resolution to get the max distance between samples [-]
-    relative_sample_resolution=6,
+    sample_rate=1 / 10,
     use_rbpp=True,
     update_screen=False,
     keep_generated_objects=False,
@@ -35,7 +34,9 @@ def create_ergonomic_cost_field(
     # Only evaluate the standards we can handle
     ergo_standards = ERGO_STANDARD_BOUNDS.ergo_standard.values
 
-    logger.info(f"Creating ergonomy cost fields: {', '.join(ergo_standards)}")
+    logger.info(
+        f"Creating ergonomy cost fields {', '.join(ergo_standards)} with a sampling rate of {sample_rate:.3%} along each axis"
+    )
     ref_costs = ref_cost_field.costs
     ref_coords = ref_cost_field.coordinates
     ref_coords_flat = ref_coords.reshape(-1, 3)
@@ -54,18 +55,20 @@ def create_ergonomic_cost_field(
         geo.name for geo in harness_setup.geometries if geo.assembly
     ]
 
-    # Max ratio of grid points to evaluate
-    max_sampling_ratio = 1 / relative_sample_resolution**3
-    max_samples = round(ref_coords_flat.shape[0] * max_sampling_ratio)
-    max_farthest_distance = harness_setup.grid_resolution * relative_sample_resolution
+    # 4 is a hard requirement for the RBF interpolator, but that is not
+    # viable in 3D space
+    min_samples = 24
+    # Accomodate for a size*sample_rate number of points along each axis
+    max_samples = round(np.prod(ref_cost_field.size * sample_rate))
+    # ...and scale the resolution by the sample rate to get point distance
+    max_farthest_distance = ref_cost_field.resolution / sample_rate
     logger.info(
-        f"Picking at most {max_samples} points spaced {max_farthest_distance} meters apart, out of {ref_coords_flat.shape[0]}, using farthest point sampling"
+        f"Picking {min_samples} to {max_samples} points, nominally spaced {max_farthest_distance:.3f} meters apart, out of {ref_coords_flat.shape[0]}, using farthest point sampling"
     )
     eval_coords = farthest_point_sampling(
         points=ref_coords_flat,
         num_points=max_samples,
-        # The RBF interpolator requires at least 4 points
-        min_points=4,
+        min_points=min_samples,
         max_farthest_distance=max_farthest_distance,
         seed=0,  # For deterministic behavior
     )

@@ -226,7 +226,7 @@ local function createHarnessRouter(harnessSetup)
       Vector3d(unpack(bBox[2]))
     )
   end
-  harnessRouter:computeGridSize(harnessSetup.grid_resolution)
+  harnessRouter:setGridSize(harnessSetup.grid_size)
   -- Must be set before building the cost field
   harnessRouter:setAllowInfeasibleTopologySolutions(harnessSetup.allow_infeasible_topology)
   harnessRouter:buildCostField()
