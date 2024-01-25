@@ -25,20 +25,26 @@ class Geometry(BaseModel):
     assembly: bool
 
 
-class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
+class HarnessSetup(BaseModel):
     scene_path: pathlib.Path = Field(
         description="Path to the IPS scene file. Can be absolute or relative to the harness setup JSON file.",
     )
     geometries: List[Geometry]
     cables: List[Cable]
-    clip_clip_dist: tuple[float, float] = (
-        0.0375,
-        0.15,
-    )  # min/max distance between clips
-    branch_clip_dist: tuple[float, float] = (
-        0.01875,
-        0.075,
-    )  # min/max distance between branch and clip
+    clip_clip_dist: tuple[float, float] = Field(
+        default=(
+            0.0375,
+            0.15,
+        ),
+        description="Min/max distance between clips",
+    )
+    branch_clip_dist: tuple[float, float] = Field(
+        default=(
+            0.01875,
+            0.075,
+        ),
+        description="Min/max distance between branch point and clip",
+    )
     min_bounding_box: bool = Field(
         default=False,
         description="Whether to use the minimum bounding box for the cost field grid, as calculated by IPS. If False, the default bounding box will be used.",
