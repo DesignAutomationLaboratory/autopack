@@ -1,4 +1,4 @@
-from os import PathLike
+import os
 from typing import Optional
 
 import matplotlib.cm as cm
@@ -26,14 +26,23 @@ def create_costfield(ips, harness_setup):
     return CostField(name="IPS", coordinates=coords, costs=costs)
 
 
-def load_scene(ips_instance, scene_file_path: PathLike, clear=False):
+def load_scene(ips: IPSInstance, scene_file_path: os.PathLike, clear=False):
+    """
+    Load the scene file at `scene_file_path`. Optionally clears the
+    scene before loading if `clear` is True.
+    """
+    assert os.path.isabs(scene_file_path), "Scene file path must be absolute"
+    assert os.path.exists(
+        scene_file_path
+    ), f"Scene file does not exist at {scene_file_path}"
     if clear:
-        ips_instance.call("autopack.clearScene")
-    return ips_instance.call("autopack.loadAndFitScene", str(scene_file_path))
+        ips.call("autopack.clearScene")
+    return ips.call("autopack.loadAndFitScene", scene_file_path)
 
 
-def save_scene(ips, scene_file_path: PathLike):
-    return ips.call("autopack.saveScene", str(scene_file_path))
+def save_scene(ips: IPSInstance, scene_file_path: os.PathLike):
+    assert os.path.isabs(scene_file_path), "Scene file path must be absolute"
+    return ips.call("autopack.saveScene", scene_file_path)
 
 
 def route_harnesses(

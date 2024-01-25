@@ -41,6 +41,8 @@ def encode_hook(obj, chain=None):
         return obj.tolist()
     elif isinstance(obj, BaseModel):
         return obj.model_dump()
+    elif isinstance(obj, pathlib.Path):
+        return str(obj)
     else:
         return obj if chain is None else chain(obj)
 

@@ -33,7 +33,7 @@ def simple_plate_harness_setup(test_scenes_path):
     from autopack import data_model
 
     return data_model.HarnessSetup(
-        scene_path=str((test_scenes_path / "simple_plate.ips").resolve()),
+        scene_path=test_scenes_path / "simple_plate.ips",
         geometries=[
             data_model.Geometry(
                 name="part1",

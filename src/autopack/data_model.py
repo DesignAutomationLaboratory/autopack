@@ -1,3 +1,4 @@
+import os
 import pathlib
 from typing import Any, List, Literal, Optional
 
@@ -25,7 +26,9 @@ class Geometry(BaseModel):
 
 
 class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
-    scene_path: str  # Absolute path to scene
+    scene_path: pathlib.Path = Field(
+        description="Path to the IPS scene file. Can be absolute or relative to the harness setup JSON file.",
+    )
     geometries: List[Geometry]
     cables: List[Cable]
     clip_clip_dist: tuple[float, float] = (
@@ -59,7 +62,10 @@ class HarnessSetup(BaseModel, arbitrary_types_allowed=True):
 
     @classmethod
     def from_json_file(cls, json_path: pathlib.Path):
-        return cls.model_validate_json(json_path.read_text())
+        obj = cls.model_validate_json(json_path.read_text())
+        if not os.path.isabs(obj.scene_path):
+            obj.scene_path = json_path.parent / obj.scene_path
+        return obj
 
     @model_validator(mode="after")
     def check_bounding_box_settings(self):

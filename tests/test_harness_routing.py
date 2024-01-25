@@ -19,7 +19,7 @@ def test_topology_feasibility(
     else:
         scene_path = test_scenes_path / "topology_infeasible.ips"
     harness_setup = HarnessSetup(
-        scene_path=str(scene_path.resolve()),
+        scene_path=scene_path,
         geometries=[
             Geometry(
                 name="Static Geometry",
