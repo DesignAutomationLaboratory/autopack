@@ -6,14 +6,25 @@
   "files.trimFinalNewlines": true,
   "[python]": {
     "editor.tabSize": 4,
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.formatOnType": false,
     "editor.codeActionsOnSave": {
       // Use only Ruff for organizing imports
-      "source.organizeImports": false,
-      "source.organizeImports.ruff": true,
+      "source.organizeImports": "never",
+      "source.organizeImports.ruff": "always",
     },
   },
   "python.formatting.provider": "none",
+  "Lua.runtime.version": "Lua 5.1",
+  "Lua.diagnostics.globals": [
+    // Add IPS globals here as needed
+    "CableSimulation",
+    "GeometryBuilder",
+    "HarnessRouter",
+    "Ips",
+    "ManikinSimulationController",
+    "OperationSequence",
+    "Vector3d",
+  ],
 }
