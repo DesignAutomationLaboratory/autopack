@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Autopack",
+      "type": "python",
+      "request": "launch",
+      "program": "src/autopack/gui_entrypoint.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}
