@@ -480,13 +480,15 @@ local function evalErgo(
   ergoStandards,
   enableRbpp,
   updateScreen,
-  keepGenObj
+  keepCopiedGeo
 )
   local copiedGeoGroup = copyToStaticGeometry(geoNames)
 
   local msc = ManikinSimulationController()
+  -- Get family by ID, not name, as the name may not be unique
   local family = msc:getManikinFamily(manikinFamilyId)
   local familyViz = family:getVisualization()
+  local familyName = familyViz:getLabel()
   family:enableCollisionAvoidance()
 
   local gripPoint = msc:createGripPoint()
@@ -497,7 +499,7 @@ local function evalErgo(
   gripPoint:setSymmetricTranslationTolerances(gripTol, gripTol, gripTol)
 
   local opSequence = OperationSequence()
-  opSequence:setLabel("Autopack ergo evaluation")
+  opSequence:setLabel("Autopack ergo evaluation (" .. familyName .. ")")
   local familyActor = opSequence:addFamilyActor(familyViz)
   familyActor:setCurrentStateAsStart()
   -- Add a pause action so we get a time where the manikin is steadily
@@ -529,11 +531,13 @@ local function evalErgo(
 
     for handIdx, handName in pairs({ "left", "right" }) do
       log("Ergo evaluation: coord " .. coordIdx .. "/" .. #coords .. ", " .. handName .. " hand")
+      local evalLabel = "Coord " .. coordIdx .. ", " .. handName .. " hand"
       gripPoint:setHand(handIdx - 1)
       -- This shows up for the user in the UI
-      gripPointViz:setLabel("Coord " .. coordIdx .. ", " .. handName .. " hand")
+      gripPointViz:setLabel(evalLabel)
 
       replay = opSequence:executeSequence()
+      replay:setLabel(evalLabel)
       outputTable.errorMsgs[coordIdx][handIdx] = replay:getReplayErrorMessage(graspAction)
       pauseActionEndTime = replay:getActionEndTime(pauseAction)
       local graspActionEndTime = replay:getActionEndTime(graspAction)
@@ -555,9 +559,9 @@ local function evalErgo(
   -- start state.
   replay:setTime(pauseActionEndTime)
 
-  if not keepGenObj then
-    Ips.deleteTreeObject(opSequence)
-    Ips.deleteTreeObject(gripPointViz)
+  gripPointViz:setLabel("Autopack grip point (" .. familyName .. ")")
+  gripPointViz:setRendered(false)
+  if not keepCopiedGeo then
     Ips.deleteTreeObject(copiedGeoGroup)
   end
 
