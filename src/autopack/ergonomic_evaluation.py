@@ -41,7 +41,8 @@ def create_ergonomic_cost_field(
     ref_coords = ref_cost_field.coordinates
     ref_coords_flat = ref_coords.reshape(-1, 3)
     # No point in evaluating infeasible points
-    feasible_mask = np.invert(np.isposinf(ref_costs)).reshape(-1)
+    feasible_mask = np.isfinite(ref_costs).reshape(-1)
+    feasible_coords = ref_coords_flat[feasible_mask]
 
     families: list[dict[str, str]] = ips.call("autopack.getAllManikinFamilies")
     logger.info(f"Found {len(families)} manikin families")
@@ -63,10 +64,10 @@ def create_ergonomic_cost_field(
     # ...and scale the resolution by the sample rate to get point distance
     max_farthest_distance = ref_cost_field.resolution / sample_rate
     logger.info(
-        f"Picking {min_samples} to {max_samples} points, nominally spaced {max_farthest_distance:.3f} meters apart, out of {ref_coords_flat.shape[0]}, using farthest point sampling"
+        f"Picking {min_samples} to {max_samples} points, nominally spaced {max_farthest_distance:.2f} meters apart, out of {feasible_coords.shape[0]}, using farthest point sampling"
     )
     eval_coords = farthest_point_sampling(
-        points=ref_coords_flat,
+        points=feasible_coords,
         num_points=max_samples,
         min_points=min_samples,
         max_farthest_distance=max_farthest_distance,
