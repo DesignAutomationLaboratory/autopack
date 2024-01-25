@@ -1,14 +1,11 @@
 import numpy as np
 import xarray as xr
 from scipy.interpolate import RBFInterpolator
-from scipy.spatial.distance import cdist
 
 from autopack import logger
-from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
+from autopack.data_model import CostField, ErgoSettings, HarnessSetup
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.ips_communication.ips_commands import (
-    add_point_cloud,
-)
+from autopack.ips_communication.ips_commands import add_point_cloud
 from autopack.utils import farthest_point_sampling
 
 ERGO_STANDARD_BOUNDS = xr.DataArray(
@@ -23,19 +20,18 @@ ERGO_STANDARD_BOUNDS = xr.DataArray(
 def create_ergonomic_cost_field(
     ips: IPSInstance,
     harness_setup: HarnessSetup,
+    ergo_settings: ErgoSettings,
     ref_cost_field: CostField,
-    # Max allowed gripping tolerance [m]
-    max_grip_diff=0.01,
-    sample_rate=1 / 10,
-    use_rbpp=True,
     update_screen=False,
     keep_generated_objects=False,
 ):
     # Only evaluate the standards we can handle
     ergo_standards = ERGO_STANDARD_BOUNDS.ergo_standard.values
 
+    sample_ratio = ergo_settings.sample_ratio
+
     logger.info(
-        f"Creating ergonomy cost fields {', '.join(ergo_standards)} with a sampling rate of {sample_rate:.3%} along each axis"
+        f"Creating ergonomy cost fields {', '.join(ergo_standards)} with a sampling ratio of {sample_ratio:.3%} along each axis"
     )
     ref_costs = ref_cost_field.costs
     ref_coords = ref_cost_field.coordinates
@@ -58,11 +54,11 @@ def create_ergonomic_cost_field(
 
     # 4 is a hard requirement for the RBF interpolator, but that is not
     # viable in 3D space
-    min_samples = 24
-    # Accomodate for a size*sample_rate number of points along each axis
-    max_samples = np.ceil(ref_cost_field.size * sample_rate).prod().astype(int)
-    # ...and scale the resolution by the sample rate to get point distance
-    max_farthest_distance = ref_cost_field.resolution / sample_rate
+    min_samples = ergo_settings.min_samples
+    # Accomodate for a size*sample_ratio number of points along each axis
+    max_samples = np.ceil(ref_cost_field.size * sample_ratio).prod().astype(int)
+    # ...and scale the resolution by the sample ratio to get point distance
+    max_farthest_distance = ref_cost_field.resolution / sample_ratio
     logger.info(
         f"Picking {min_samples} to {max_samples} points, nominally spaced {max_farthest_distance:.2f} meters apart, out of {feasible_coords.shape[0]}, using farthest point sampling"
     )
@@ -94,9 +90,9 @@ def create_ergonomic_cost_field(
             geometries_to_consider,
             family_id,
             eval_coords,
-            max_grip_diff,
+            ergo_settings.grip_tolerance,
             ergo_standards,
-            use_rbpp,
+            ergo_settings.use_rbpp,
             update_screen,
             keep_generated_objects,
         )

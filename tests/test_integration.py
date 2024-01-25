@@ -3,13 +3,15 @@ import pytest
 import xarray as xr
 from facit.testing import assert_ds_equal
 
-from autopack.data_model import Cable, CostField, Geometry, HarnessSetup, ProblemSetup
-from autopack.default_commands import create_default_prob_setup
-from autopack.harness_optimization import (
-    global_optimize_harness,
+from autopack import __version__
+from autopack.data_model import (
+    CostField,
+    ErgoSettings,
+    ProblemSetup,
+    StudySettings,
 )
 from autopack.io import load_dataset, save_dataset
-from autopack.ips_communication.ips_commands import create_costfield, load_scene
+from autopack.workflows import build_problem, build_problem_and_run_study
 
 
 def test_harness_optimization_setup(simple_plate_harness_setup):
@@ -28,24 +30,34 @@ def test_harness_optimization_setup(simple_plate_harness_setup):
 def test_global_optimization_smoke(
     simple_plate_harness_setup, ips_instance, tmpdir, run_ergo
 ):
-    problem_setup = create_default_prob_setup(
-        ips_instance=ips_instance,
-        harness_setup=simple_plate_harness_setup,
-        create_imma=run_ergo,
+    if run_ergo:
+        ergo_settings = ErgoSettings(
+            sample_ratio=0.01,
+            min_samples=4,
+        )
+    else:
+        ergo_settings = None
+
+    study_settings = StudySettings(
+        doe_samples=4,
+        opt_batches=2,
+        opt_batch_size=2,
     )
 
-    dataset = global_optimize_harness(
-        ips_instance=ips_instance,
-        problem_setup=problem_setup,
-        init_samples=4,
-        batches=2,
-        batch_size=2,
+    dataset = build_problem_and_run_study(
+        ips=ips_instance,
+        harness_setup=simple_plate_harness_setup,
+        ergo_settings=ergo_settings,
+        study_settings=study_settings,
     )
 
     assert isinstance(dataset, xr.Dataset)
-    assert dataset.attrs["problem_setup"] == problem_setup
+    assert dataset.attrs["autopack_version"] == __version__
     assert dataset.attrs["ips_version"] == ips_instance.version
-    assert len(dataset.solution) >= 6
+    assert dataset.attrs["problem_setup"].harness_setup == simple_plate_harness_setup
+    assert dataset.attrs["problem_setup"].ergo_settings == ergo_settings
+    assert dataset.attrs["study_settings"] == study_settings
+    assert len(dataset.solution) >= 8
 
     ds_path = tmpdir / "test_dataset"
     save_dataset(dataset, ds_path)
@@ -55,23 +67,20 @@ def test_global_optimization_smoke(
     # assert_ds_equal(dataset, loaded_dataset)
 
 
-def test_create_problem_setup_without_imma(ips_instance, simple_plate_harness_setup):
-    problem_setup = create_default_prob_setup(
-        ips_instance=ips_instance,
+@pytest.mark.parametrize("run_ergo", [False, True])
+def test_build_problem(ips_instance, simple_plate_harness_setup, run_ergo):
+    if run_ergo:
+        ergo_settings = ErgoSettings(
+            sample_ratio=0.01,
+            min_samples=4,
+        )
+    else:
+        ergo_settings = None
+    problem_setup = build_problem(
+        ips=ips_instance,
         harness_setup=simple_plate_harness_setup,
-        create_imma=False,
+        ergo_settings=ergo_settings,
     )
 
     assert isinstance(problem_setup, ProblemSetup)
-    assert len(problem_setup.cost_fields) == 1
-
-
-def test_create_problem_setup_with_imma(ips_instance, simple_plate_harness_setup):
-    problem_setup = create_default_prob_setup(
-        ips_instance=ips_instance,
-        harness_setup=simple_plate_harness_setup,
-        create_imma=True,
-    )
-
-    assert isinstance(problem_setup, ProblemSetup)
-    assert len(problem_setup.cost_fields) == 3
+    assert len(problem_setup.cost_fields) == 3 if run_ergo else 1

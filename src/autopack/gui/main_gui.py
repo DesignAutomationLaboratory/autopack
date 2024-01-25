@@ -13,12 +13,11 @@ from panel import theme
 from plotly import express as px
 
 from autopack import USER_DIR, __version__, logger
-from autopack.data_model import HarnessSetup
-from autopack.default_commands import create_default_prob_setup
-from autopack.harness_optimization import global_optimize_harness
+from autopack.data_model import ErgoSettings, HarnessSetup, StudySettings
 from autopack.io import load_session, save_session
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.utils import normalize
+from autopack.utils import appr_num_solutions, normalize, partition_opt_budget
+from autopack.workflows import build_problem_and_run_study
 
 SETTINGS_PATH = USER_DIR / "gui-settings.json"
 SESSIONS_DIR = USER_DIR / "sessions"
@@ -156,6 +155,64 @@ class Settings(param.Parameterized):
         if path:
             # param.Foldername doesn't like pathlib.Path (why???)
             self.ips_path = path
+
+
+class RuntimeSettings(param.Parameterized):
+    run_ergo = param.Boolean(default=True, label="Build ergo cost fields")
+    ergo_use_rbpp = param.Boolean(
+        default=ErgoSettings.model_fields["use_rbpp"].default,
+        label=ErgoSettings.model_fields["use_rbpp"].title,
+        doc=ErgoSettings.model_fields["use_rbpp"].description,
+    )
+    opt_budget = param.Integer(
+        default=64,
+        bounds=(0, 512),
+        step=32,
+        label="Optimization budget",
+        doc="Appr. number of routings to carry out under optimization. 0 to disable optimization.",
+    )
+
+    @param.depends("opt_budget")
+    def total_num_solutions(self):
+        batch_size, num_batches = partition_opt_budget(self.opt_budget)
+        opt_evals = batch_size * num_batches
+        static_evals = 10 + StudySettings.model_fields["doe_samples"].default
+        return appr_num_solutions(int(static_evals + opt_evals))
+
+    def to_ergo_settings(self):
+        if not self.run_ergo:
+            return None
+        return ErgoSettings(
+            use_rbpp=self.ergo_use_rbpp,
+        )
+
+    def to_study_settings(self):
+        batch_size, num_batches = partition_opt_budget(self.opt_budget)
+        return StudySettings(
+            opt_batches=num_batches,
+            opt_batch_size=batch_size,
+        )
+
+    def view_panes(self):
+        run_ergo_input = pn.widgets.Checkbox.from_param(self.param.run_ergo)
+        ergo_use_rbpp_input = pn.widgets.Checkbox.from_param(self.param.ergo_use_rbpp)
+        opt_budget_input = pn.widgets.IntInput.from_param(self.param.opt_budget)
+        appr_num_solutions_input = pn.widgets.StaticText(
+            name="Total number of solutions (appr.)",
+            value=self.total_num_solutions,
+        )
+
+        def disable_when_no_ergo(value):
+            ergo_use_rbpp_input.disabled = not value
+
+        run_ergo_input.param.watch_values(disable_when_no_ergo, "value")
+
+        return (
+            run_ergo_input,
+            ergo_use_rbpp_input,
+            opt_budget_input,
+            appr_num_solutions_input,
+        )
 
 
 class PostProcessor(param.Parameterized):
@@ -395,6 +452,8 @@ class MainState(param.Parameterized):
     settings = param.ClassSelector(class_=Settings)
     viz_manager = param.ClassSelector(class_=VisualizationManager)
 
+    runtime_settings = param.ClassSelector(class_=RuntimeSettings)
+
     problem_path = param.Filename(check_exists=False)
     session_path = param.Foldername(
         check_exists=False, search_paths=[SESSIONS_DIR], label="Session name/path"
@@ -492,6 +551,7 @@ class MainState(param.Parameterized):
             section_header("Run problem"),
             problem_path_input,
             browse_problem_path_btn,
+            *self.runtime_settings.view_panes(),
             run_btn,
         )
 
@@ -553,20 +613,11 @@ class MainState(param.Parameterized):
 
             shutil.copy(problem_path, session_path / "setup.json")
 
-            harness_setup = HarnessSetup.from_json_file(problem_path)
-            problem_setup = create_default_prob_setup(
-                ips_instance=self.ips,
-                harness_setup=harness_setup,
-                create_imma=True,
-            )
-
-            dataset = global_optimize_harness(
-                ips_instance=self.ips,
-                problem_setup=problem_setup,
-                init_samples=2,
-                batches=2,
-                batch_size=2,
-                silence_warnings=True,
+            dataset = build_problem_and_run_study(
+                ips=self.ips,
+                harness_setup=HarnessSetup.from_json_file(problem_path),
+                ergo_settings=self.runtime_settings.to_ergo_settings(),
+                study_settings=self.runtime_settings.to_study_settings(),
             )
 
             save_session(dataset=dataset, ips=self.ips, session_dir=session_path)
@@ -594,9 +645,11 @@ def make_gui(**main_state_kwargs):
     init_panel()
 
     settings = Settings.load_or_new()
+    runtime_settings = RuntimeSettings()
     viz_manager = VisualizationManager()
     main_state = MainState(
         settings=settings,
+        runtime_settings=runtime_settings,
         viz_manager=viz_manager,
         problem_path=settings.last_problem_path,
         session_path=settings.last_session_path,

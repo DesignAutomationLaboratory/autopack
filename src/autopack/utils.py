@@ -84,3 +84,27 @@ def normalize(data: xr.DataArray | xr.Dataset, dim=None):
     data_max = data.max(dim=dim)
 
     return (data - data_min) / (data_max - data_min)
+
+
+def partition_opt_budget(budget, max_batch_size=16):
+    """
+    Given an approximate budget of function evaluations, return a
+    reasonable batch size and count. Always gives batches of size that
+    are powers of 2, up to a maximum of `max_batch_size`.
+    """
+    split = np.floor(np.sqrt(budget))
+    # The result is clipped, so we don't care about the nan/inf warnings
+    with np.errstate(divide="ignore"):
+        nom_batch_size = 2 ** (np.floor(np.log(split) / np.log(2)))
+    batch_size = np.clip(nom_batch_size, 1, max_batch_size)
+    num_batches = np.ceil(budget / batch_size)
+
+    return batch_size, num_batches
+
+
+def appr_num_solutions(evaluations):
+    """
+    Given the number of evaluations, return an approximate range of
+    solutions.
+    """
+    return int(evaluations * 2.5 // 10 * 10)

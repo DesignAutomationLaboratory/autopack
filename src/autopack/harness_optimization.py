@@ -237,7 +237,9 @@ def batch_voi(
     )
 
 
-def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
+def build_optimization_problem(
+    ips: IPSInstance, problem_setup: ProblemSetup
+) -> OptimizationProblem:
     num_cost_fields = len(problem_setup.cost_fields)
     num_objectives = 3
     weights_bounds = np.array([[0.001, 1.0]] * num_cost_fields)
@@ -250,7 +252,7 @@ def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
         this_batch_dataset = xr.concat(
             (
                 design_point_ds(
-                    ips=ips_instance,
+                    ips=ips,
                     problem_setup=problem_setup,
                     meta=meta,
                     x=x,
@@ -271,52 +273,3 @@ def problem_from_setup(problem_setup, ips_instance) -> OptimizationProblem:
         num_constraints=1,
         state={"batch_datasets": batch_datasets},
     )
-
-
-def global_optimize_harness(
-    ips_instance: data_model.IPSInstance,
-    problem_setup: data_model.ProblemSetup,
-    init_samples: int = 8,
-    batches: int = 4,
-    batch_size: int = 4,
-    silence_warnings: bool = False,
-) -> xr.Dataset:
-    if problem_setup.harness_setup.allow_infeasible_topology and batches > 1:
-        raise ValueError(
-            "Cannot optimize harnesses with infeasible topology. Set allow_infeasible_topology to False in the harness setup or run with batches=0 to disable optimization."
-        )
-
-    problem = problem_from_setup(problem_setup, ips_instance)
-
-    try:
-        with warnings.catch_warnings():
-            if silence_warnings:
-                # Silence warnings from within botorch and linear_operator
-                warnings.filterwarnings(
-                    category=RuntimeWarning, module="botorch", action="ignore"
-                )
-                warnings.filterwarnings(
-                    category=RuntimeWarning, module="linear_operator", action="ignore"
-                )
-
-            minimize(
-                problem=problem,
-                batches=batches,
-                batch_size=batch_size,
-                init_samples=init_samples,
-                seed=0,
-            )
-    except IPSError as exc:
-        logger.exception(
-            "Optimization failed due to IPS error. Trying to continue with the data gathered until this happened.",
-            exc_info=exc,
-        )
-
-    dataset = xr.concat(problem.state["batch_datasets"], dim="solution")
-    dataset.attrs["problem_setup"] = problem_setup
-    dataset.attrs["init_samples"] = init_samples
-    dataset.attrs["batches"] = batches
-    dataset.attrs["batch_size"] = batch_size
-    dataset.attrs["ips_version"] = ips_instance.version
-
-    return dataset

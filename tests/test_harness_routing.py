@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from autopack.data_model import Cable, Geometry, HarnessSetup
-from autopack.default_commands import create_default_prob_setup
 from autopack.ips_communication.ips_commands import route_harnesses
+from autopack.workflows import build_problem
 
 
 @pytest.mark.parametrize("feasible_scene", [True, False])
@@ -43,10 +43,9 @@ def test_topology_feasibility(
         allow_infeasible_topology=allow_infeasible_topology,
     )
 
-    prob_setup = create_default_prob_setup(
-        ips_instance=ips_instance,
+    prob_setup = build_problem(
+        ips=ips_instance,
         harness_setup=harness_setup,
-        create_imma=False,
     )
 
     harnesses = route_harnesses(

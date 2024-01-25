@@ -140,8 +140,35 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
         return np.mean(self.dimensions / self.size)
 
 
+class ErgoSettings(BaseModel):
+    grip_tolerance: float = Field(
+        default=0.01,
+        gt=0.0,
+        description="Grip tolerance, in meters. Max distance between grip and target position.",
+    )
+    sample_ratio: float = Field(
+        default=1 / 10,
+        gt=0,
+        le=1,
+        description="Ratio for sampling a number of grid points to evaluate for ergo.",
+    )
+    min_samples: int = Field(
+        # More reasonable default
+        default=24,
+        # Hard requirement for the RBF interpolator
+        ge=4,
+        description="Minimum number of samples to evaluate for ergo. Used mainly for testing. Change the sample_ratio instead.",
+    )
+    use_rbpp: bool = Field(
+        default=True,
+        title="Use Rigid Body Path Planning",
+        description="Whether IPS's Rigid Body Path Planning should be used when evaluating manikins. Takes more time but should be more robust in finding feasible grips.",
+    )
+
+
 class ProblemSetup(BaseModel):
     harness_setup: HarnessSetup
+    ergo_settings: Optional[ErgoSettings] = Field(default=None)
     cost_fields: List[CostField]
 
     @property
@@ -150,6 +177,27 @@ class ProblemSetup(BaseModel):
         Reference cost field
         """
         return self.cost_fields[0]
+
+
+class StudySettings(BaseModel):
+    seed_with_ips_samples: bool = Field(
+        default=True,
+        description="Whether to seed the study with IPS-style samples",
+    )
+    doe_samples: int = Field(
+        default=16,
+        ge=2,
+    )
+    opt_batches: int = Field(
+        default=8,
+        ge=0,
+    )
+    opt_batch_size: int = Field(
+        default=8,
+        ge=1,
+    )
+    random_seed: Optional[int] = Field(default=0)
+    silence_warnings: bool = Field(default=True)
 
 
 class HarnessSegment(BaseModel, arbitrary_types_allowed=True):
@@ -206,13 +254,3 @@ class Harness(BaseModel):
     @property
     def all_clip_coords(self):
         return np.concatenate([seg.clip_coords for seg in self.harness_segments])
-
-
-class Result(BaseModel):
-    problem_setup: ProblemSetup
-    dataset: Any
-
-
-class GlobalOptimizationSetup(BaseModel):
-    problem_setup: ProblemSetup
-    ips_instance: Any
