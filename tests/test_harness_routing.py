@@ -39,7 +39,7 @@ def test_topology_feasibility(
             for n in range(1, 4)
         ],
         # The feasible scene needs a fine enough grid to find a solution
-        grid_resolution=0.02 if feasible_scene else 0.1,
+        grid_size=50 if feasible_scene else 10,
         allow_infeasible_topology=allow_infeasible_topology,
     )
 

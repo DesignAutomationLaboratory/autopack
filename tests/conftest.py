@@ -75,5 +75,5 @@ def simple_plate_harness_setup(test_scenes_path):
             ),
         ],
         # Coarse grid resolution to speed up tests
-        grid_resolution=0.1,
+        grid_size=10,
     )
