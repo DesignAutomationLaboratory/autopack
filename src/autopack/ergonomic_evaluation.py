@@ -59,7 +59,7 @@ def create_ergonomic_cost_field(
     # viable in 3D space
     min_samples = 24
     # Accomodate for a size*sample_rate number of points along each axis
-    max_samples = round(np.prod(ref_cost_field.size * sample_rate))
+    max_samples = np.ceil(ref_cost_field.size * sample_rate).prod().astype(int)
     # ...and scale the resolution by the sample rate to get point distance
     max_farthest_distance = ref_cost_field.resolution / sample_rate
     logger.info(
