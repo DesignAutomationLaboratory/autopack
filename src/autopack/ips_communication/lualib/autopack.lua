@@ -288,7 +288,7 @@ local function routeHarnesses(
   local centerlinesGroup = getOrCreateGeometryGroup("Centerlines", harnessGeoGroup)
   centerlinesGroup:setExpanded(false)
   local collisionVizGroup = getOrCreateGeometryGroup("Collision visualization", harnessGeoGroup)
-  local failedCableSimGroup = getOrCreateActiveGroup("Failed cable objects", harnessGeoGroup)
+  local failedCableSimGroup = getOrCreateGeometryGroup("Failed cable objects", harnessGeoGroup)
   failedCableSimGroup:setExpanded(false)
   local infeasibleTopologyGroup = getOrCreateGeometryGroup("Infeasible topology", harnessGeoGroup)
   -- This will effectively hide the previous harnesses and let the
