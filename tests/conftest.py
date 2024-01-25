@@ -1,6 +1,15 @@
+import os
 import pathlib
 
 import pytest
+
+
+def is_running_in_github_actions():
+    # See https://docs.github.com/en/actions/learn-github-actions/variables
+    return os.getenv("GITHUB_ACTIONS", "false") == "true"
+
+
+skip_in_ci = pytest.mark.skipif(is_running_in_github_actions(), reason="Skipping in CI")
 
 
 @pytest.fixture
@@ -9,6 +18,7 @@ def test_scenes_path():
 
 
 @pytest.fixture
+@skip_in_ci
 def ips_instance():
     from autopack.ips_communication.ips_class import IPSInstance
 
