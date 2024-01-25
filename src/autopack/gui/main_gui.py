@@ -64,8 +64,9 @@ def section_header(text):
 
 
 def open_problem_path_dialog(
-    initial_dir=None,
     title="Select a file",
+    initial_dir=None,
+    initial_file=None,
 ):
     window = tk.Tk()
     window.wm_attributes("-topmost", 1)
@@ -73,16 +74,18 @@ def open_problem_path_dialog(
     path = filedialog.askopenfilename(
         parent=window,
         initialdir=initial_dir,
+        initialfile=initial_file,
         title=title,
-        filetypes=[("JSON files", "*.json")],
+        filetypes=[("JSON files", "*.json"), ("All files", "*")],
     )
     window.destroy()
-    return pathlib.Path(path)
+    return path or None
 
 
 def open_directory_dialog(
-    initial_dir=None,
     title="Select a directory",
+    initial_dir=None,
+    must_exist=True,
 ):
     window = tk.Tk()
     window.wm_attributes("-topmost", 1)
@@ -91,9 +94,10 @@ def open_directory_dialog(
         parent=window,
         initialdir=initial_dir,
         title=title,
+        mustexist=must_exist,
     )
     window.destroy()
-    return pathlib.Path(path)
+    return path or None
 
 
 def prune_dataset_for_viz(ds: xr.Dataset, drop_meta=False):
@@ -116,6 +120,10 @@ class Settings(param.Parameterized):
     last_problem_path = param.String()
     last_session_path = param.String()
 
+    browse_ips_path = param.Action(
+        lambda x: x.param.trigger("browse_ips_path"), label="Browse IPS path"
+    )
+
     @classmethod
     def load_or_new(cls):
         if SETTINGS_PATH.exists():
@@ -131,10 +139,23 @@ class Settings(param.Parameterized):
     @param.depends("ips_path", "last_problem_path", "last_session_path", watch=True)
     def persist(self):
         SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        settings_to_persist = set(self.param.params().keys()) - {"name"}
+        settings_to_persist = set(self.param.params().keys()) - {
+            "name",
+            "browse_ips_path",
+        }
         SETTINGS_PATH.write_text(
             self.param.serialize_parameters(subset=settings_to_persist)
         )
+
+    @param.depends("browse_ips_path", watch=True)
+    def _browse_ips_path(self):
+        path = open_directory_dialog(
+            title="Select the IPS directory",
+            initial_dir=self.ips_path or None,
+        )
+        if path:
+            # param.Foldername doesn't like pathlib.Path (why???)
+            self.ips_path = path
 
 
 class PostProcessor(param.Parameterized):
@@ -379,6 +400,9 @@ class MainState(param.Parameterized):
         check_exists=False, search_paths=[SESSIONS_DIR], label="Session name/path"
     )
 
+    browse_problem_path = param.Action(lambda x: x.param.trigger("browse_problem_path"))
+    browse_session_path = param.Action(lambda x: x.param.trigger("browse_session_path"))
+
     run_problem = param.Event(label="Run problem")
     load_session = param.Event(label="Load session")
 
@@ -402,27 +426,63 @@ class MainState(param.Parameterized):
 
         return _ips
 
+    @param.depends("browse_problem_path", watch=True)
+    def _browse_problem_path(self):
+        path = open_problem_path_dialog(
+            title="Select an Autopack problem file",
+            initial_dir=self.problem_path or None,
+            initial_file=self.problem_path or None,
+        )
+        if path:
+            self.problem_path = path
+
+    @param.depends("browse_session_path", watch=True)
+    def _browse_session_path(self):
+        path = open_directory_dialog(
+            title="Select a session directory",
+            initial_dir=self.session_path or SESSIONS_DIR or None,
+            must_exist=True,
+        )
+        if path:
+            self.session_path = path
+
     @param.depends("dataset", watch=True, on_init=True)
     def _update_dataset(self):
         self.viz_manager.dataset = self.dataset
 
     def sidebar_view(self):
         problem_path_input = pn.widgets.TextInput.from_param(self.param.problem_path)
+        browse_problem_path_btn = pn.widgets.Button.from_param(
+            self.param.browse_problem_path, name="Browse..."
+        )
         run_btn = pn.widgets.Button.from_param(
             self.param.run_problem,
             button_type="primary",
         )
+
         session_path_input = pn.widgets.TextInput.from_param(self.param.session_path)
+        browse_session_path_btn = pn.widgets.Button.from_param(
+            self.param.browse_session_path, name="Browse..."
+        )
         load_btn = pn.widgets.Button.from_param(
             self.param.load_session,
             button_type="primary",
         )
+
         ips_path_input = pn.widgets.TextInput.from_param(self.settings.param.ips_path)
+        browse_ips_path_btn = pn.widgets.Button.from_param(
+            self.settings.param.browse_ips_path, name="Browse..."
+        )
 
         def disable_when_working(working):
             problem_path_input.disabled = working
+            browse_problem_path_btn.disabled = working
+            run_btn.disabled = working
             session_path_input.disabled = working
+            browse_session_path_btn.disabled = working
+            load_btn.disabled = working
             ips_path_input.disabled = working
+            browse_ips_path_btn.disabled = working
             run_btn.disabled = working
             load_btn.disabled = working
 
@@ -431,18 +491,21 @@ class MainState(param.Parameterized):
         run_problem_panes = (
             section_header("Run problem"),
             problem_path_input,
+            browse_problem_path_btn,
             run_btn,
         )
 
         load_session_panes = (
             section_header("Load session"),
             session_path_input,
+            browse_session_path_btn,
             load_btn,
         )
 
         settings_panes = pn.WidgetBox(
             section_header("Settings"),
             ips_path_input,
+            browse_ips_path_btn,
         )
 
         layout = pn.Column(
