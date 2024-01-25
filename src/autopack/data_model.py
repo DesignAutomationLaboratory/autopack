@@ -2,6 +2,7 @@ import pathlib
 from typing import Any, List, Literal, Optional
 
 import numpy as np
+import scipy as sp
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .ips_communication.ips_class import IPSInstance  # noqa
@@ -90,6 +91,33 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
         return v
 
     @property
+    def interpolator(self) -> sp.interpolate.NearestNDInterpolator:
+        """
+        Interpolator for cost field
+        """
+        if hasattr(self, "_interpolator"):
+            return self._interpolator
+
+        flat_coords = self.coordinates.reshape(-1, 3)
+        flat_costs = self.costs.reshape(-1)
+        feasible_mask = np.isfinite(flat_costs)
+        feasible_costs = flat_costs[feasible_mask]
+        feasible_coords = flat_coords[feasible_mask]
+
+        interpolator = sp.interpolate.NearestNDInterpolator(
+            feasible_coords, feasible_costs
+        )
+        self._interpolator = interpolator
+
+        return interpolator
+
+    def interpolate(self, coords: np.ndarray):
+        """
+        Interpolate cost field at given coordinates (shape (n_points, 3))
+        """
+        return self.interpolator(coords)
+
+    @property
     def dimensions(self):
         """
         Cost field dimensions (x, y, z) in meters.
@@ -174,6 +202,10 @@ class Harness(BaseModel):
     length_in_collision: float = Field(
         description="The length of the harness in collision in meters"
     )
+
+    @property
+    def all_clip_coords(self):
+        return np.concatenate([seg.clip_coords for seg in self.harness_segments])
 
 
 class Result(BaseModel):
