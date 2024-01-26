@@ -27,25 +27,17 @@
     {
       "start_node": "Cable1_start",
       "end_node": "Cable1_end",
-      "cable_type": "ID_Rubber_template"
+      "cable_type": "ABS_sensor_cable"
     },
     {
       "start_node": "Cable2_start",
       "end_node": "Cable2_end",
-      "cable_type": "ID_Rubber_template"
+      "cable_type": "ABS_sensor_cable"
     },
     {
       "start_node": "Cable3_start",
       "end_node": "Cable3_end",
-      "cable_type": "ID_Rubber_template"
+      "cable_type": "ABS_sensor_cable"
     }
-  ],
-  "clip_clip_dist": [
-    0.0375,
-    0.15
-  ],
-  "branch_clip_dist": [
-    0.01875,
-    0.075
   ]
 }
