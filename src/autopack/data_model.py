@@ -1,5 +1,6 @@
 import os
 import pathlib
+from functools import cached_property
 from typing import Any, List, Literal, Optional
 
 import numpy as np
@@ -102,26 +103,18 @@ class CostField(BaseModel, arbitrary_types_allowed=True):
 
         return v
 
-    @property
+    @cached_property
     def interpolator(self) -> sp.interpolate.NearestNDInterpolator:
         """
         Interpolator for cost field
         """
-        if hasattr(self, "_interpolator"):
-            return self._interpolator
-
         flat_coords = self.coordinates.reshape(-1, 3)
         flat_costs = self.costs.reshape(-1)
         feasible_mask = np.isfinite(flat_costs)
         feasible_costs = flat_costs[feasible_mask]
         feasible_coords = flat_coords[feasible_mask]
 
-        interpolator = sp.interpolate.NearestNDInterpolator(
-            feasible_coords, feasible_costs
-        )
-        self._interpolator = interpolator
-
-        return interpolator
+        return sp.interpolate.NearestNDInterpolator(feasible_coords, feasible_costs)
 
     def interpolate(self, coords: np.ndarray):
         """
