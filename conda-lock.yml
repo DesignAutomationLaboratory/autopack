@@ -15,7 +15,7 @@
 version: 1
 metadata:
   content_hash:
-    win-64: 25193f0d90460cf33e56d46f984018cc25ae9fd627500afd3efd66b82c779360
+    win-64: 8fa1b3cc591b6d4e5f0acaa41be6a812f197a328e7c81636bed15c381495b7db
   channels:
   - url: pytorch
     used_env_vars: []
@@ -2607,6 +2607,20 @@ package:
     sha256: 9e4ff17ce802159ed31344eb913eaa877688226765b77947b102b42255a53853
   category: dev
   optional: true
+- name: plotly
+  version: 5.18.0
+  manager: conda
+  platform: win-64
+  dependencies:
+    packaging: ''
+    python: '>=3.6'
+    tenacity: '>=6.2.0'
+  url: https://conda.anaconda.org/conda-forge/noarch/plotly-5.18.0-pyhd8ed1ab_0.conda
+  hash:
+    md5: 9f6a8664f1fe752f79473eeb9bf33a60
+    sha256: 1e812d896897a4d58d520bb51072d91d477faf7697e2b724b8ce59040989e8be
+  category: main
+  optional: false
 - name: pluggy
   version: 1.4.0
   manager: conda
@@ -3360,6 +3374,18 @@ package:
   hash:
     md5: 21069f3ed16812f9f4f2700667b6ec86
     sha256: aa30c089fdd6f66c7808592362e29963586e094159964a5fb61fb8efa9e349bc
+  category: main
+  optional: false
+- name: tenacity
+  version: 8.2.3
+  manager: conda
+  platform: win-64
+  dependencies:
+    python: '>=3.7'
+  url: https://conda.anaconda.org/conda-forge/noarch/tenacity-8.2.3-pyhd8ed1ab_0.conda
+  hash:
+    md5: 1482e77f87c6a702a7e05ef22c9b197b
+    sha256: 860c11e7369d6a86fcc9c6cbca49d5c457f6c0a27faeacca4d46267f9dd10d78
   category: main
   optional: false
 - name: threadpoolctl

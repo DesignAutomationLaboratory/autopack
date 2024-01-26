@@ -19,6 +19,7 @@ dependencies = [
   "logbook",
   "msgpack",
   "numpy",
+  "plotly",
   "pydantic",
   "matplotlib",
   "panel",
