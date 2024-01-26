@@ -119,14 +119,24 @@ def design_point_ds(
 
     ergo_cost_fields = [cf for cf in problem_setup.cost_fields if cf.ergo]
 
-    _clip_ergo_values = list(
-        clip_costs(
-            harness_solutions,
-            ergo_cost_fields,
-            cost_field_dim_name="ergo_standard",
+    if ergo_cost_fields:
+        _clip_ergo_values = list(
+            clip_costs(
+                harness_solutions,
+                ergo_cost_fields,
+                cost_field_dim_name="ergo_standard",
+            )
         )
-    )
-    clip_ergo_values = xr.concat(_clip_ergo_values, dim="solution")
+        clip_ergo_values = xr.concat(_clip_ergo_values, dim="solution")
+        mean_clip_ergo_value = clip_ergo_values.sel(ergo_standard="REBA").mean("clip")
+        mean_clip_ergo_value.attrs["objective"] = True
+
+        ergo_variables = {
+            "clip_ergo_values": clip_ergo_values,
+            "mean_clip_ergo_value": mean_clip_ergo_value,
+        }
+    else:
+        ergo_variables = {}
 
     num_clips = np.array(
         [
@@ -152,24 +162,48 @@ def design_point_ds(
             "num_clips": xr.DataArray(
                 num_clips,
                 dims=["solution"],
+                attrs={
+                    "title": "Number of clips",
+                    "objective": True,
+                },
             ),
             "volume": xr.DataArray(
                 [harness_volume(h) for h in harness_solutions],
                 dims=["solution"],
+                attrs={
+                    "title": "Volume",
+                    "description": "Total volume of the harness.",
+                    "units": "m^3",
+                    "objective": True,
+                },
             ),
             "collision_length": xr.DataArray(
                 [h.length_in_collision for h in harness_solutions],
                 dims=["solution"],
+                attrs={
+                    "title": "Collision length",
+                    "description": "Total length of the harness that is in collision or violates the clearance constraint.",
+                    "units": "m",
+                    "constraint": True,
+                },
             ),
             "collision_ratio": xr.DataArray(
                 [h.length_in_collision / h.length_total for h in harness_solutions],
                 dims=["solution"],
+                attrs={
+                    "title": "Collision ratio",
+                    "description": "Ratio of the total length of the harness that is in collision or violates the clearance constraint.",
+                    "units": None,
+                },
             ),
-            "clip_ergo_values": clip_ergo_values,
+            **ergo_variables,
             # FIXME: this doesn't work with zarr
             "harness": xr.DataArray(
                 np.array(harness_solutions, dtype=object),
                 dims=["solution"],
+                attrs={
+                    "title": "Harness object",
+                },
             ),
         },
         coords={
@@ -209,14 +243,13 @@ def batch_voi(
     Takes the dataset for a full batch and returns the variables of
     interest (xs, objs, cons)
     """
-    objs = (
-        batch_ds[["volume", "num_clips", "clip_ergo_values"]]
-        .sel(ergo_standard="REBA")
-        .mean("clip")
-        .to_stacked_array(new_dim="obj", sample_dims=["solution"], name="objectives")
+
+    # Get all objectives. NOTE that they are not scaled
+    objs = batch_ds.filter_by_attrs(objective=True).to_stacked_array(
+        new_dim="obj", sample_dims=["solution"], name="objectives"
     )
 
-    cons = batch_ds[["collision_length"]].to_stacked_array(
+    cons = batch_ds.filter_by_attrs(constraint=True).to_stacked_array(
         new_dim="con", sample_dims=["solution"], name="constraints"
     )
 
@@ -240,8 +273,9 @@ def batch_voi(
 def build_optimization_problem(
     ips: IPSInstance, problem_setup: ProblemSetup
 ) -> OptimizationProblem:
+    ergo_available = problem_setup.ergo_settings is not None
     num_cost_fields = len(problem_setup.cost_fields)
-    num_objectives = 3
+    num_objectives = 3 if ergo_available else 2
     weights_bounds = np.array([[0.001, 1.0]] * num_cost_fields)
     bundling_weight_bounds = np.array([[0.05, 0.9]])
     bounds = np.array([*weights_bounds, *bundling_weight_bounds])
