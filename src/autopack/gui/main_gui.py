@@ -100,13 +100,15 @@ def open_directory_dialog(
 
 
 def prune_dataset_for_viz(ds: xr.Dataset, drop_meta=False):
-    dims_to_drop = ["cost_field"]
+    dims_to_drop = ["cost_field", "clip"]
     vars_to_drop = ["harness"]
     if drop_meta:
         vars_to_drop.extend(
             var.name for var in ds.data_vars.values() if "meta." in var.name
         )
-    return ds.drop_dims(dims_to_drop).drop_vars(vars_to_drop)
+    return ds.drop_dims(dims_to_drop, errors="ignore").drop_vars(
+        vars_to_drop, errors="ignore"
+    )
 
 
 def to_viz_dataframe(ds: xr.Dataset, drop_meta=False):
