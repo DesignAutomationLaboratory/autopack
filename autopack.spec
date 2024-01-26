@@ -1,5 +1,5 @@
 from PyInstaller.building.build_main import COLLECT, EXE, PYZ, Analysis
-from PyInstaller.utils.hooks import collect_data_files, conda_support
+from PyInstaller.utils.hooks import collect_data_files, conda_support, copy_metadata
 
 
 def collect_nvidia_libs(*args, **kwargs):
@@ -36,6 +36,8 @@ a = Analysis(
         *collect_data_files("holoviews", excludes=["examples", "tests"]),
         *collect_data_files("hvplot", excludes=["examples"]),
         *collect_data_files("param"),
+        # xarray needs numpy metadata
+        *copy_metadata("numpy"),
         # torch.jit fails if we don't have the sources for linear_operator
         *collect_data_files("linear_operator", include_py_files=True),
     ],
