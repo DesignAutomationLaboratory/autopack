@@ -6,6 +6,7 @@ from typing import Any
 
 import msgpack
 import numpy as np
+import psutil
 import zmq
 from pydantic import BaseModel
 
@@ -55,6 +56,12 @@ def unpack(payload: bytes) -> Any:
     return msgpack.unpackb(base64.b64decode(payload))
 
 
+def kill_all_ips_procs():
+    for proc in psutil.process_iter(attrs=["name"]):
+        if proc.name() == "IPS.exe":
+            proc.kill()
+
+
 class IPSError(RuntimeError):
     pass
 
@@ -71,7 +78,7 @@ class IPSInstance:
         self.connected = False
 
     def start(self):
-        subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
+        kill_all_ips_procs()
         logger.info(f"Starting IPS at {self.ips_path}")
         self.process = subprocess.Popen(
             ["IPS.exe", "-port", str(self.port)],
@@ -154,7 +161,7 @@ class IPSInstance:
         return self.eval(command)
 
     def kill(self):
-        subprocess.run(["taskkill", "/F", "/IM", "IPS.exe"])
+        self.process.kill()
         self.connected = False
 
     def _wait_socket(self, flags, timeout=1000):

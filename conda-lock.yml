@@ -15,7 +15,7 @@
 version: 1
 metadata:
   content_hash:
-    win-64: 8fa1b3cc591b6d4e5f0acaa41be6a812f197a328e7c81636bed15c381495b7db
+    win-64: 318bbf1e56945f73c9b5e42d030e8f4451b6470e6209f64a95ae6ba81c869f96
   channels:
   - url: pytorch
     used_env_vars: []
@@ -2660,8 +2660,8 @@ package:
   hash:
     md5: 17e48538806e7c682d2ffcbd5c9f9aa0
     sha256: 77760f2ce0d2be9339d94d0fb5b3d102659355563f5b6471a1231525e63ff581
-  category: dev
-  optional: true
+  category: main
+  optional: false
 - name: pthread-stubs
   version: '0.4'
   manager: conda

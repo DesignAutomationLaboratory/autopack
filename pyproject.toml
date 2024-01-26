@@ -20,6 +20,7 @@ dependencies = [
   "msgpack",
   "numpy",
   "plotly",
+  "psutil",
   "pydantic",
   "matplotlib",
   "panel",
