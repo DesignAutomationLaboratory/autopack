@@ -258,6 +258,7 @@ def minimize(
         torch.manual_seed(seed)
     # run N_BATCH rounds of BayesOpt after the initial random batch
     for iteration in range(batches):
+        logger.info(f"Starting optimization batch {iteration + 1} of {batches}...")
         t0 = time.monotonic()
 
         # Note: we find improved performance from not warm
