@@ -10,7 +10,7 @@ from .data_model import CostField, ProblemSetup
 from .ips_communication.ips_class import IPSError, IPSInstance
 from .ips_communication.ips_commands import route_harnesses
 from .optimization import OptimizationMeta, OptimizationProblem, minimize
-from .utils import path_length
+from .utils import consecutive_distance, path_length
 
 
 def normalize_costs(costs: np.ndarray, scale=(0, 1)) -> np.ndarray:
@@ -68,6 +68,24 @@ def harness_volume(harness: data_model.Harness) -> float:
     return np.sum(segment_lengths * segment_radii**2 * np.pi)
 
 
+def smooth_cost(harness: data_model.Harness, cost_field: CostField) -> float:
+    """
+    Returns the cost of the harness through the cost field, calculated
+    as the integral of the cost field along the smooth path of the
+    harness.
+    """
+    segment_costs = []
+    for segment in harness.harness_segments:
+        coords = segment.smooth_coords
+        costs = cost_field.interpolate(coords)
+        cum_distance_along_path = np.concatenate(
+            [[0], consecutive_distance(coords)]
+        ).cumsum()
+        segment_costs.append(np.trapz(costs, cum_distance_along_path))
+
+    return np.sum(segment_costs)
+
+
 def clip_costs(
     harnesses: list[data_model.Harness],
     cost_fields: list[CostField],
@@ -117,6 +135,7 @@ def design_point_ds(
 
     num_ips_solutions = len(harness_solutions)
 
+    ips_cost_field = problem_setup.ref_cost_field
     ergo_cost_fields = [cf for cf in problem_setup.cost_fields if cf.ergo]
 
     if ergo_cost_fields:
@@ -194,6 +213,19 @@ def design_point_ds(
                     "title": "Collision ratio",
                     "description": "Ratio of the total length of the harness that is in collision or violates the clearance constraint.",
                     "units": None,
+                },
+            ),
+            "geometry_penalty": xr.DataArray(
+                [
+                    smooth_cost(harness=h, cost_field=ips_cost_field)
+                    for h in harness_solutions
+                ],
+                dims=["solution"],
+                attrs={
+                    "title": "Geometry penalty",
+                    "description": "Integral of the cost field along the smooth path of the harness.",
+                    "units": None,
+                    "objective": True,
                 },
             ),
             **ergo_variables,
@@ -275,7 +307,7 @@ def build_optimization_problem(
 ) -> OptimizationProblem:
     ergo_available = problem_setup.ergo_settings is not None
     num_cost_fields = len(problem_setup.cost_fields)
-    num_objectives = 3 if ergo_available else 2
+    num_objectives = 4 if ergo_available else 3
     weights_bounds = np.array([[0.001, 1.0]] * num_cost_fields)
     bundling_weight_bounds = np.array([[0.05, 0.9]])
     bounds = np.array([*weights_bounds, *bundling_weight_bounds])

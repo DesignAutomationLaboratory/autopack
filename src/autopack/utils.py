@@ -13,6 +13,16 @@ def grid_idxs_to_coords(grid_coords: np.ndarray, grid_idxs: np.ndarray) -> np.nd
     return grid_coords[grid_idxs[:, 0], grid_idxs[:, 1], grid_idxs[:, 2]]
 
 
+def consecutive_distance(coords: np.ndarray) -> float:
+    """
+    Return the distance between consecutive points in a path given by an
+    array of N-dimensional coordinates, where the first array dimension
+    corresponds to each point in the path. I.e. shape (n_points, dim_0, ...,
+    dim_n).
+    """
+    return np.linalg.norm(np.diff(coords, axis=0), axis=1)
+
+
 def path_length(coords: np.ndarray) -> float:
     """
     Return the length of a path given by an array of N-dimensional
