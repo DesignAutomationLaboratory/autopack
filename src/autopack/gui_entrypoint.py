@@ -8,24 +8,27 @@ from autopack import USER_DIR, __version__, logger
 
 DEBUG_LOG_PATH = USER_DIR / "debug.log"
 
-log_handler = logbook.NestedSetup(
-    [
-        # Log debug info to file
-        logbook.RotatingFileHandler(
-            DEBUG_LOG_PATH,
-            max_size=20 * 1024 * 1024,  # 20 MiB
-            backup_count=5,
-            level="DEBUG",
-        ),
-        # Log info to stdout, and also bubble it up to the debug log
-        logbook.StreamHandler(sys.stdout, level="INFO", bubble=True),
-    ]
-)
+
+def get_log_handler():
+    return logbook.NestedSetup(
+        [
+            # Log debug info to file
+            logbook.RotatingFileHandler(
+                DEBUG_LOG_PATH,
+                max_size=20 * 1024 * 1024,  # 20 MiB
+                backup_count=5,
+                level="DEBUG",
+            ),
+            # Log info to stdout, and also bubble it up to the debug log
+            logbook.StreamHandler(sys.stdout, level="INFO", bubble=True),
+        ]
+    )
 
 
 def init_app():
     USER_DIR.mkdir(parents=True, exist_ok=True)
 
+    log_handler = get_log_handler()
     log_handler.push_application()
     logger.notice(f"Starting Autopack v{__version__}")
     logger.notice(f"Writing debug log to {DEBUG_LOG_PATH}")
