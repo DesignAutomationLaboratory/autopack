@@ -31,6 +31,11 @@ a = Analysis(
     ],
     datas=[
         *collect_data_files("autopack"),
+        # The PyViz packages determines version on runtime and needs a
+        # data file to do so. Ugh.
+        *collect_data_files("holoviews", excludes=["examples", "tests"]),
+        *collect_data_files("hvplot", excludes=["examples"]),
+        *collect_data_files("param"),
         # torch.jit fails if we don't have the sources for linear_operator
         *collect_data_files("linear_operator", include_py_files=True),
     ],
