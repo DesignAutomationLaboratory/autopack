@@ -4,22 +4,26 @@ import pathlib
 import pytest
 
 
-def is_running_in_github_actions():
-    # See https://docs.github.com/en/actions/learn-github-actions/variables
-    return os.getenv("GITHUB_ACTIONS", "false") == "true"
-
-
-skip_in_ci = pytest.mark.skipif(is_running_in_github_actions(), reason="Skipping in CI")
-
-
 @pytest.fixture
 def test_scenes_path():
     return pathlib.Path(__file__).parent / "scenes"
 
 
 @pytest.fixture
-@skip_in_ci
-def ips_instance():
+def in_ci():
+    # See https://docs.github.com/en/actions/learn-github-actions/variables
+    return os.getenv("GITHUB_ACTIONS", "false") == "true"
+
+
+@pytest.fixture
+def skip_in_ci(in_ci):
+    if in_ci:
+        pytest.skip("Skipping in CI")
+    return
+
+
+@pytest.fixture
+def ips_instance(skip_in_ci):
     from autopack.ips_communication.ips_class import IPSInstance
 
     ips = IPSInstance()
