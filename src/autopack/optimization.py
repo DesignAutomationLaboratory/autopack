@@ -254,7 +254,8 @@ def minimize(
         meta=OptimizationMeta(category="sobol", batch=0),
     )
 
-    torch.manual_seed(seed)
+    if seed is not None:
+        torch.manual_seed(seed)
     # run N_BATCH rounds of BayesOpt after the initial random batch
     for iteration in range(batches):
         t0 = time.monotonic()
