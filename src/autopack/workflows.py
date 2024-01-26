@@ -4,7 +4,13 @@ from typing import Optional
 import xarray as xr
 
 from . import __version__, logger
-from .data_model import ErgoSettings, HarnessSetup, ProblemSetup, StudySettings
+from .data_model import (
+    DatasetVariableAttrs,
+    ErgoSettings,
+    HarnessSetup,
+    ProblemSetup,
+    StudySettings,
+)
 from .ergonomic_evaluation import create_ergonomic_cost_field
 from .harness_optimization import build_optimization_problem
 from .ips_communication.ips_class import IPSError, IPSInstance
@@ -90,6 +96,8 @@ def run_study(
     dataset.attrs["ips_version"] = ips.version
     dataset.attrs["problem_setup"] = problem_setup
     dataset.attrs["study_settings"] = study_settings
+
+    DatasetVariableAttrs.apply(dataset)
 
     return dataset
 

@@ -5,6 +5,7 @@ from typing import Any, List, Literal, Optional
 
 import numpy as np
 import scipy as sp
+import xarray as xr
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .ips_communication.ips_class import IPSInstance  # noqa
@@ -259,3 +260,39 @@ class Harness(BaseModel):
     @property
     def all_clip_coords(self):
         return np.concatenate([seg.clip_coords for seg in self.harness_segments])
+
+
+class DatasetVariableAttrs(BaseModel):
+    """
+    Schema for `attrs` of Dataset variables and coordinates
+    """
+
+    title: Optional[str] = None
+    description: Optional[str] = None
+    units: Optional[str] = None
+    score_direction: Literal[-1, 1] = Field(
+        default=-1,
+        description="A multiplier for making a score out of the quantity, i.e. -1 if lower is better, 1 if higher is better",
+    )
+    objective: bool = Field(
+        default=False,
+        description="Whether this is an objective for minimization",
+    )
+    constraint: bool = Field(
+        default=False, description="Whether this is a constraint, where <= 0 satisfies"
+    )
+
+    @classmethod
+    def apply(cls, dataset: xr.Dataset):
+        """
+        Validates `attrs` and applies schema to Dataset in-place
+        """
+
+        variable_attrs = {
+            k: DatasetVariableAttrs(**v.attrs) for k, v in dataset.variables.items()
+        }
+
+        for k, v in variable_attrs.items():
+            dataset[k].attrs.update(v.model_dump())
+
+        return dataset
