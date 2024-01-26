@@ -100,7 +100,7 @@ def open_directory_dialog(
 
 
 def prune_dataset_for_viz(ds: xr.Dataset, drop_meta=False):
-    dims_to_drop = ["cost_field", "clip"]
+    dims_to_drop = ["cost_field", "clip", "ergo_standard"]
     vars_to_drop = ["harness"]
     if drop_meta:
         vars_to_drop.extend(
