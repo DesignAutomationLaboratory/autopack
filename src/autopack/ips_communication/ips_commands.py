@@ -14,7 +14,6 @@ from autopack.data_model import (
 )
 
 from ..utils import grid_idxs_to_coords
-from . import lua_commands
 
 
 def create_costfield(ips, harness_setup):
@@ -146,10 +145,3 @@ def cost_field_vis(ips: IPSInstance, cost_field, visible=True):
         replace_existing=True,
         visible=visible,
     )
-
-
-def get_stl_meshes(ips_instance):
-    command = lua_commands.get_stl_meshes()
-    print(command)
-    str_meshes = ips_instance.eval(command)
-    print(str_meshes)
