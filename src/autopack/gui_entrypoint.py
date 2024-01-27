@@ -4,7 +4,7 @@ import sys
 import logbook
 import panel
 
-from autopack import USER_DIR, __version__, logger
+from autopack import SESSIONS_DIR, USER_DIR, __version__, logger
 
 DEBUG_LOG_PATH = USER_DIR / "debug.log"
 
@@ -26,7 +26,9 @@ def get_log_handler():
 
 
 def init_app():
+    # Make sure the needed directories exist before doing anything
     USER_DIR.mkdir(parents=True, exist_ok=True)
+    SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
     log_handler = get_log_handler()
     log_handler.push_application()

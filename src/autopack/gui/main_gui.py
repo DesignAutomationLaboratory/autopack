@@ -12,7 +12,7 @@ import xarray as xr
 from panel import theme
 from plotly import express as px
 
-from autopack import USER_DIR, __version__, logger
+from autopack import SESSIONS_DIR, USER_DIR, __version__, logger
 from autopack.data_model import ErgoSettings, HarnessSetup, StudySettings
 from autopack.io import load_session, save_session
 from autopack.ips_communication.ips_class import IPSInstance
@@ -20,7 +20,6 @@ from autopack.utils import appr_num_solutions, normalize, partition_opt_budget
 from autopack.workflows import build_problem_and_run_study
 
 SETTINGS_PATH = USER_DIR / "gui-settings.json"
-SESSIONS_DIR = USER_DIR / "sessions"
 
 # For some reason, the sidebar is borked in MaterialTemplate.
 SIDEBAR_CSS_HACK = """
