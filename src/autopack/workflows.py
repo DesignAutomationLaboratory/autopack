@@ -13,11 +13,11 @@ from .data_model import (
 )
 from .ergonomic_evaluation import create_ergonomic_cost_field
 from .harness_optimization import build_optimization_problem
+from .io import load_scene
 from .ips_communication.ips_class import IPSError, IPSInstance
 from .ips_communication.ips_commands import (
     cost_field_vis,
     create_costfield,
-    load_scene,
 )
 from .optimization import minimize
 

@@ -1,11 +1,11 @@
 import ctypes
+import os
 import pathlib
 import pickle
 
 import xarray as xr
 
 from autopack.ips_communication.ips_class import IPSInstance
-from autopack.ips_communication.ips_commands import load_scene, save_scene
 
 
 def save_dataset(ds, path):
@@ -18,6 +18,25 @@ def load_dataset(path):
     with open(path, "rb") as file:
         ds = pickle.load(file)
     return ds
+
+
+def save_scene(ips: IPSInstance, scene_file_path: os.PathLike):
+    assert os.path.isabs(scene_file_path), "Scene file path must be absolute"
+    return ips.call("autopack.saveScene", scene_file_path)
+
+
+def load_scene(ips: IPSInstance, scene_file_path: os.PathLike, clear=False):
+    """
+    Load the scene file at `scene_file_path`. Optionally clears the
+    scene before loading if `clear` is True.
+    """
+    assert os.path.isabs(scene_file_path), "Scene file path must be absolute"
+    assert os.path.exists(
+        scene_file_path
+    ), f"Scene file does not exist at {scene_file_path}"
+    if clear:
+        ips.call("autopack.clearScene")
+    return ips.call("autopack.loadAndFitScene", scene_file_path)
 
 
 def save_session(dataset: xr.Dataset, ips: IPSInstance, session_dir: pathlib.Path):
