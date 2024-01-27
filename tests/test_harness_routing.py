@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from autopack.data_model import Cable, Geometry, HarnessSetup
-from autopack.ips_communication.ips_commands import route_harnesses
+from autopack.harness_optimization import route_harnesses
 from autopack.workflows import build_problem
 
 
