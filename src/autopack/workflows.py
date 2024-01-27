@@ -14,7 +14,7 @@ from .data_model import (
 )
 from .harness_optimization import build_optimization_problem
 from .io import load_scene
-from .ips_communication.ips_class import IPSError, IPSInstance
+from .ips import IPSError, IPSInstance
 from .optimization import minimize
 
 

@@ -15,7 +15,7 @@ from plotly import express as px
 from autopack import SESSIONS_DIR, USER_DIR, __version__, logger
 from autopack.data_model import ErgoSettings, HarnessSetup, StudySettings
 from autopack.io import load_session, save_session
-from autopack.ips_communication.ips_class import IPSInstance
+from autopack.ips import IPSInstance
 from autopack.utils import appr_num_solutions, normalize, partition_opt_budget
 from autopack.workflows import build_problem_and_run_study
 

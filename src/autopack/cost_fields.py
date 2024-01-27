@@ -5,7 +5,7 @@ from scipy.interpolate import RBFInterpolator
 
 from autopack import logger
 from autopack.data_model import CostField, ErgoSettings, HarnessSetup
-from autopack.ips_communication.ips_class import IPSInstance
+from autopack.ips import IPSInstance
 from autopack.utils import add_point_cloud, farthest_point_sampling
 
 ERGO_STANDARD_BOUNDS = xr.DataArray(

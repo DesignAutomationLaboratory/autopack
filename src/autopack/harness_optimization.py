@@ -8,7 +8,7 @@ import xarray as xr
 from . import data_model, logger
 from .cost_fields import combine_cost_fields
 from .data_model import CostField, Harness, HarnessSegment, HarnessSetup, ProblemSetup
-from .ips_communication.ips_class import IPSError, IPSInstance
+from .ips import IPSError, IPSInstance
 from .optimization import OptimizationMeta, OptimizationProblem, minimize
 from .utils import consecutive_distance, grid_idxs_to_coords, path_length
 

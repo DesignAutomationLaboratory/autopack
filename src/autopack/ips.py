@@ -10,7 +10,7 @@ import psutil
 import zmq
 from pydantic import BaseModel
 
-from .. import __version__, logger
+from . import __version__, logger
 
 LUALIB_PATH = pathlib.Path(__file__).parent / "lualib" / "?.lua"
 CALL_TEMPLATE = f"""

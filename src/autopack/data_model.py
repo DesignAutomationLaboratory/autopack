@@ -8,7 +8,7 @@ import scipy as sp
 import xarray as xr
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from .ips_communication.ips_class import IPSInstance  # noqa
+from .ips import IPSInstance  # noqa
 
 
 class Cable(BaseModel):

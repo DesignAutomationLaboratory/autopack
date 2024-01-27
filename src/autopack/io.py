@@ -5,7 +5,7 @@ import pickle
 
 import xarray as xr
 
-from autopack.ips_communication.ips_class import IPSInstance
+from autopack.ips import IPSInstance
 
 
 def save_dataset(ds, path):
