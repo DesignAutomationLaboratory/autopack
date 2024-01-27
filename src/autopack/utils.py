@@ -118,3 +118,25 @@ def appr_num_solutions(evaluations):
     solutions.
     """
     return int(evaluations * 2.5 // 10 * 10)
+
+
+def add_point_cloud(
+    ips,
+    coords,
+    colors=None,
+    parent_name=None,
+    name=None,
+    replace_existing=False,
+    visible=True,
+):
+    if colors is None:
+        colors = np.ones_like(coords) * np.array([[0, 0, 1]])
+    ips.call(
+        "autopack.createColoredPointCloud",
+        np.hstack([coords, colors]),
+        parent_name,
+        name,
+        replace_existing,
+        visible,
+        return_result=False,
+    )
