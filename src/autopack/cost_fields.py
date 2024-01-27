@@ -3,10 +3,10 @@ import xarray as xr
 from matplotlib import cm, colors
 from scipy.interpolate import RBFInterpolator
 
-from autopack import logger
-from autopack.data_model import CostField, ErgoSettings, HarnessSetup
-from autopack.ips import IPSInstance
-from autopack.utils import add_point_cloud, farthest_point_sampling
+from . import logger
+from .data_model import CostField, ErgoSettings, HarnessSetup
+from .ips import IPSInstance
+from .utils import add_point_cloud, farthest_point_sampling
 
 ERGO_STANDARD_BOUNDS = xr.DataArray(
     [[1, 15], [1, 7]],
