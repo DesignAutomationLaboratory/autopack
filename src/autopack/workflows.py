@@ -86,10 +86,13 @@ def run_study(
                 seed=0,
             )
     except IPSError as exc:
-        logger.exception(
-            "Optimization failed due to IPS error. Trying to continue with the data gathered until this happened.",
-            exc_info=exc,
-        )
+        if study_settings.return_partial_results:
+            logger.exception(
+                "Optimization failed due to IPS error. Trying to continue with the data gathered until this happened.",
+                exc_info=exc,
+            )
+        else:
+            raise exc
 
     dataset = xr.concat(opt_problem.state["batch_datasets"], dim="solution")
     dataset.attrs["autopack_version"] = __version__

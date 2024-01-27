@@ -40,6 +40,8 @@ def test_global_optimization_smoke(simple_plate_harness_setup, ips, tmpdir, run_
         doe_samples=4,
         opt_batches=2,
         opt_batch_size=2,
+        # Errors should not be swallowed
+        return_partial_results=False,
     )
 
     dataset = build_problem_and_run_study(

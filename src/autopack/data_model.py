@@ -204,6 +204,10 @@ class StudySettings(BaseModel):
     )
     random_seed: Optional[int] = Field(default=0)
     silence_warnings: bool = Field(default=True)
+    return_partial_results: bool = Field(
+        default=True,
+        description="If True, return partial results if the study is interrupted. If False, an exception is raised.",
+    )
 
 
 class HarnessSegment(BaseModel, arbitrary_types_allowed=True):
