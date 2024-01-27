@@ -23,7 +23,7 @@ def skip_in_ci(in_ci):
 
 
 @pytest.fixture
-def ips_instance(skip_in_ci):
+def ips(skip_in_ci):
     from autopack.ips_communication.ips_class import IPSInstance
 
     ips = IPSInstance()

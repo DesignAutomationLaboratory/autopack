@@ -12,7 +12,7 @@ def test_topology_feasibility(
     feasible_scene,
     allow_infeasible_topology,
     test_scenes_path,
-    ips_instance,
+    ips,
 ):
     if feasible_scene:
         scene_path = test_scenes_path / "topology_feasible.ips"
@@ -44,12 +44,12 @@ def test_topology_feasibility(
     )
 
     prob_setup = build_problem(
-        ips=ips_instance,
+        ips=ips,
         harness_setup=harness_setup,
     )
 
     harnesses = route_harnesses(
-        ips=ips_instance,
+        ips=ips,
         harness_setup=harness_setup,
         cost_field=prob_setup.cost_fields[0],
         bundling_weight=0.7,

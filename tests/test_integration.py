@@ -27,9 +27,7 @@ def test_harness_optimization_setup(simple_plate_harness_setup):
 
 
 @pytest.mark.parametrize("run_ergo", [False, True])
-def test_global_optimization_smoke(
-    simple_plate_harness_setup, ips_instance, tmpdir, run_ergo
-):
+def test_global_optimization_smoke(simple_plate_harness_setup, ips, tmpdir, run_ergo):
     if run_ergo:
         ergo_settings = ErgoSettings(
             sample_ratio=0.01,
@@ -45,7 +43,7 @@ def test_global_optimization_smoke(
     )
 
     dataset = build_problem_and_run_study(
-        ips=ips_instance,
+        ips=ips,
         harness_setup=simple_plate_harness_setup,
         ergo_settings=ergo_settings,
         study_settings=study_settings,
@@ -53,7 +51,7 @@ def test_global_optimization_smoke(
 
     assert isinstance(dataset, xr.Dataset)
     assert dataset.attrs["autopack_version"] == __version__
-    assert dataset.attrs["ips_version"] == ips_instance.version
+    assert dataset.attrs["ips_version"] == ips.version
     assert dataset.attrs["problem_setup"].harness_setup == simple_plate_harness_setup
     assert dataset.attrs["problem_setup"].ergo_settings == ergo_settings
     assert dataset.attrs["study_settings"] == study_settings
@@ -68,7 +66,7 @@ def test_global_optimization_smoke(
 
 
 @pytest.mark.parametrize("run_ergo", [False, True])
-def test_build_problem(ips_instance, simple_plate_harness_setup, run_ergo):
+def test_build_problem(ips, simple_plate_harness_setup, run_ergo):
     if run_ergo:
         ergo_settings = ErgoSettings(
             sample_ratio=0.01,
@@ -77,7 +75,7 @@ def test_build_problem(ips_instance, simple_plate_harness_setup, run_ergo):
     else:
         ergo_settings = None
     problem_setup = build_problem(
-        ips=ips_instance,
+        ips=ips,
         harness_setup=simple_plate_harness_setup,
         ergo_settings=ergo_settings,
     )
