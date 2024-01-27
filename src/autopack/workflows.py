@@ -4,6 +4,7 @@ from typing import Optional
 import xarray as xr
 
 from . import __version__, logger
+from .cost_fields import cost_field_vis, create_ergo_cost_fields, create_ips_cost_field
 from .data_model import (
     DatasetVariableAttrs,
     ErgoSettings,
@@ -11,14 +12,9 @@ from .data_model import (
     ProblemSetup,
     StudySettings,
 )
-from .ergonomic_evaluation import create_ergonomic_cost_field
 from .harness_optimization import build_optimization_problem
 from .io import load_scene
 from .ips_communication.ips_class import IPSError, IPSInstance
-from .ips_communication.ips_commands import (
-    cost_field_vis,
-    create_costfield,
-)
 from .optimization import minimize
 
 
@@ -29,10 +25,10 @@ def build_problem(
 ):
     load_scene(ips, harness_setup.scene_path, clear=True)
 
-    ips_cost_field = create_costfield(ips, harness_setup)
+    ips_cost_field = create_ips_cost_field(ips, harness_setup)
 
     if ergo_settings:
-        ergo_cost_fields = create_ergonomic_cost_field(
+        ergo_cost_fields = create_ergo_cost_fields(
             ips=ips,
             harness_setup=harness_setup,
             ergo_settings=ergo_settings,

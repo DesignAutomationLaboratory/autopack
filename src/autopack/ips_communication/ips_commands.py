@@ -1,7 +1,5 @@
 from typing import Optional
 
-import matplotlib.cm as cm
-import matplotlib.colors as colors
 import numpy as np
 
 from autopack.data_model import (
@@ -13,15 +11,6 @@ from autopack.data_model import (
 )
 
 from ..utils import grid_idxs_to_coords
-
-
-def create_costfield(ips, harness_setup):
-    response = ips.call("autopack.getCostField", harness_setup)
-
-    coords = np.array(response["coords"])
-    costs = np.array(response["costs"])
-
-    return CostField(name="IPS", coordinates=coords, costs=costs)
 
 
 def route_harnesses(
@@ -99,29 +88,4 @@ def add_point_cloud(
         replace_existing,
         visible,
         return_result=False,
-    )
-
-
-def cost_field_vis(ips: IPSInstance, cost_field, visible=True):
-    coords = cost_field.coordinates.reshape(-1, 3)
-    costs = cost_field.costs.reshape(-1)
-    finite_mask = np.isfinite(costs)
-
-    norm = colors.Normalize()
-    norm.autoscale(costs[finite_mask])
-    norm_costs = norm(costs)
-
-    cmap = cm.get_cmap("viridis")
-    cmap.set_over("red")
-    # Gets the colors and drops the alpha channel
-    point_colors = cmap(norm_costs)[:, :-1]
-
-    add_point_cloud(
-        ips=ips,
-        coords=coords,
-        colors=point_colors,
-        parent_name="Autopack cost fields",
-        name=cost_field.name,
-        replace_existing=True,
-        visible=visible,
     )

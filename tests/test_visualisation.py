@@ -1,4 +1,4 @@
-from autopack.ips_communication.ips_commands import cost_field_vis
+from autopack.cost_fields import cost_field_vis
 from autopack.workflows import build_problem
 
 

@@ -6,44 +6,12 @@ import pandas as pd
 import xarray as xr
 
 from . import data_model, logger
+from .cost_fields import combine_cost_fields
 from .data_model import CostField, ProblemSetup
 from .ips_communication.ips_class import IPSError, IPSInstance
 from .ips_communication.ips_commands import route_harnesses
 from .optimization import OptimizationMeta, OptimizationProblem, minimize
 from .utils import consecutive_distance, path_length
-
-
-def normalize_costs(costs: np.ndarray, scale=(0, 1)) -> np.ndarray:
-    """
-    Min-max normalize costs to `scale` (default [0, 1]). If min ==
-    max, all costs are set to 0. Infeasible nodes are always kept as
-    is.
-    """
-
-    finite_mask = np.isfinite(costs)
-    min_value = np.amin(costs[finite_mask])
-    max_value = np.amax(costs[finite_mask])
-    if min_value == max_value:
-        unit_costs = np.zeros_like(costs)
-    else:
-        unit_costs = (costs - min_value) / (max_value - min_value)
-    scaled_costs = unit_costs * (scale[1] - scale[0]) + scale[0]
-    # inf * 0 = nan, so we must set inf again where it was before
-    scaled_costs[~finite_mask] = np.inf
-    return scaled_costs
-
-
-def combine_cost_fields(cost_fields, weights, output_scale=(1, 10)):
-    assert len(cost_fields) == len(weights), "Must give one weight per cost field"
-    coords = cost_fields[0].coordinates
-
-    all_costs = np.stack(
-        [normalize_costs(cf.costs, scale=(0, 1)) for cf in cost_fields]
-    )
-    combined_costs = np.sum(all_costs * weights[:, None, None, None], axis=0)
-    combined_scaled_costs = normalize_costs(combined_costs, output_scale)
-
-    return CostField(name="Combined", coordinates=coords, costs=combined_scaled_costs)
 
 
 def harness_volume(harness: data_model.Harness) -> float:
