@@ -36,9 +36,10 @@ def init_app():
     logger.notice(f"Writing debug log to {DEBUG_LOG_PATH}")
 
     # Import here so we get the logging up and running before
-    from autopack.gui.main_gui import make_gui  # noqa: E402
+    from autopack.gui.main_gui import AutopackApp, init_panel  # noqa: E402
 
-    app = make_gui()
+    init_panel()
+    app = AutopackApp()
 
     return app
 
@@ -46,10 +47,10 @@ def init_app():
 if __name__ == "__main__":
     # Running as a script
 
-    panel.serve(init_app(), show=True)
+    panel.serve(init_app().view(), show=True)
     sys.exit(0)
 
 if __name__.startswith("bokeh_app"):
     # Running under `panel serve ...` or `bokeh serve ...`
 
-    init_app().servable()
+    init_app().view().servable()

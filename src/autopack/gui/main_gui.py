@@ -449,7 +449,7 @@ class VisualizationManager(param.Parameterized):
         )
 
 
-class MainState(param.Parameterized):
+class AutopackApp(param.Parameterized):
     settings = param.ClassSelector(class_=Settings)
     viz_manager = param.ClassSelector(class_=VisualizationManager)
 
@@ -470,6 +470,18 @@ class MainState(param.Parameterized):
 
     _ips = param.Parameter()
     dataset = param.Parameter()
+
+    template = param.ClassSelector(class_=pn.template.MaterialTemplate)
+
+    def __init__(self, **params):
+        params.setdefault("settings", Settings.load_or_new())
+        params.setdefault("runtime_settings", RuntimeSettings())
+        params.setdefault("viz_manager", VisualizationManager())
+        params.setdefault("problem_path", params["settings"].last_problem_path)
+        params.setdefault("session_path", params["settings"].last_session_path)
+        params.setdefault("template", pn.template.MaterialTemplate())
+
+        super().__init__(**params)
 
     @property
     def ips(self):
@@ -641,32 +653,14 @@ class MainState(param.Parameterized):
         finally:
             self.working = False
 
-
-def make_gui(**main_state_kwargs):
-    init_panel()
-
-    settings = Settings.load_or_new()
-    runtime_settings = RuntimeSettings()
-    viz_manager = VisualizationManager()
-    main_state = MainState(
-        settings=settings,
-        runtime_settings=runtime_settings,
-        viz_manager=viz_manager,
-        problem_path=settings.last_problem_path,
-        session_path=settings.last_session_path,
-        **main_state_kwargs,
-    )
-
-    template = pn.template.MaterialTemplate(
-        title="Autopack",
-        header_background="#b31f2f",  # IPS red
-        sidebar_width=400,
-        sidebar=[
-            main_state.sidebar_view(),
-        ],
-        main=[
-            main_state.data_view(),
-        ],
-    )
-
-    return template
+    def view(self):
+        self.template.title = "Autopack"
+        self.template.header_background = "#b31f2f"  # IPS red
+        self.template.sidebar_width = 400
+        self.template.sidebar[:] = [
+            self.sidebar_view(),
+        ]
+        self.template.main[:] = [
+            self.data_view(),
+        ]
+        return self.template
