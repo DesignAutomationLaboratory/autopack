@@ -4,6 +4,33 @@ import pathlib
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def mock_dirs(tmpdir, monkeypatch):
+    """
+    Makes sure that USER_DIR and derived paths are mocked to temporary
+    directories during tests. This must happen before any tests import
+    them.
+    """
+    import autopack
+    from autopack.gui import main_gui
+
+    tmpdir = pathlib.Path(tmpdir)
+
+    user_dir = tmpdir / "mock_user_dir"
+    sessions_dir = tmpdir / "mock_sessions_dir"
+    gui_settings_path = user_dir / "gui-settings.json"
+
+    with monkeypatch.context() as m:
+        # FIXME: it is really ugly to have to mock these in two places.
+        # Less should be done on import!
+        m.setattr(autopack, "USER_DIR", user_dir)
+        m.setattr(autopack, "SESSIONS_DIR", sessions_dir)
+        m.setattr(main_gui, "USER_DIR", user_dir)
+        m.setattr(main_gui, "SESSIONS_DIR", sessions_dir)
+        m.setattr(main_gui, "SETTINGS_PATH", gui_settings_path)
+        yield
+
+
 @pytest.fixture
 def test_scenes_path():
     return pathlib.Path(__file__).parent / "scenes"
