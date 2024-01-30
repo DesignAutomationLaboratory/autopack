@@ -165,6 +165,16 @@ class RuntimeSettings(param.Parameterized):
         label=ErgoSettings.model_fields["use_rbpp"].title,
         doc=ErgoSettings.model_fields["use_rbpp"].description,
     )
+    ergo_sample_ratio = param.Number(
+        # We expose this as a parameter primarily to make it easier to
+        # change in testing
+        default=ErgoSettings.model_fields["sample_ratio"].default,
+    )
+    doe_samples = param.Integer(
+        # We expose this as a parameter primarily to make it easier to
+        # change in testing
+        default=StudySettings.model_fields["doe_samples"].default,
+    )
     opt_budget = param.Integer(
         default=64,
         bounds=(0, 512),
@@ -177,7 +187,7 @@ class RuntimeSettings(param.Parameterized):
     def total_num_solutions(self):
         batch_size, num_batches = partition_opt_budget(self.opt_budget)
         opt_evals = batch_size * num_batches
-        static_evals = 10 + StudySettings.model_fields["doe_samples"].default
+        static_evals = 10 + self.doe_samples
         return appr_num_solutions(int(static_evals + opt_evals))
 
     def to_ergo_settings(self):
@@ -185,6 +195,7 @@ class RuntimeSettings(param.Parameterized):
             return None
         return ErgoSettings(
             use_rbpp=self.ergo_use_rbpp,
+            sample_ratio=self.ergo_sample_ratio,
         )
 
     def to_study_settings(self):
@@ -192,6 +203,7 @@ class RuntimeSettings(param.Parameterized):
         return StudySettings(
             opt_batches=num_batches,
             opt_batch_size=batch_size,
+            doe_samples=self.doe_samples,
         )
 
     def view_panes(self):
