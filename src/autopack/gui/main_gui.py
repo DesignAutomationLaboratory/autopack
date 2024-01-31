@@ -16,6 +16,12 @@ from .. import SESSIONS_DIR, USER_DIR, __version__, logger
 from ..data_model import ErgoSettings, HarnessSetup, StudySettings
 from ..io import load_session, save_session
 from ..ips import IPSInstance
+from ..postprocessing import (
+    functions_of_interest,
+    only_dims,
+    only_dtypes,
+    score_multipliers,
+)
 from ..utils import appr_num_solutions, normalize, partition_opt_budget
 from ..workflows import build_problem_and_run_study
 
@@ -96,22 +102,6 @@ def open_directory_dialog(
     )
     window.destroy()
     return path or None
-
-
-def prune_dataset_for_viz(ds: xr.Dataset, drop_meta=False):
-    dims_to_drop = ["cost_field", "clip", "ergo_standard"]
-    vars_to_drop = ["harness"]
-    if drop_meta:
-        vars_to_drop.extend(
-            var.name for var in ds.data_vars.values() if "meta." in var.name
-        )
-    return ds.drop_dims(dims_to_drop, errors="ignore").drop_vars(
-        vars_to_drop, errors="ignore"
-    )
-
-
-def to_viz_dataframe(ds: xr.Dataset, drop_meta=False):
-    return prune_dataset_for_viz(ds=ds, drop_meta=drop_meta).to_dataframe()
 
 
 class Settings(param.Parameterized):
@@ -298,7 +288,10 @@ class DataTable(param.Parameterized):
         if self.dataset is None:
             self._dataframe = None
         else:
-            self._dataframe = to_viz_dataframe(self.dataset)
+            ds = self.dataset
+            ds = only_dims(ds, ["solution"])
+            ds = only_dtypes(ds, [float, int, str, bool])
+            self._dataframe = ds.to_dataframe()
 
     @param.depends("_dataframe")
     def view(self):
@@ -381,11 +374,11 @@ class ParallelCoordinatesPlot(param.Parameterized):
         if self.dataset is None:
             self._dataframe = None
         else:
-            ds = prune_dataset_for_viz(self.dataset, drop_meta=True)
-            score_multiplier = -1
-            score_da = normalize(ds * score_multiplier).to_dataarray(name="score")
-            norm_da = normalize(ds).to_dataarray(name="norm")
-            value_da = ds.to_dataarray(name="value")
+            foi_ds = functions_of_interest(self.dataset)
+            scaler_ds = score_multipliers(foi_ds)
+            score_da = normalize(foi_ds * scaler_ds).to_dataarray(name="score")
+            norm_da = normalize(foi_ds).to_dataarray(name="norm")
+            value_da = foi_ds.to_dataarray(name="value")
 
             self._dataframe = xr.merge([value_da, norm_da, score_da]).to_dataframe()
 
