@@ -287,7 +287,16 @@ class DatasetVariableAttrs(BaseModel):
     )
 
     @classmethod
-    def apply(cls, dataset: xr.Dataset):
+    def validate_dataarray(cls, darray: xr.DataArray):
+        """
+        Validates `attrs` of given DataArray and returns a new object
+        """
+        attrs = cls(**darray.attrs)
+
+        return darray.assign_attrs(**attrs.model_dump())
+
+    @classmethod
+    def validate_dataset_inplace(cls, dataset: xr.Dataset):
         """
         Validates `attrs` and applies schema to Dataset in-place
         """

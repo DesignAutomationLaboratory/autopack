@@ -96,7 +96,7 @@ def run_study(
     dataset.attrs["problem_setup"] = problem_setup
     dataset.attrs["study_settings"] = study_settings
 
-    DatasetVariableAttrs.apply(dataset)
+    DatasetVariableAttrs.validate_dataset_inplace(dataset)
 
     return dataset
 
