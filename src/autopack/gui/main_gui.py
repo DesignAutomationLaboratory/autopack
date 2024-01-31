@@ -42,7 +42,7 @@ def exception_handler(exc):
     )
 
 
-def init_panel():
+def init_panel(pn_kwargs=None):
     pn.extension(
         "tabulator",
         "plotly",
@@ -52,6 +52,7 @@ def init_panel():
         loading_indicator=True,
         exception_handler=exception_handler,
         notifications=True,
+        **(pn_kwargs or {}),
     )
     hv.extension("bokeh")
 
