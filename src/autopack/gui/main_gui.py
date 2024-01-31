@@ -462,9 +462,7 @@ class AutopackApp(param.Parameterized):
     runtime_settings = param.ClassSelector(class_=RuntimeSettings)
 
     problem_path = param.Filename(check_exists=False)
-    session_path = param.Foldername(
-        check_exists=False, search_paths=[SESSIONS_DIR], label="Session name/path"
-    )
+    session_path = param.Foldername(check_exists=False)
 
     browse_problem_path = param.Action(lambda x: x.param.trigger("browse_problem_path"))
     browse_session_path = param.Action(lambda x: x.param.trigger("browse_session_path"))
@@ -641,7 +639,7 @@ class AutopackApp(param.Parameterized):
 
             save_session(dataset=dataset, ips=self.ips, session_dir=session_path)
             logger.notice(f"Saved session to {session_path}.")
-            self.session_path = session_name
+            self.session_path = str(session_path)
 
             self.dataset = dataset
         finally:
