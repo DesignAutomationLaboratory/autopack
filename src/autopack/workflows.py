@@ -16,6 +16,7 @@ from .harness_optimization import build_optimization_problem
 from .io import load_scene
 from .ips import IPSError, IPSInstance
 from .optimization import minimize
+from .postprocessing import non_dominated_mask
 
 
 def build_problem(
@@ -98,7 +99,10 @@ def run_study(
 
     DatasetVariableAttrs.validate_dataset_inplace(dataset)
 
-    return dataset
+    # This assumes that the attrs follow the schema
+    optimal_mask = non_dominated_mask(dataset)
+
+    return dataset.assign(optimal=optimal_mask)
 
 
 def build_problem_and_run_study(
