@@ -31,6 +31,7 @@ def app(ips_path):
     app_thread = app_view.show(threaded=True)
     yield app
     app_thread.stop()
+    app_thread.join()
 
 
 def test_app_run_problem_smoke(app, test_scenes_path):
