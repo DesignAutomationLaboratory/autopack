@@ -472,8 +472,8 @@ class AutopackApp(param.Parameterized):
 
     working = param.Boolean(default=False)
 
-    _ips = param.Parameter()
-    dataset = param.Parameter()
+    _ips = param.ClassSelector(class_=IPSInstance, allow_None=True)
+    dataset = param.ClassSelector(class_=xr.Dataset, allow_None=True)
 
     template = param.ClassSelector(class_=pn.template.MaterialTemplate)
 
