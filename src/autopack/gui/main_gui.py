@@ -320,8 +320,9 @@ class InteractiveScatterPlot(param.Parameterized):
         if self.dataset is None:
             return
         else:
-            selectable_dims = list(self.dataset.dims.keys())
-            selectable_vars = list(self.dataset.data_vars.keys())
+            vizable_ds = only_dtypes(self.dataset, [float, int])
+            selectable_dims = list(vizable_ds.dims.keys())
+            selectable_vars = list(vizable_ds.data_vars.keys())
 
         self.param.x.objects = selectable_vars
         self.x = selectable_vars[0]
