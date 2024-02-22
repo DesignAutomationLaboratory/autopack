@@ -105,6 +105,24 @@ def open_directory_dialog(
     return path or None
 
 
+def export_csv_dialog(
+    title="Select a file",
+    initial_dir=None,
+    must_exist=False,
+):
+    window = tk.Tk()
+    window.wm_attributes("-topmost", 1)
+    window.withdraw()
+    path = filedialog.asksaveasfile(
+        parent=window,
+        initialfile="Untitled.csv",
+        defaultextension=".csv",
+        filetypes=[("CSV", "*.csv")],
+    )
+    window.destroy()
+    return path or None
+
+
 class Settings(param.Parameterized):
     ips_path = param.Foldername(label="IPS path", check_exists=False)
     # String parameters here to not do any unexpected smartness
@@ -551,6 +569,22 @@ class AutopackApp(param.Parameterized):
             self.settings.param.browse_ips_path, name="Browse..."
         )
 
+        def excel_export(event):
+            ds = self.dataset
+            if ds is not None:
+                ds = only_dims(ds, ["solution"])
+                ds = only_dtypes(ds, [float, int, str, bool])
+                df = ds.to_dataframe()
+                path = export_csv_dialog()
+                if path is not None:
+                    df.to_csv(path)
+                    pn.state.notifications.info("CSV exported")
+            else:
+                pn.state.notifications.info("No dataset to export...")
+
+        export_excel_btn = pn.widgets.Button(name="Export csv...")
+        export_excel_btn.on_click(excel_export)
+
         def disable_when_working(working):
             problem_path_input.disabled = working
             browse_problem_path_btn.disabled = working
@@ -586,12 +620,19 @@ class AutopackApp(param.Parameterized):
             browse_ips_path_btn,
         )
 
+        export_panes = pn.WidgetBox(
+            section_header("Export"),
+            export_excel_btn,
+        )
+
         layout = pn.Column(
             *run_problem_panes,
             "",
             *load_session_panes,
             "",
             *settings_panes,
+            "",
+            *export_panes,
             pn.VSpacer(),
             f"Autopack v{__version__}",
         )
