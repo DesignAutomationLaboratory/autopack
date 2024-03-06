@@ -91,6 +91,26 @@ def harness_volume(harness: data_model.Harness) -> float:
     return np.sum(segment_lengths * segment_radii**2 * np.pi)
 
 
+def harness_length(harness: data_model.Harness) -> float:
+    # Use the first segments to see what kind of coordinates we have
+    first_segment = harness.harness_segments[0]
+
+    if len(first_segment.smooth_coords) > 0:
+        segment_lengths = np.array(
+            [path_length(seg.smooth_coords) for seg in harness.harness_segments]
+        )
+    elif len(first_segment.presmooth_coords) > 0:
+        segment_lengths = np.array(
+            [path_length(seg.presmooth_coords) for seg in harness.harness_segments]
+        )
+    else:
+        segment_lengths = np.array(
+            [path_length(seg.discrete_coords) for seg in harness.harness_segments]
+        )
+
+    return np.sum(segment_lengths)
+
+
 def smooth_cost(harness: data_model.Harness, cost_field: CostField) -> float:
     """
     Returns the cost of the harness through the cost field, calculated
@@ -217,6 +237,16 @@ def design_point_ds(
                     "description": "Total volume of the harness.",
                     "units": "m^3",
                     "objective": True,
+                },
+            ),
+            "length": xr.DataArray(
+                [harness_length(h) for h in harness_solutions],
+                dims=["solution"],
+                attrs={
+                    "title": "Length",
+                    "description": "Total length of the harness.",
+                    "units": "m",
+                    "objective": False,
                 },
             ),
             "collision_length": xr.DataArray(
